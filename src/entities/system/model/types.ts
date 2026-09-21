@@ -3,8 +3,8 @@ export type SystemStatus = 'active' | 'inactive' | 'soon';
 export interface RpgSystem {
   id: string;
   title: string;
-  /** Ativo = tem ao menos 1 personagem ativo. Inativo = organizacional, ainda acessível. Soon = não implementado nesta rodada. */
-  status: SystemStatus;
+  /** false = "em breve" neste compêndio (navegação decorativa, sem personagens/biblioteca reais). */
+  implemented: boolean;
   favorited: boolean;
   playerCount: number;
 }
