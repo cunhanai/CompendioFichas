@@ -1,3 +1,4 @@
+import { signed } from '@/shared/lib/format';
 import { ABILITY_KEYS, SIZE_MODIFIER } from './constants';
 import type {
   Abilities,
@@ -12,10 +13,7 @@ import type {
   VariedMod,
 } from './types';
 
-/** Formats a number with an explicit sign, e.g. 3 -> "+3", -2 -> "-2", 0 -> "+0". */
-export function signed(n: number): string {
-  return (n >= 0 ? '+' : '') + n;
-}
+export { signed };
 
 export function sumMods(mods: VariedMod[]): number {
   return mods.reduce((acc, m) => acc + (Number(m.value) || 0), 0);
