@@ -1,9 +1,18 @@
 import { signed } from '@/shared/lib/format';
-import { ABILITY_KEYS, SIZE_MODIFIER } from './constants';
+import {
+  ABILITY_KEYS,
+  ALIGNMENT_LAW_INITIAL,
+  ALIGNMENT_LAW_LABEL_F,
+  ALIGNMENT_MORAL_INITIAL,
+  ALIGNMENT_MORAL_LABEL_F,
+  SIZE_MODIFIER,
+} from './constants';
 import type {
   Abilities,
   Ability,
   AbilityKey,
+  AlignmentLaw,
+  AlignmentMoral,
   ArmorItem,
   Character,
   EquipmentItem,
@@ -14,6 +23,18 @@ import type {
 } from './types';
 
 export { signed };
+
+/** e.g. "CB" for Caótico/Bom, or just "N" when both axes are Neutro. */
+export function alignmentAbbrev(law: AlignmentLaw, moral: AlignmentMoral): string {
+  if (law === 'Neutro' && moral === 'Neutro') return 'N';
+  return ALIGNMENT_LAW_INITIAL[law] + ALIGNMENT_MORAL_INITIAL[moral];
+}
+
+/** e.g. "Caótica Boa", or "Neutra" when both axes are Neutro. */
+export function alignmentFull(law: AlignmentLaw, moral: AlignmentMoral): string {
+  if (law === 'Neutro' && moral === 'Neutro') return 'Neutra';
+  return `${ALIGNMENT_LAW_LABEL_F[law]} ${ALIGNMENT_MORAL_LABEL_F[moral]}`;
+}
 
 export function sumMods(mods: VariedMod[]): number {
   return mods.reduce((acc, m) => acc + (Number(m.value) || 0), 0);
