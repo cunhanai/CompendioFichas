@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
-import { useNavigation } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import { formatRelativeTime } from '@/shared/lib/format';
 import { classesSummary } from '@/entities/character/model/calculations';
 import { CharCard } from '@/entities/character/ui/CharCard';
@@ -10,7 +11,7 @@ import { Avatar } from '@/shared/ui/atoms/Avatar';
 
 export function DashboardPage() {
   const { user, systems, characters } = useAppData();
-  const { goSheet, goSystems, goCharacters } = useNavigation();
+  const navigate = useNavigate();
 
   const favorite = characters.find((c) => c.favorited);
   const recent = [...characters]
@@ -36,7 +37,7 @@ export function DashboardPage() {
             hpCurrent={favorite.hpCurrent}
             hpMax={favorite.hpMax}
             favorited
-            onOpen={() => goSheet(favorite.id)}
+            onOpen={() => navigate(routes.sheet(favorite.id))}
           />
         </section>
       )}
@@ -48,7 +49,7 @@ export function DashboardPage() {
           </h2>
           <button
             type="button"
-            onClick={goSystems}
+            onClick={() => navigate(routes.systems())}
             className="text-xs font-medium text-amber-500 hover:text-amber-400"
           >
             Ver todos
@@ -65,7 +66,7 @@ export function DashboardPage() {
                 system,
                 characters.some((c) => c.systemId === system.id && c.active),
               )}
-              onOpen={() => goCharacters(system.id)}
+              onOpen={() => navigate(routes.characters(system.id))}
             />
           ))}
         </div>
@@ -83,7 +84,7 @@ export function DashboardPage() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => goSheet(c.id)}
+                  onClick={() => navigate(routes.sheet(c.id))}
                   className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 text-left transition hover:bg-neutral-900"
                 >
                   <Avatar size="sm" />

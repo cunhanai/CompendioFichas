@@ -1,20 +1,21 @@
 import { Home, Layers, LogOut, User } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
-import { useNavigation } from '@/shared/lib/navigation';
-import type { Route } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import { useSession } from '@/entities/session';
 
 const itemBase = 'flex flex-1 flex-col items-center justify-center py-2.5 transition';
 const itemOn = cn(itemBase, 'text-amber-400');
 const itemOff = cn(itemBase, 'text-neutral-600 hover:text-neutral-300');
 
-function isSystemsFamily(route: Route) {
-  return route.name === 'systems' || route.name === 'characters' || route.name === 'sheet';
+function isSystemsFamily(pathname: string) {
+  return pathname.startsWith('/sistemas') || pathname.startsWith('/personagens');
 }
 
 /** Mobile icon-only bottom navigation bar. */
 export function BottomBar() {
-  const { route, goDashboard, goSystems, goProfile } = useNavigation();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { logout } = useSession();
 
   return (
@@ -22,24 +23,24 @@ export function BottomBar() {
       <button
         type="button"
         title="Início"
-        className={route.name === 'dashboard' ? itemOn : itemOff}
-        onClick={goDashboard}
+        className={pathname === routes.dashboard() ? itemOn : itemOff}
+        onClick={() => navigate(routes.dashboard())}
       >
         <Home className="h-5 w-5" strokeWidth={1.8} />
       </button>
       <button
         type="button"
         title="Sistemas"
-        className={isSystemsFamily(route) ? itemOn : itemOff}
-        onClick={goSystems}
+        className={isSystemsFamily(pathname) ? itemOn : itemOff}
+        onClick={() => navigate(routes.systems())}
       >
         <Layers className="h-5 w-5" strokeWidth={1.8} />
       </button>
       <button
         type="button"
         title="Perfil"
-        className={route.name === 'profile' ? itemOn : itemOff}
-        onClick={goProfile}
+        className={pathname === routes.profile() ? itemOn : itemOff}
+        onClick={() => navigate(routes.profile())}
       >
         <User className="h-5 w-5" strokeWidth={1.8} />
       </button>

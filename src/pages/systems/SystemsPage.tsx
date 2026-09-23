@@ -1,12 +1,13 @@
+import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
-import { useNavigation } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import { SystemCard } from '@/entities/system/ui/SystemCard';
 import { getSystemStatus } from '@/entities/system/model/selectors';
 import { Breadcrumbs } from '@/widgets/app-shell';
 
 export function SystemsPage() {
   const { systems, characters } = useAppData();
-  const { goDashboard, goCharacters } = useNavigation();
+  const navigate = useNavigate();
 
   const withStatus = systems.map((s) => ({
     system: s,
@@ -23,7 +24,12 @@ export function SystemsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 md:px-10 md:py-10">
-      <Breadcrumbs items={[{ label: 'Início', onClick: goDashboard }, { label: 'Sistemas' }]} />
+      <Breadcrumbs
+        items={[
+          { label: 'Início', onClick: () => navigate(routes.dashboard()) },
+          { label: 'Sistemas' },
+        ]}
+      />
       <h1 className="font-display mb-6 text-2xl text-neutral-100">Seus sistemas</h1>
 
       {favorite && (
@@ -37,7 +43,7 @@ export function SystemsPage() {
             status={favorite.status}
             favorited={favorite.system.favorited}
             logoUrl={favorite.system.logoUrl}
-            onOpen={() => goCharacters(favorite.system.id)}
+            onOpen={() => navigate(routes.characters(favorite.system.id))}
           />
         </div>
       )}
@@ -58,7 +64,7 @@ export function SystemsPage() {
                 status={status}
                 favorited={system.favorited}
                 logoUrl={system.logoUrl}
-                onOpen={() => goCharacters(system.id)}
+                onOpen={() => navigate(routes.characters(system.id))}
               />
             ))}
           </div>
@@ -78,7 +84,7 @@ export function SystemsPage() {
               status={status}
               favorited={system.favorited}
               logoUrl={system.logoUrl}
-              onOpen={() => goCharacters(system.id)}
+              onOpen={() => navigate(routes.characters(system.id))}
             />
           ))}
         </div>

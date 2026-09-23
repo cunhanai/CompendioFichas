@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Library, Plus, Skull, Star } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
-import { useNavigation } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import { classesSummary, effectiveLevel } from '@/entities/character/model/calculations';
 import { createBlankCharacter } from '@/entities/character/model/factory';
 import { CharCard } from '@/entities/character/ui/CharCard';
@@ -10,9 +11,10 @@ import { Button } from '@/shared/ui/atoms/Button';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { ShareDialog, useShareDialog } from '@/features/sheet-sharing';
 
-export function CharactersPage({ systemId }: { systemId: string }) {
+export function CharactersPage() {
+  const { systemId = '' } = useParams<{ systemId: string }>();
   const { systems, characters, libraries, addCharacter } = useAppData();
-  const { goDashboard, goSystems, goLibrary, goSheet } = useNavigation();
+  const navigate = useNavigate();
   const [shareOpenId, setShareOpenId] = useState<string | null>(null);
 
   const system = systems.find((s) => s.id === systemId);
@@ -25,7 +27,7 @@ export function CharactersPage({ systemId }: { systemId: string }) {
   const handleNewCharacter = () => {
     const character = createBlankCharacter(systemId, 'Novo personagem');
     addCharacter(character);
-    goSheet(character.id);
+    navigate(routes.sheet(character.id));
   };
 
   const cardProps = (c: (typeof roster)[number], showStatusBadge = false) => ({
@@ -36,7 +38,7 @@ export function CharactersPage({ systemId }: { systemId: string }) {
     active: c.active,
     showStatusBadge,
     shared: c.shared,
-    onOpen: () => goSheet(c.id),
+    onOpen: () => navigate(routes.sheet(c.id)),
     onShare: () => setShareOpenId(c.id),
   });
 
@@ -44,8 +46,8 @@ export function CharactersPage({ systemId }: { systemId: string }) {
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 md:px-10 md:py-10">
       <Breadcrumbs
         items={[
-          { label: 'Início', onClick: goDashboard },
-          { label: 'Sistemas', onClick: goSystems },
+          { label: 'Início', onClick: () => navigate(routes.dashboard()) },
+          { label: 'Sistemas', onClick: () => navigate(routes.systems()) },
           { label: system?.title ?? '' },
         ]}
       />
@@ -63,7 +65,7 @@ export function CharactersPage({ systemId }: { systemId: string }) {
             label="Biblioteca compartilhada"
             variant="neutral"
             size="lg"
-            onClick={() => goLibrary(systemId)}
+            onClick={() => navigate(routes.library(systemId))}
           >
             <Library className="h-5 w-5" strokeWidth={1.8} />
           </IconButton>

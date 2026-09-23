@@ -1,4 +1,4 @@
-import { useNavigation } from '@/shared/lib/navigation';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/widgets/app-shell/AppShell';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { SystemsPage } from '@/pages/systems/SystemsPage';
@@ -7,20 +7,19 @@ import { LibraryPage } from '@/pages/library/LibraryPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { SheetPage } from '@/pages/sheet/SheetPage';
 
-/** Renders the icon nav shell + whichever page the current route points to. */
+/** Renders the icon nav shell + whichever page the current URL points to. */
 export function AppScreens() {
-  const { route } = useNavigation();
-
   return (
     <AppShell>
-      {route.name === 'dashboard' && <DashboardPage />}
-      {route.name === 'systems' && <SystemsPage />}
-      {route.name === 'characters' && <CharactersPage systemId={route.systemId} />}
-      {route.name === 'library' && <LibraryPage systemId={route.systemId} />}
-      {route.name === 'profile' && <ProfilePage />}
-      {route.name === 'sheet' && (
-        <SheetPage characterId={route.characterId} initialTab={route.tab} />
-      )}
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/sistemas" element={<SystemsPage />} />
+        <Route path="/sistemas/:systemId/personagens" element={<CharactersPage />} />
+        <Route path="/sistemas/:systemId/biblioteca" element={<LibraryPage />} />
+        <Route path="/perfil" element={<ProfilePage />} />
+        <Route path="/personagens/:characterId" element={<SheetPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AppShell>
   );
 }

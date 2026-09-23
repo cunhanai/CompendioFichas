@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
-import { useNavigation } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import type { LibraryCategory } from '@/entities/library-item/model/types';
 import { toDisplayItems } from '@/entities/library-item/model/selectors';
 import { Breadcrumbs } from '@/widgets/app-shell';
@@ -19,9 +20,10 @@ const CATEGORIES: { value: LibraryCategory; label: string }[] = [
   { value: 'criaturas', label: 'Criaturas' },
 ];
 
-export function LibraryPage({ systemId }: { systemId: string }) {
+export function LibraryPage() {
+  const { systemId = '' } = useParams<{ systemId: string }>();
   const { systems, libraries, addLibraryItem } = useAppData();
-  const { goDashboard, goCharacters } = useNavigation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<LibraryCategory>('magias');
   const [addOpen, setAddOpen] = useState(false);
 
@@ -33,8 +35,8 @@ export function LibraryPage({ systemId }: { systemId: string }) {
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 md:px-10 md:py-10">
       <Breadcrumbs
         items={[
-          { label: 'Início', onClick: goDashboard },
-          { label: system?.title ?? '', onClick: () => goCharacters(systemId) },
+          { label: 'Início', onClick: () => navigate(routes.dashboard()) },
+          { label: system?.title ?? '', onClick: () => navigate(routes.characters(systemId)) },
           { label: 'Biblioteca compartilhada' },
         ]}
       />

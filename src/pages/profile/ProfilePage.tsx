@@ -1,16 +1,22 @@
+import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
-import { useNavigation } from '@/shared/lib/navigation';
+import { routes } from '@/shared/lib/routes';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { AccountCard, PasswordCard } from '@/features/profile-settings';
 
 export function ProfilePage() {
   const { user, updateUser } = useAppData();
-  const { goDashboard } = useNavigation();
+  const navigate = useNavigate();
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-6 md:px-10 md:py-10">
-      <Breadcrumbs items={[{ label: 'Início', onClick: goDashboard }, { label: 'Meu perfil' }]} />
+      <Breadcrumbs
+        items={[
+          { label: 'Início', onClick: () => navigate(routes.dashboard()) },
+          { label: 'Meu perfil' },
+        ]}
+      />
 
       <div className="mb-8 flex items-center gap-4">
         <Avatar tone="amber" size="lg" />
