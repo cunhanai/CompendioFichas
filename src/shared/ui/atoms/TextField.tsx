@@ -19,7 +19,7 @@ export function TextInput({ className, ref, ...props }: TextInputProps) {
     <input
       ref={ref}
       className={cn(
-        'rounded-lg border border-neutral-700 bg-neutral-950 px-3.5 py-2.5 text-sm text-neutral-100 transition outline-none placeholder:text-neutral-600 focus:border-amber-500',
+        'w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3.5 py-2.5 text-sm text-neutral-100 transition outline-none placeholder:text-neutral-600 focus:border-amber-500',
         className,
       )}
       {...props}
