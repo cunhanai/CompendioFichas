@@ -13,14 +13,14 @@ function ToastList() {
 
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed inset-x-0 bottom-4 z-[100] mx-auto flex w-full max-w-sm flex-col gap-2 px-4 md:bottom-6">
+      <Toast.Viewport className="fixed inset-x-0 top-4 z-[100] mx-auto flex w-full max-w-sm flex-col gap-2 px-4 md:top-6">
         {toasts.map((toast) => (
           <Toast.Root
             key={toast.id}
             toast={toast}
             className={cn(
               'relative flex items-start gap-2.5 rounded-xl border bg-neutral-900 p-3.5 pr-9 shadow-lg transition',
-              'data-[ending-style]:opacity-0 data-[starting-style]:translate-y-2 data-[starting-style]:opacity-0',
+              'data-[ending-style]:opacity-0 data-[starting-style]:-translate-y-2 data-[starting-style]:opacity-0',
               toast.type === 'error' && 'border-rose-900/60',
               toast.type === 'success' && 'border-emerald-900/60',
               !toast.type && 'border-neutral-800',
