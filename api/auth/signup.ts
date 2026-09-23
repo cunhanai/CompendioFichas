@@ -6,8 +6,9 @@ import { signupBodySchema } from '../_lib/validation.js';
 import { hashPassword } from '../_lib/auth.js';
 import { toUserProfile } from '../_lib/mappers.js';
 import { createSession, setSessionCookie } from '../_lib/session.js';
+import { withErrorHandling } from '../_lib/handler.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -39,4 +40,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = await createSession(user.id);
   setSessionCookie(res, token);
   res.status(201).json({ user: toUserProfile(user) });
-}
+});

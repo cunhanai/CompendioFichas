@@ -1,10 +1,12 @@
-import type { InputHTMLAttributes, Ref } from 'react';
+import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   ref?: Ref<HTMLInputElement>;
+  /** Content pinned inside the input's right edge, e.g. a show/hide password button. */
+  endAdornment?: ReactNode;
 }
 
 export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -26,11 +28,29 @@ export function TextInput({ className, ref, ...props }: TextInputProps) {
 }
 
 /** Labeled field: small uppercase-ish label above a TextInput, with optional error text. */
-export function TextField({ label, error, className, id, ref, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  className,
+  id,
+  ref,
+  endAdornment,
+  ...props
+}: TextFieldProps) {
   return (
     <label className="flex flex-col gap-1.5" htmlFor={id}>
       {label && <span className="text-xs font-medium text-neutral-400">{label}</span>}
-      <TextInput ref={ref} id={id} className={className} {...props} />
+      <div className="relative">
+        <TextInput
+          ref={ref}
+          id={id}
+          className={cn(endAdornment && 'pr-10', className)}
+          {...props}
+        />
+        {endAdornment && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-1">{endAdornment}</div>
+        )}
+      </div>
       {error && <span className="text-xs text-rose-400">{error}</span>}
     </label>
   );

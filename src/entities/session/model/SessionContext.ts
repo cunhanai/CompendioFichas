@@ -2,7 +2,14 @@ import { createContext } from 'react';
 
 export type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
 
-export type AuthResult = { ok: true } | { ok: false; error: string };
+export type AuthResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /** True for a network/server failure the user can't fix by editing the form. */
+      unexpected: boolean;
+    };
 
 export interface LoginCredentials {
   email: string;

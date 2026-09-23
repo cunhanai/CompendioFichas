@@ -5,6 +5,7 @@ import { db } from '../db/client.js';
 import { users } from '../db/schema.js';
 import { requireUserId } from './_lib/auth.js';
 import { toUserProfile } from './_lib/mappers.js';
+import { withErrorHandling } from './_lib/handler.js';
 
 const updateUserSchema = z.object({
   name: z.string().min(1),
@@ -12,7 +13,7 @@ const updateUserSchema = z.object({
   email: z.email(),
 });
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -45,4 +46,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .returning();
 
   res.status(200).json({ user: toUserProfile(user) });
-}
+});

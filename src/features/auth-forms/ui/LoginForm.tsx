@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSession } from '@/entities/session';
 import { Button } from '@/shared/ui/atoms/Button';
 import { TextField } from '@/shared/ui/atoms/TextField';
+import { PasswordField } from '@/shared/ui/atoms/PasswordField';
+import { useAppToast } from '@/shared/ui/organisms';
 import { loginSchema, type LoginValues } from '../model/schemas';
 
 export interface LoginFormProps {
@@ -12,6 +14,7 @@ export interface LoginFormProps {
 
 export function LoginForm({ onGoSignup }: LoginFormProps) {
   const { login } = useSession();
+  const toast = useAppToast();
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -22,7 +25,12 @@ export function LoginForm({ onGoSignup }: LoginFormProps) {
   const onSubmit = async (values: LoginValues) => {
     setFormError(null);
     const result = await login(values);
-    if (!result.ok) setFormError(result.error);
+    if (result.ok) return;
+    if (result.unexpected) {
+      toast.error(result.error);
+    } else {
+      setFormError(result.error);
+    }
   };
 
   return (
@@ -36,9 +44,8 @@ export function LoginForm({ onGoSignup }: LoginFormProps) {
           error={errors.email?.message}
           {...register('email')}
         />
-        <TextField
+        <PasswordField
           label="Senha"
-          type="password"
           placeholder="••••••••"
           error={errors.password?.message}
           {...register('password')}

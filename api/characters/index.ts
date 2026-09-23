@@ -2,9 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../db/client.js';
 import { characters } from '../../db/schema.js';
 import { requireUserId } from '../_lib/auth.js';
+import { withErrorHandling } from '../_lib/handler.js';
 import type { Character } from '../../src/entities/character/model/types.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -25,4 +26,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .returning();
 
   res.status(201).json({ character: row.data });
-}
+});

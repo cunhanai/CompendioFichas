@@ -2,6 +2,7 @@ export * from './Avatar';
 export * from './Badge';
 export * from './Button';
 export * from './IconButton';
+export * from './PasswordField';
 export * from './Switch';
 export * from './TextField';
 export * from './Tooltip';

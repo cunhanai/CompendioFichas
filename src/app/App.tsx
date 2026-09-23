@@ -1,13 +1,16 @@
 import { BrowserRouter } from 'react-router-dom';
+import { AppToastProvider } from '@/shared/ui/organisms';
 import { AppProviders } from './providers';
 import { AppRoot } from './AppRoot';
 
 function App() {
   return (
     <BrowserRouter>
-      <AppProviders>
-        <AppRoot />
-      </AppProviders>
+      <AppToastProvider>
+        <AppProviders>
+          <AppRoot />
+        </AppProviders>
+      </AppToastProvider>
     </BrowserRouter>
   );
 }

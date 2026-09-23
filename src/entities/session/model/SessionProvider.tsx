@@ -9,6 +9,19 @@ import {
   type SignupCredentials,
 } from './SessionContext';
 
+/** Status codes the auth endpoints use for something the user can fix by editing the form. */
+const EXPECTED_AUTH_STATUSES = [400, 401, 409];
+
+/** Anything outside the expected set (network failure, 404, 500, ...) is the server's fault. */
+function authFailure(err: unknown, fallback: string): AuthResult {
+  const apiErr = err instanceof ApiError ? err : null;
+  return {
+    ok: false,
+    error: apiErr?.message ?? fallback,
+    unexpected: !apiErr?.status || !EXPECTED_AUTH_STATUSES.includes(apiErr.status),
+  };
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>('loading');
 
@@ -25,10 +38,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus('authenticated');
       return { ok: true };
     } catch (err) {
-      return {
-        ok: false,
-        error: err instanceof ApiError ? err.message : 'Não foi possível entrar.',
-      };
+      return authFailure(err, 'Não foi possível entrar.');
     }
   };
 
@@ -38,10 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus('authenticated');
       return { ok: true };
     } catch (err) {
-      return {
-        ok: false,
-        error: err instanceof ApiError ? err.message : 'Não foi possível criar a conta.',
-      };
+      return authFailure(err, 'Não foi possível criar a conta.');
     }
   };
 

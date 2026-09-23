@@ -3,9 +3,10 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { characters } from '../../db/schema.js';
 import { requireUserId } from '../_lib/auth.js';
+import { withErrorHandling } from '../_lib/handler.js';
 import type { Character } from '../../src/entities/character/model/types.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -29,4 +30,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.status(200).json({ character: row.data });
-}
+});

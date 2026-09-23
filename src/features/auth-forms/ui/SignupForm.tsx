@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSession } from '@/entities/session';
 import { Button } from '@/shared/ui/atoms/Button';
 import { TextField } from '@/shared/ui/atoms/TextField';
+import { PasswordField } from '@/shared/ui/atoms/PasswordField';
+import { useAppToast } from '@/shared/ui/organisms';
 import { signupSchema, type SignupValues } from '../model/schemas';
 
 export interface SignupFormProps {
@@ -12,6 +14,7 @@ export interface SignupFormProps {
 
 export function SignupForm({ onGoLogin }: SignupFormProps) {
   const { signup } = useSession();
+  const toast = useAppToast();
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -22,7 +25,12 @@ export function SignupForm({ onGoLogin }: SignupFormProps) {
   const onSubmit = async (values: SignupValues) => {
     setFormError(null);
     const result = await signup(values);
-    if (!result.ok) setFormError(result.error);
+    if (result.ok) return;
+    if (result.unexpected) {
+      toast.error(result.error);
+    } else {
+      setFormError(result.error);
+    }
   };
 
   return (
@@ -43,16 +51,14 @@ export function SignupForm({ onGoLogin }: SignupFormProps) {
           error={errors.email?.message}
           {...register('email')}
         />
-        <TextField
+        <PasswordField
           label="Senha"
-          type="password"
           placeholder="••••••••"
           error={errors.password?.message}
           {...register('password')}
         />
-        <TextField
+        <PasswordField
           label="Confirmar senha"
-          type="password"
           placeholder="••••••••"
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
