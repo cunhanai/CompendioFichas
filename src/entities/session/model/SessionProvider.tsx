@@ -6,7 +6,6 @@ import {
   type LoginCredentials,
   type SessionContextValue,
   type SessionStatus,
-  type SignupCredentials,
 } from './SessionContext';
 
 /** Status codes the auth endpoints use for something the user can fix by editing the form. */
@@ -42,16 +41,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (values: SignupCredentials): Promise<AuthResult> => {
-    try {
-      await api.post('/auth/signup', values);
-      setStatus('authenticated');
-      return { ok: true };
-    } catch (err) {
-      return authFailure(err, 'Não foi possível criar a conta.');
-    }
-  };
-
   const logout = async () => {
     await api.post('/auth/logout').catch(() => {});
     setStatus('anonymous');
@@ -61,7 +50,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     status,
     isAuthenticated: status === 'authenticated',
     login,
-    signup,
     logout,
   };
 

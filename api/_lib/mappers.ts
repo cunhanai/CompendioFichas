@@ -5,5 +5,11 @@ type UserRow = typeof users.$inferSelect;
 
 /** Never leak passwordHash to the client. */
 export function toUserProfile(row: UserRow): UserProfile {
-  return { id: row.id, name: row.name, username: row.username, email: row.email };
+  return {
+    id: row.id,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    isAdmin: row.isAdmin,
+  };
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Library, Plus, Skull, Star } from 'lucide-react';
+import { Library, Plus, Skull, Star, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
@@ -9,6 +9,7 @@ import { CharCard } from '@/entities/character/ui/CharCard';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
+import { EmptyState } from '@/shared/ui/molecules/EmptyState';
 import { ShareDialog, useShareDialog } from '@/features/sheet-sharing';
 
 export function CharactersPage() {
@@ -91,14 +92,26 @@ export function CharactersPage() {
         </>
       )}
 
-      <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-emerald-500/80 uppercase">
-        Ativos
-      </h2>
-      <div className="mb-6 flex flex-col gap-2.5">
-        {active.map((c) => (
-          <CharCard key={c.id} {...cardProps(c, true)} />
-        ))}
-      </div>
+      {active.length > 0 ? (
+        <>
+          <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-emerald-500/80 uppercase">
+            Ativos
+          </h2>
+          <div className="mb-6 flex flex-col gap-2.5">
+            {active.map((c) => (
+              <CharCard key={c.id} {...cardProps(c, true)} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="mb-6">
+          <EmptyState
+            icon={<Users className="h-6 w-6" strokeWidth={1.6} />}
+            title="Nenhum personagem ativo"
+            description="Crie um personagem ou reative um dos inativos abaixo para começar a jogar."
+          />
+        </div>
+      )}
 
       {inactive.length > 0 && (
         <>

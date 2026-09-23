@@ -12,13 +12,7 @@ export type AuthResult =
     };
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface SignupCredentials {
   username: string;
-  email: string;
   password: string;
 }
 
@@ -26,7 +20,6 @@ export interface SessionContextValue {
   status: SessionStatus;
   isAuthenticated: boolean;
   login: (values: LoginCredentials) => Promise<AuthResult>;
-  signup: (values: SignupCredentials) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 

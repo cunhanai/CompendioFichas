@@ -8,6 +8,13 @@
       "when": 1790174201286,
       "tag": "0000_mean_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790197574434,
+      "tag": "0001_burly_patriot",
+      "breakpoints": true
     }
   ]
 }

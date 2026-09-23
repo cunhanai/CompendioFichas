@@ -8,11 +8,7 @@ import { PasswordField } from '@/shared/ui/atoms/PasswordField';
 import { useAppToast } from '@/shared/ui/organisms';
 import { loginSchema, type LoginValues } from '../model/schemas';
 
-export interface LoginFormProps {
-  onGoSignup: () => void;
-}
-
-export function LoginForm({ onGoSignup }: LoginFormProps) {
+export function LoginForm() {
   const { login } = useSession();
   const toast = useAppToast();
   const [formError, setFormError] = useState<string | null>(null);
@@ -38,11 +34,12 @@ export function LoginForm({ onGoSignup }: LoginFormProps) {
       <h2 className="font-display mb-5 text-lg text-neutral-100">Entrar</h2>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
         <TextField
-          label="E-mail"
-          type="email"
-          placeholder="voce@email.com"
-          error={errors.email?.message}
-          {...register('email')}
+          label="Nome de usuário"
+          type="text"
+          autoComplete="username"
+          placeholder="seu_usuario"
+          error={errors.username?.message}
+          {...register('username')}
         />
         <PasswordField
           label="Senha"
@@ -55,16 +52,6 @@ export function LoginForm({ onGoSignup }: LoginFormProps) {
           Entrar
         </Button>
       </form>
-      <p className="mt-5 text-center text-xs text-neutral-500">
-        Não tem conta?{' '}
-        <button
-          type="button"
-          onClick={onGoSignup}
-          className="font-medium text-amber-400 hover:text-amber-300"
-        >
-          Criar conta
-        </button>
-      </p>
     </div>
   );
 }

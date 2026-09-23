@@ -19,11 +19,11 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;
   }
-  const { email, password } = parsed.data;
+  const { username, password } = parsed.data;
 
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+    res.status(401).json({ error: 'Usuário ou senha incorretos.' });
     return;
   }
 

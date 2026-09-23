@@ -7,6 +7,6 @@ export const signupBodySchema = z.object({
 });
 
 export const loginBodySchema = z.object({
-  email: z.email('Digite um e-mail válido'),
+  username: z.string().min(1, 'Digite seu nome de usuário'),
   password: z.string().min(6, 'A senha deve ter ao menos 6 caracteres'),
 });

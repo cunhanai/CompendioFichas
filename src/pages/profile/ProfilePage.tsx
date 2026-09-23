@@ -4,6 +4,7 @@ import { routes } from '@/shared/lib/routes';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { AccountCard, PasswordCard } from '@/features/profile-settings';
+import { CreateUserForm } from '@/features/user-admin';
 
 export function ProfilePage() {
   const { user, updateUser } = useAppData();
@@ -28,6 +29,7 @@ export function ProfilePage() {
 
       <AccountCard user={user} onSave={(values) => updateUser((u) => ({ ...u, ...values }))} />
       <PasswordCard />
+      {user.isAdmin && <CreateUserForm />}
     </main>
   );
 }
