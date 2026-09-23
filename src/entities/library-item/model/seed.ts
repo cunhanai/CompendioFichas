@@ -1,5 +1,5 @@
-import { PATHFINDER_SYSTEM_ID } from '@/entities/system/model/seed';
-import type { SharedLibrary } from './types';
+import { PATHFINDER_SYSTEM_ID } from '../../system/model/seed.js';
+import type { SharedLibrary } from './types.js';
 
 export const SEED_LIBRARY: SharedLibrary = {
   systemId: PATHFINDER_SYSTEM_ID,

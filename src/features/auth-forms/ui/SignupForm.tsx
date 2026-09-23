@@ -1,7 +1,7 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSession } from '@/entities/session';
-import { useAppData } from '@/app/providers';
 import { Button } from '@/shared/ui/atoms/Button';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { signupSchema, type SignupValues } from '../model/schemas';
@@ -12,21 +12,17 @@ export interface SignupFormProps {
 
 export function SignupForm({ onGoLogin }: SignupFormProps) {
   const { signup } = useSession();
-  const { updateUser } = useAppData();
+  const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<SignupValues>({ resolver: zodResolver(signupSchema) });
 
-  const onSubmit = (values: SignupValues) => {
-    updateUser((u) => ({
-      ...u,
-      name: values.username,
-      username: values.username,
-      email: values.email,
-    }));
-    signup();
+  const onSubmit = async (values: SignupValues) => {
+    setFormError(null);
+    const result = await signup(values);
+    if (!result.ok) setFormError(result.error);
   };
 
   return (
@@ -61,6 +57,7 @@ export function SignupForm({ onGoLogin }: SignupFormProps) {
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
         />
+        {formError && <p className="text-xs text-rose-400">{formError}</p>}
         <Button type="submit" className="mt-2" disabled={isSubmitting}>
           Criar conta
         </Button>

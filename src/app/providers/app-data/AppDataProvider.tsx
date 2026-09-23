@@ -1,16 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { readJson, writeJson } from '@/shared/lib/storage';
+import { useSession } from '@/entities/session';
+import { api } from '@/shared/lib/api';
 import type { Character } from '@/entities/character/model/types';
-import { SEED_CHARACTERS } from '@/entities/character/model/seed';
 import type { RpgSystem } from '@/entities/system/model/types';
-import { SEED_SYSTEMS } from '@/entities/system/model/seed';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
-import { SEED_LIBRARY } from '@/entities/library-item/model/seed';
 import type { UserProfile } from '@/entities/user/model/types';
-import { SEED_USER } from '@/entities/user/model/seed';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
-
-const STORAGE_KEY = 'compendio:data';
 
 interface AppData {
   user: UserProfile;
@@ -19,35 +14,74 @@ interface AppData {
   libraries: Record<string, SharedLibrary>;
 }
 
-const SEED_DATA: AppData = {
-  user: SEED_USER,
-  systems: SEED_SYSTEMS,
-  characters: SEED_CHARACTERS,
-  libraries: { [SEED_LIBRARY.systemId]: SEED_LIBRARY },
-};
-
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => readJson(STORAGE_KEY, SEED_DATA));
+  const { isAuthenticated } = useSession();
+  const [data, setData] = useState<AppData | null>(null);
 
   useEffect(() => {
-    writeJson(STORAGE_KEY, data);
-  }, [data]);
+    if (!isAuthenticated) return;
 
-  const updateUser: AppDataContextValue['updateUser'] = (updater) =>
-    setData((d) => ({ ...d, user: updater(d.user) }));
+    let cancelled = false;
+    api.get<AppData>('/bootstrap').then(
+      (loaded) => {
+        if (!cancelled) setData(loaded);
+      },
+      (err: unknown) => console.error('Failed to load app data', err),
+    );
 
-  const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) =>
-    setData((d) => ({ ...d, characters: d.characters.map((c) => (c.id === id ? updater(c) : c)) }));
+    return () => {
+      cancelled = true;
+      setData(null);
+    };
+  }, [isAuthenticated]);
 
-  const addCharacter: AppDataContextValue['addCharacter'] = (character) =>
-    setData((d) => ({ ...d, characters: [...d.characters, character] }));
+  if (!isAuthenticated) return <>{children}</>;
+  if (!data) return <div className="min-h-screen bg-neutral-950" />;
 
-  const withLibrary = (systemId: string, mutate: (lib: SharedLibrary) => SharedLibrary) =>
+  const updateUser: AppDataContextValue['updateUser'] = (updater) => {
     setData((d) => {
+      if (!d) return d;
+      const user = updater(d.user);
+      api
+        .patch('/user', user)
+        .catch((err: unknown) => console.error('Failed to save profile', err));
+      return { ...d, user };
+    });
+  };
+
+  const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) => {
+    setData((d) => {
+      if (!d) return d;
+      const characters = d.characters.map((c) => (c.id === id ? updater(c) : c));
+      const updated = characters.find((c) => c.id === id);
+      if (updated) {
+        api
+          .patch(`/characters/${id}`, updated)
+          .catch((err: unknown) => console.error('Failed to save character', err));
+      }
+      return { ...d, characters };
+    });
+  };
+
+  const addCharacter: AppDataContextValue['addCharacter'] = (character) => {
+    setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
+    api
+      .post('/characters', character)
+      .catch((err: unknown) => console.error('Failed to create character', err));
+  };
+
+  const withLibrary = (systemId: string, mutate: (lib: SharedLibrary) => SharedLibrary) => {
+    setData((d) => {
+      if (!d) return d;
       const lib = d.libraries[systemId];
       if (!lib) return d;
-      return { ...d, libraries: { ...d.libraries, [systemId]: mutate(lib) } };
+      const nextLib = mutate(lib);
+      api
+        .patch(`/libraries/${systemId}`, nextLib)
+        .catch((err: unknown) => console.error('Failed to save library', err));
+      return { ...d, libraries: { ...d.libraries, [systemId]: nextLib } };
     });
+  };
 
   const addLibraryItem: AppDataContextValue['addLibraryItem'] = (
     systemId,
