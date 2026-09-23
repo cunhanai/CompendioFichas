@@ -274,7 +274,7 @@ const ELYNDRA: Character = {
 const BORIN: Character = {
   id: 'borin',
   systemId: PATHFINDER_SYSTEM_ID,
-  name: 'Borin Punhoférreo',
+  name: 'Boris Ironchest',
   favorited: false,
   active: true,
   shared: true,
@@ -301,7 +301,7 @@ const BORIN: Character = {
     { id: 'lang-2', name: 'Anão' },
   ],
   story:
-    'Filho de uma linhagem de ferreiros de Kraggodan, Borin trocou a forja pela espada após o clã ser atacado por goblins. Carrega o martelo de seu avô e um rancor duradouro contra tudo que rasteja em cavernas.',
+    'Filho de uma linhagem de ferreiros de Kraggodan, Boris trocou a forja pela espada após o clã ser atacado por goblins. Carrega o martelo de seu avô e um rancor duradouro contra tudo que rasteja em cavernas.',
 
   xpEnabled: true,
   xpCurrent: 15200,
