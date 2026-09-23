@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/shared/lib/cn';
+import { Tooltip } from './Tooltip';
 
 const iconButtonVariants = cva(
   'inline-flex shrink-0 items-center justify-center rounded-lg transition disabled:cursor-not-allowed disabled:opacity-40',
@@ -33,12 +34,13 @@ export interface IconButtonProps
 /** Square icon-only button. `label` sets both `title` and `aria-label` for accessibility. */
 export function IconButton({ className, variant, size, label, ...props }: IconButtonProps) {
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      className={cn(iconButtonVariants({ variant, size }), className)}
-      {...props}
-    />
+    <Tooltip content={label}>
+      <button
+        type="button"
+        aria-label={label}
+        className={cn(iconButtonVariants({ variant, size }), className)}
+        {...props}
+      />
+    </Tooltip>
   );
 }

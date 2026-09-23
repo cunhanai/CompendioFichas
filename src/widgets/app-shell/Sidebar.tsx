@@ -1,4 +1,4 @@
-import { Home, Layers, LogOut, User } from 'lucide-react';
+import { FileText, Home, Layers, LogOut, User } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useNavigation } from '@/shared/lib/navigation';
 import type { Route } from '@/shared/lib/navigation';
@@ -20,16 +20,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-neutral-800 bg-neutral-950 py-6 md:flex">
       <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700">
-        <svg
-          viewBox="0 0 24 24"
-          className="text-ink h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-        >
-          <path d="M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
-          <path d="M15 4v5h5" />
-        </svg>
+        <FileText className="text-ink h-5 w-5" strokeWidth={1.8} />
       </div>
       <button
         type="button"

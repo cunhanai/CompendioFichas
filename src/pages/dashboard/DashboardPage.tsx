@@ -60,6 +60,7 @@ export function DashboardPage() {
               key={system.id}
               title={system.title}
               favorited={system.favorited}
+              logoUrl={system.logoUrl}
               status={getSystemStatus(
                 system,
                 characters.some((c) => c.systemId === system.id && c.active),

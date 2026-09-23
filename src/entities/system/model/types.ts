@@ -7,4 +7,6 @@ export interface RpgSystem {
   implemented: boolean;
   favorited: boolean;
   playerCount: number;
+  /** Logo oficial do sistema, se houver. Sem ela, o card cai no ícone de placeholder. */
+  logoUrl?: string;
 }

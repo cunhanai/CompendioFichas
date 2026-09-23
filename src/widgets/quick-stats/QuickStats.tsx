@@ -21,7 +21,7 @@ export function QuickStats({ characterId }: { characterId: string }) {
         <h3 className="mb-4 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
           Atributos
         </h3>
-        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6 lg:grid-cols-2">
           {ABILITY_KEYS.map((key) => (
             <AbilityScoreCard
               key={key}

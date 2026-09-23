@@ -3,6 +3,7 @@ import type { ComputedSkill } from '@/entities/character/model/calculations';
 import { signed } from '@/entities/character/model/calculations';
 import { ABILITY_COLOR_CLASS, ABILITY_SHORT } from '@/entities/character/model/constants';
 import { cn } from '@/shared/lib/cn';
+import { Tooltip } from '@/shared/ui/atoms/Tooltip';
 
 export function SkillRow({ skill, onOpen }: { skill: ComputedSkill; onOpen: () => void }) {
   return (
@@ -27,14 +28,16 @@ export function SkillRow({ skill, onOpen }: { skill: ComputedSkill; onOpen: () =
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-3 text-xs text-neutral-500">
-        <span className="flex items-center gap-1" title="Graduação">
-          <TrendingUp className="h-3 w-3" strokeWidth={2} />
-          {skill.ranks}
-        </span>
-        {skill.miscTotal !== 0 && (
-          <span className="font-medium text-amber-400" title="Modificador variado">
-            {signed(skill.miscTotal)}
+        <Tooltip content="Graduação">
+          <span className="flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" strokeWidth={2} />
+            {skill.ranks}
           </span>
+        </Tooltip>
+        {skill.miscTotal !== 0 && (
+          <Tooltip content="Modificador variado">
+            <span className="font-medium text-amber-400">{signed(skill.miscTotal)}</span>
+          </Tooltip>
         )}
         <span className="text-base font-semibold text-neutral-100">{signed(skill.total)}</span>
       </span>

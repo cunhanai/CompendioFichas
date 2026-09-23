@@ -20,18 +20,24 @@ export interface SystemCardProps {
   favorited: boolean;
   onOpen: () => void;
   variant?: 'grid' | 'wide';
+  logoUrl?: string;
 }
 
-/** Logo placeholder + title + status, in either a compact grid tile or a wide row. */
+/** Official logo (when available) or a generic placeholder + title + status, in a compact grid tile or a wide row. */
 export function SystemCard({
   title,
   status,
   favorited,
   onOpen,
   variant = 'grid',
+  logoUrl,
 }: SystemCardProps) {
   const disabled = status === 'soon';
-  const logo = (
+  const logo = logoUrl ? (
+    <div className="flex h-10 shrink-0 items-center justify-center rounded-lg bg-neutral-50 px-2 py-1.5">
+      <img src={logoUrl} alt={title} className="h-full w-auto object-contain" />
+    </div>
+  ) : (
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-neutral-500">
       <BookOpen className="h-5 w-5" strokeWidth={1.6} />
     </div>

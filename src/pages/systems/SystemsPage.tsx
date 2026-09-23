@@ -36,6 +36,7 @@ export function SystemsPage() {
             title={favorite.system.title}
             status={favorite.status}
             favorited={favorite.system.favorited}
+            logoUrl={favorite.system.logoUrl}
             onOpen={() => goCharacters(favorite.system.id)}
           />
         </div>
@@ -56,6 +57,7 @@ export function SystemsPage() {
                 title={system.title}
                 status={status}
                 favorited={system.favorited}
+                logoUrl={system.logoUrl}
                 onOpen={() => goCharacters(system.id)}
               />
             ))}
@@ -75,6 +77,7 @@ export function SystemsPage() {
               title={system.title}
               status={status}
               favorited={system.favorited}
+              logoUrl={system.logoUrl}
               onOpen={() => goCharacters(system.id)}
             />
           ))}
@@ -91,6 +94,7 @@ export function SystemsPage() {
                   title={system.title}
                   status={status}
                   favorited={system.favorited}
+                  logoUrl={system.logoUrl}
                   onOpen={() => {}}
                 />
               ))}

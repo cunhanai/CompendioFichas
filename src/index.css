@@ -29,6 +29,12 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Tailwind v4 preflight restores native `appearance: button`; every button in this
+   app is custom-styled, so undo that globally instead of per component. */
+button {
+  appearance: none;
+}
+
 .font-display {
   font-family: var(--font-display);
 }
