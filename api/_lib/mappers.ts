@@ -9,7 +9,7 @@ export function toUserProfile(row: UserRow): UserProfile {
     id: row.id,
     name: row.name,
     username: row.username,
-    email: row.email,
+    avatarUrl: row.avatarUrl,
     isAdmin: row.isAdmin,
   };
 }

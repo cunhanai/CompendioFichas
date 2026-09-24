@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus } from 'lucide-react';
 import { api, ApiError } from '@/shared/lib/api';
-import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
+import { SectionCard } from '@/shared/ui/molecules/SectionCard';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { PasswordField } from '@/shared/ui/atoms/PasswordField';
 import { Button } from '@/shared/ui/atoms/Button';
@@ -24,10 +23,10 @@ export function CreateUserForm() {
     formState: { errors, isSubmitting },
   } = useForm<CreateUserValues>({ resolver: zodResolver(createUserSchema) });
 
-  const onSubmit = async ({ username, email, password }: CreateUserValues) => {
+  const onSubmit = async ({ username, password }: CreateUserValues) => {
     setFormError(null);
     try {
-      await api.post('/auth/signup', { username, email, password });
+      await api.post('/auth/signup', { username, password });
       toast.success(`Usuário "${username}" criado.`);
       reset();
     } catch (err) {
@@ -42,24 +41,13 @@ export function CreateUserForm() {
   };
 
   return (
-    <SectionCard className="mb-5">
-      <SectionCardHeader
-        title="Criar usuário"
-        action={<UserPlus className="h-4 w-4 text-neutral-500" strokeWidth={1.8} />}
-      />
+    <SectionCard>
       <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
         <TextField
           label="Nome de usuário"
           placeholder="novo_usuario"
           error={errors.username?.message}
           {...register('username')}
-        />
-        <TextField
-          label="E-mail"
-          type="email"
-          placeholder="pessoa@email.com"
-          error={errors.email?.message}
-          {...register('email')}
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <PasswordField

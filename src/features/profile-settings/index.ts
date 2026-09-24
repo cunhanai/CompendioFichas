@@ -1,2 +1,2 @@
 export { AccountCard } from './ui/AccountCard';
-export { PasswordCard } from './ui/PasswordCard';
+export { AvatarUpload } from './ui/AvatarUpload';

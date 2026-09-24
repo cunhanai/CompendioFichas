@@ -70,84 +70,93 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .catch((err: unknown) => console.error('Failed to create character', err));
   };
 
-  const withLibrary = (systemId: string, mutate: (lib: SharedLibrary) => SharedLibrary) => {
+  /** Optimistically appends one item to a system's library category, then persists it to its own table. */
+  const postLibraryItem = <C extends keyof SharedLibrary>(
+    systemId: string,
+    category: C,
+    item: SharedLibrary[C][number],
+  ) => {
     setData((d) => {
       if (!d) return d;
       const lib = d.libraries[systemId];
       if (!lib) return d;
-      const nextLib = mutate(lib);
-      api
-        .patch(`/libraries/${systemId}`, nextLib)
-        .catch((err: unknown) => console.error('Failed to save library', err));
+      const nextLib = { ...lib, [category]: [...lib[category], item] };
       return { ...d, libraries: { ...d.libraries, [systemId]: nextLib } };
     });
+    api
+      .post(`/libraries/${systemId}/${category}`, item)
+      .catch((err: unknown) => console.error('Failed to save library item', err));
   };
 
   const addLibraryItem: AppDataContextValue['addLibraryItem'] = (
     systemId,
     category,
     { name, desc },
-  ) =>
-    withLibrary(systemId, (lib) => {
-      const id = `${category}-${crypto.randomUUID()}`;
-      switch (category) {
-        case 'talentos':
-        case 'pericias':
-        case 'idiomas':
-        case 'criaturas':
-          return { ...lib, [category]: [...lib[category], { id, name, desc, tag: '' }] };
-        case 'habilidades':
-          return {
-            ...lib,
-            habilidades: [...lib.habilidades, { id, name, subtitle: desc, uses: '', desc }],
-          };
-        case 'magias':
-          return {
-            ...lib,
-            magias: [
-              ...lib.magias,
-              {
-                id,
-                name,
-                school: '',
-                circle: 0,
-                castTime: '',
-                range: '',
-                duration: '',
-                resistance: '',
-                desc,
-              },
-            ],
-          };
-        case 'armas':
-          return {
-            ...lib,
-            armas: [
-              ...lib.armas,
-              {
-                id,
-                name,
-                atk: '+0',
-                crit: 'x2',
-                dmg: '1d6',
-                type: '',
-                range: '—',
-                desc,
-                hasAmmo: false,
-                ammoMax: 0,
-              },
-            ],
-          };
-        default:
-          return lib;
-      }
-    });
+  ) => {
+    const id = crypto.randomUUID();
+    switch (category) {
+      case 'talentos':
+      case 'pericias':
+      case 'idiomas':
+      case 'criaturas':
+        return postLibraryItem(systemId, category, { id, name, desc, tag: '' });
+      case 'habilidades':
+        return postLibraryItem(systemId, 'habilidades', {
+          id,
+          name,
+          subtitle: desc,
+          uses: '',
+          desc,
+        });
+      case 'magias':
+        return postLibraryItem(systemId, 'magias', {
+          id,
+          name,
+          school: '',
+          circle: 0,
+          castTime: '',
+          range: '',
+          duration: '',
+          resistance: '',
+          desc,
+        });
+      case 'armas':
+        return postLibraryItem(systemId, 'armas', {
+          id,
+          name,
+          atk: '+0',
+          crit: 'x2',
+          dmg: '1d6',
+          type: '',
+          range: '—',
+          desc,
+          hasAmmo: false,
+          ammoMax: 0,
+        });
+    }
+  };
 
   const addWeaponToLibrary: AppDataContextValue['addWeaponToLibrary'] = (systemId, weapon) =>
-    withLibrary(systemId, (lib) => ({ ...lib, armas: [...lib.armas, weapon] }));
+    postLibraryItem(systemId, 'armas', weapon);
 
   const addSpecialToLibrary: AppDataContextValue['addSpecialToLibrary'] = (systemId, special) =>
-    withLibrary(systemId, (lib) => ({ ...lib, habilidades: [...lib.habilidades, special] }));
+    postLibraryItem(systemId, 'habilidades', special);
+
+  const toggleSystemFavorite: AppDataContextValue['toggleSystemFavorite'] = (systemId) => {
+    setData((d) => {
+      if (!d) return d;
+      const systems = d.systems.map((s) =>
+        s.id === systemId ? { ...s, favorited: !s.favorited } : s,
+      );
+      const next = systems.find((s) => s.id === systemId);
+      if (next) {
+        api
+          .patch(`/systems/${systemId}`, { favorited: next.favorited })
+          .catch((err: unknown) => console.error('Failed to save system', err));
+      }
+      return { ...d, systems };
+    });
+  };
 
   const value: AppDataContextValue = {
     user: data.user,
@@ -160,6 +169,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     addLibraryItem,
     addWeaponToLibrary,
     addSpecialToLibrary,
+    toggleSystemFavorite,
   };
 
   return <AppDataContext value={value}>{children}</AppDataContext>;

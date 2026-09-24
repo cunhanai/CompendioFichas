@@ -5,5 +5,6 @@ export const routes = {
   characters: (systemId: string) => `/sistemas/${systemId}/personagens`,
   library: (systemId: string) => `/sistemas/${systemId}/biblioteca`,
   profile: () => '/perfil',
+  adminCreateUser: () => '/perfil/criar-usuario',
   sheet: (characterId: string) => `/personagens/${characterId}`,
 };

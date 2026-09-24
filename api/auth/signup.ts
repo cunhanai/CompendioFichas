@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { users } from '../../db/schema.js';
 import { signupBodySchema } from '../_lib/validation.js';
@@ -32,22 +32,22 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;
   }
-  const { username, email, password } = parsed.data;
+  const { username, password } = parsed.data;
 
   const [existing] = await db
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.email, email), eq(users.username, username)))
+    .where(eq(users.username, username))
     .limit(1);
   if (existing) {
-    res.status(409).json({ error: 'Já existe uma conta com esse e-mail ou nome de usuário.' });
+    res.status(409).json({ error: 'Já existe uma conta com esse nome de usuário.' });
     return;
   }
 
   const passwordHash = await hashPassword(password);
   const [user] = await db
     .insert(users)
-    .values({ name: username, username, email, passwordHash })
+    .values({ name: username, username, passwordHash })
     .returning();
 
   res.status(201).json({ user: toUserProfile(user) });

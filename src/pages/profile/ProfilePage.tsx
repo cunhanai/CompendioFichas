@@ -1,10 +1,10 @@
+import { UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
-import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Breadcrumbs } from '@/widgets/app-shell';
-import { AccountCard, PasswordCard } from '@/features/profile-settings';
-import { CreateUserForm } from '@/features/user-admin';
+import { Button } from '@/shared/ui/atoms/Button';
+import { AccountCard, AvatarUpload } from '@/features/profile-settings';
 
 export function ProfilePage() {
   const { user, updateUser } = useAppData();
@@ -20,7 +20,10 @@ export function ProfilePage() {
       />
 
       <div className="mb-8 flex items-center gap-4">
-        <Avatar tone="amber" size="lg" />
+        <AvatarUpload
+          src={user.avatarUrl}
+          onChange={(avatarUrl) => updateUser((u) => ({ ...u, avatarUrl }))}
+        />
         <div className="min-w-0">
           <h1 className="font-display text-2xl text-neutral-100">{user.name}</h1>
           <p className="text-sm text-neutral-500">@{user.username}</p>
@@ -28,8 +31,17 @@ export function ProfilePage() {
       </div>
 
       <AccountCard user={user} onSave={(values) => updateUser((u) => ({ ...u, ...values }))} />
-      <PasswordCard />
-      {user.isAdmin && <CreateUserForm />}
+
+      {user.isAdmin && (
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={() => navigate(routes.adminCreateUser())}
+        >
+          <UserPlus className="h-4 w-4" strokeWidth={1.8} />
+          Criar usuário
+        </Button>
+      )}
     </main>
   );
 }

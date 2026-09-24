@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { characters, sharedLibraries, systems, users } from '../db/schema.js';
+import { characters, systems, users } from '../db/schema.js';
+import { loadLibraries } from '../db/library.js';
 import { toUserProfile } from './_lib/mappers.js';
 import { requireUserId } from './_lib/auth.js';
 import { withErrorHandling } from './_lib/handler.js';
-import type { SharedLibrary } from '../src/entities/library-item/model/types.js';
 
 export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -16,11 +16,10 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   const userId = await requireUserId(req, res);
   if (!userId) return;
 
-  const [user, systemRows, characterRows, libraryRows] = await Promise.all([
+  const [user, systemRows, characterRows] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     db.select().from(systems),
     db.select().from(characters).where(eq(characters.userId, userId)),
-    db.select().from(sharedLibraries),
   ]);
 
   if (!user[0]) {
@@ -28,8 +27,7 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     return;
   }
 
-  const libraries: Record<string, SharedLibrary> = {};
-  for (const row of libraryRows) libraries[row.systemId] = row.data;
+  const libraries = await loadLibraries(systemRows.map((s) => s.id));
 
   res.status(200).json({
     user: toUserProfile(user[0]),

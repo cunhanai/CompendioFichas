@@ -25,6 +25,7 @@ export interface AppDataContextValue {
   ) => void;
   addWeaponToLibrary: (systemId: string, weapon: WeaponLibraryItem) => void;
   addSpecialToLibrary: (systemId: string, special: SpecialLibraryItem) => void;
+  toggleSystemFavorite: (systemId: string) => void;
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null);

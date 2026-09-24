@@ -10,7 +10,7 @@ import { getSystemStatus } from '@/entities/system/model/selectors';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 
 export function DashboardPage() {
-  const { user, systems, characters } = useAppData();
+  const { user, systems, characters, toggleSystemFavorite } = useAppData();
   const navigate = useNavigate();
 
   const favorite = characters.find((c) => c.favorited);
@@ -67,6 +67,7 @@ export function DashboardPage() {
                 characters.some((c) => c.systemId === system.id && c.active),
               )}
               onOpen={() => navigate(routes.characters(system.id))}
+              onToggleFavorite={() => toggleSystemFavorite(system.id)}
             />
           ))}
         </div>

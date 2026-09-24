@@ -28,13 +28,20 @@ const iconSize: Record<string, string> = {
 
 export interface AvatarProps extends VariantProps<typeof avatarVariants> {
   className?: string;
+  /** Profile picture; falls back to the placeholder icon when absent. */
+  src?: string | null;
+  alt?: string;
 }
 
-/** Placeholder circular avatar (no real photo upload backend — mirrors the mock). */
-export function Avatar({ tone, size = 'md', className }: AvatarProps) {
+/** Circular avatar: the user's photo when set, otherwise a placeholder icon. */
+export function Avatar({ tone, size = 'md', className, src, alt = '' }: AvatarProps) {
   return (
-    <div className={cn(avatarVariants({ tone, size }), className)}>
-      <User className={iconSize[size ?? 'md']} strokeWidth={1.5} />
+    <div className={cn(avatarVariants({ tone, size }), 'overflow-hidden', className)}>
+      {src ? (
+        <img src={src} alt={alt} className="h-full w-full object-cover" />
+      ) : (
+        <User className={iconSize[size ?? 'md']} strokeWidth={1.5} />
+      )}
     </div>
   );
 }

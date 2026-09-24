@@ -6,7 +6,7 @@ import { getSystemStatus } from '@/entities/system/model/selectors';
 import { Breadcrumbs } from '@/widgets/app-shell';
 
 export function SystemsPage() {
-  const { systems, characters } = useAppData();
+  const { systems, characters, toggleSystemFavorite } = useAppData();
   const navigate = useNavigate();
 
   const withStatus = systems.map((s) => ({
@@ -44,6 +44,7 @@ export function SystemsPage() {
             favorited={favorite.system.favorited}
             logoUrl={favorite.system.logoUrl}
             onOpen={() => navigate(routes.characters(favorite.system.id))}
+            onToggleFavorite={() => toggleSystemFavorite(favorite.system.id)}
           />
         </div>
       )}
@@ -65,6 +66,7 @@ export function SystemsPage() {
                 favorited={system.favorited}
                 logoUrl={system.logoUrl}
                 onOpen={() => navigate(routes.characters(system.id))}
+                onToggleFavorite={() => toggleSystemFavorite(system.id)}
               />
             ))}
           </div>
@@ -85,6 +87,7 @@ export function SystemsPage() {
               favorited={system.favorited}
               logoUrl={system.logoUrl}
               onOpen={() => navigate(routes.characters(system.id))}
+              onToggleFavorite={() => toggleSystemFavorite(system.id)}
             />
           ))}
         </div>
