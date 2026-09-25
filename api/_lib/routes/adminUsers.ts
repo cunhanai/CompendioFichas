@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import fs from 'node:fs';
+import path from 'node:path';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
 import { requireAdminUser, hashPassword } from '../auth.js';
@@ -206,4 +208,73 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
   }
 
   res.status(200).json({ alert });
+});
+
+const MIGRATIONS_DIR = path.join(process.cwd(), 'db', 'migrations');
+
+function readMigrationStatements(filename: string): string[] {
+  const content = fs.readFileSync(path.join(MIGRATIONS_DIR, filename), 'utf-8');
+  return content
+    .split('--> statement-breakpoint')
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+}
+
+/**
+ * TEMPORARY, one-time-use endpoint. Runs the 0011/0012 migrations (JSONB -> relational character
+ * schema) directly against whatever DB this deployment is connected to — added specifically
+ * because nobody has local shell access to run `npm run db:migrate` against production
+ * themselves. Master-only; checks whether it's already been applied before doing anything, so
+ * hitting it twice is harmless. Delete this handler and its dispatcher wiring once the migration
+ * is confirmed applied — it has no reason to exist afterward.
+ */
+export const runCharacterSchemaMigrationHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
+  if (!caller.isMaster) {
+    res.status(403).json({ error: 'Apenas o administrador master pode fazer isso.' });
+    return;
+  }
+
+  const alreadyApplied = await db.execute(
+    sql`select column_name from information_schema.columns where table_name = 'characters' and column_name = 'name'`,
+  );
+  if (alreadyApplied.rows.length > 0) {
+    res.status(200).json({ ok: true, alreadyApplied: true });
+    return;
+  }
+
+  const statements = [
+    ...readMigrationStatements('0011_drop_characters_data_jsonb.sql'),
+    ...readMigrationStatements('0012_add_relational_character_tables.sql'),
+  ];
+
+  let statementsApplied = 0;
+  try {
+    for (const statement of statements) {
+      await db.execute(sql.raw(statement));
+      statementsApplied += 1;
+    }
+  } catch (err) {
+    console.error('Character schema migration failed', {
+      statementIndex: statementsApplied,
+      err,
+    });
+    res.status(500).json({
+      error: 'Migração falhou.',
+      statementsApplied,
+      totalStatements: statements.length,
+      failingStatement: statements[statementsApplied]?.slice(0, 300),
+    });
+    return;
+  }
+
+  res.status(200).json({ ok: true, statementsApplied });
 });
