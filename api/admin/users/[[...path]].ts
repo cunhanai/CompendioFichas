@@ -18,11 +18,18 @@ import {
  *   PATCH  /api/admin/users/security-alerts/:id    -> dismiss one alert
  *   PATCH  /api/admin/users/:id                    -> update active/admin status
  *   POST   /api/admin/users/:id/reset-password     -> reset a user's password
+ *
+ * NOTE: `[[...path]]` is Next.js filename syntax, but this isn't a Next.js app — Vercel's
+ * generic (non-Next.js) Serverless Functions router treats it identically to `[...path]`
+ * (mandatory, exactly one segment; verified against Vercel's own fs-detectors source). It never
+ * matches the bare `/api/admin/users` path, which instead hits Vercel's synthesized
+ * `/api(/.*)?` 404 fallback before this function is ever invoked. vercel.json's `rewrites`
+ * routes that bare path to `/api/admin/users/__root` so it lands here as one real segment.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segments = ([] as string[]).concat(req.query.path ?? []);
 
-  if (segments.length === 0) {
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === '__root')) {
     return listUsersHandler(req, res);
   }
   if (segments.length === 1 && segments[0] === 'activity') {

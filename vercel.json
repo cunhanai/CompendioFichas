@@ -6,7 +6,12 @@
       "claude/focused-albattani-atp3py": false
     }
   },
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/api/admin/users", "destination": "/api/admin/users/__root" },
+    { "source": "/api/characters", "destination": "/api/characters/__root" },
+    { "source": "/api/user", "destination": "/api/user/__root" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

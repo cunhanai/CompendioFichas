@@ -91,6 +91,19 @@ create a new dispatcher only if none of the existing areas fit. `withErrorHandli
 over extra handler args (`Handler<Args>`) specifically so a dispatcher can forward a
 path-derived id straight through to the wrapped handler.
 
+**`[[...path]].ts` gotcha (verified against Vercel's own `fs-detectors` source — this is not
+Next.js docs behavior, which differs):** the double-bracket "optional catch-all" filename only
+behaves that way inside Next.js's own router. For a plain Serverless Function like these, it's
+treated identically to `[...path].ts` — exactly one mandatory segment, and it **never matches
+the bare base path** (`GET /api/admin/users` with nothing after it 404s at Vercel's edge before
+the function is even invoked; `GET /api/admin/users/activity` works fine). Every dispatcher that
+needs to handle a bare-path route works around this with a `vercel.json` rewrite from the bare
+path to a synthetic `/…/__root` segment, which the dispatcher treats the same as zero segments —
+see the rewrites array and the matching `segments[0] === '__root'` check in each of
+`api/admin/users/[[...path]].ts`, `api/characters/[[...path]].ts`, `api/user/[[...path]].ts`. A
+new dispatcher that needs a bare-path route must add the same pair (rewrite + `__root` check) —
+don't assume the bare path just works without it.
+
 - **Auth**: cookie-based sessions in a `sessions` table (`api/_lib/session.ts`), not JWT —
   chosen because a DB-backed session can be revoked immediately (used when deactivating a user,
   resetting a password, or a user changing their own password). Cookie is `httpOnly`, `secure`,
