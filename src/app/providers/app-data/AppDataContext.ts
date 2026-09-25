@@ -9,6 +9,10 @@ import type {
 } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
 import type { SecurityAlert } from '@/features/user-management/model/types';
+import type {
+  CharacterShareEntry,
+  SharedCharacterEntry,
+} from '@/features/sheet-sharing/model/types';
 
 export interface AppDataContextValue {
   user: UserProfile;
@@ -16,6 +20,13 @@ export interface AppDataContextValue {
   characters: Character[];
   libraries: Record<string, SharedLibrary>;
   securityAlerts: SecurityAlert[];
+  /** Characters other people shared with me — always view-only, kept separate from `characters`
+   * (which the whole app treats as mine and editable). */
+  sharedWithMe: SharedCharacterEntry[];
+  /** Who each of MY OWN characters is currently shared with, keyed by character id. */
+  mySharesByCharacterId: Record<string, CharacterShareEntry[]>;
+  shareCharacter: (characterId: string, userId: string) => void;
+  unshareCharacter: (characterId: string, userId: string) => void;
   dismissSecurityAlert: (id: string) => void;
   updateUser: (updater: (u: UserProfile) => UserProfile) => void;
   updateCharacter: (id: string, updater: (c: Character) => Character) => void;

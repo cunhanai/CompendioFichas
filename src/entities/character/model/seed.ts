@@ -25,8 +25,6 @@ const ELYNDRA: Character = {
   photoUrl: null,
   favorited: true,
   active: true,
-  shared: false,
-  shareSlug: 'elyndra-9f3a',
 
   identity: {
     raca: 'Meio-Elfa',
@@ -279,8 +277,6 @@ const BORIN: Character = {
   photoUrl: null,
   favorited: false,
   active: true,
-  shared: true,
-  shareSlug: 'borin-2c7e',
 
   identity: {
     raca: 'Anão da Colina',
@@ -422,8 +418,6 @@ const SABLE: Character = {
   photoUrl: null,
   favorited: false,
   active: true,
-  shared: false,
-  shareSlug: 'sable-4a1d',
 
   identity: {
     raca: 'Humana',
@@ -561,8 +555,6 @@ const KAELEN: Character = {
   photoUrl: null,
   favorited: false,
   active: false,
-  shared: false,
-  shareSlug: 'kaelen-7b0f',
 
   identity: {
     raca: 'Elfo',

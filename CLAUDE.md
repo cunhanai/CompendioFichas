@@ -105,6 +105,15 @@ see the rewrites array and the matching `segments[0] === '__root'` check in each
 new dispatcher that needs a bare-path route must add the same pair (rewrite + `__root` check) —
 don't assume the bare path just works without it.
 
+- **Character sharing**: `character_shares` (`character_id`, `shared_with_user_id`) is a real
+  table, not a field inside `characters.data` — unlike everything else about a character, "who
+  else can see this" needs to be queryable from the *recipient's* side (their bootstrap needs
+  "what's been shared with me"), which a value nested in the owner's JSONB blob can't support.
+  Always view-only: the recipient never gets a write endpoint for someone else's character.
+  `useCharacter()` (`app/providers/app-data/useAppData.ts`) resolves both owned and
+  shared-with-me characters, and for the latter returns a no-op `update` — that's the actual
+  enforcement (every editing popup receives the same `update` reference), not each popup's own
+  UI gating, which doesn't yet check `readOnly` everywhere (see DESIGN_NOTES.md).
 - **Auth**: cookie-based sessions in a `sessions` table (`api/_lib/session.ts`), not JWT —
   chosen because a DB-backed session can be revoked immediately (used when deactivating a user,
   resetting a password, or a user changing their own password). Cookie is `httpOnly`, `secure`,

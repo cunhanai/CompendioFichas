@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { characters, securityAlerts, systems, users } from '../db/schema.js';
+import { characters, characterShares, securityAlerts, systems, users } from '../db/schema.js';
 import { loadLibraries } from '../db/library.js';
 import { toUserProfile } from './_lib/mappers.js';
 import { requireUserId } from './_lib/auth.js';
@@ -38,11 +38,49 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
         .orderBy(desc(securityAlerts.createdAt))
     : [];
 
+  // Characters someone else shared with me — always view-only, never mixed into `characters`
+  // (which the whole app treats as "mine, editable").
+  const sharedWithMeRows = await db
+    .select({ character: characters.data, ownerName: users.name, ownerUsername: users.username })
+    .from(characterShares)
+    .innerJoin(characters, eq(characterShares.characterId, characters.id))
+    .innerJoin(users, eq(characters.userId, users.id))
+    .where(eq(characterShares.sharedWithUserId, userId));
+
+  // Who each of MY OWN characters is shared with, so the owner's UI can show/manage it.
+  const myCharacterIds = characterRows.map((row) => row.id);
+  const myShareRows =
+    myCharacterIds.length > 0
+      ? await db
+          .select({
+            characterId: characterShares.characterId,
+            userId: users.id,
+            name: users.name,
+            username: users.username,
+          })
+          .from(characterShares)
+          .innerJoin(users, eq(characterShares.sharedWithUserId, users.id))
+          .where(inArray(characterShares.characterId, myCharacterIds))
+      : [];
+  const mySharesByCharacterId: Record<
+    string,
+    { userId: string; name: string; username: string }[]
+  > = {};
+  for (const row of myShareRows) {
+    (mySharesByCharacterId[row.characterId] ??= []).push({
+      userId: row.userId,
+      name: row.name,
+      username: row.username,
+    });
+  }
+
   res.status(200).json({
     user: toUserProfile(user[0]),
     systems: systemRows,
     characters: characterRows.map((row) => row.data),
     libraries,
     securityAlerts: alerts,
+    sharedWithMe: sharedWithMeRows,
+    mySharesByCharacterId,
   });
 });

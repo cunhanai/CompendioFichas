@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, asc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { sessions, users } from '../../../db/schema.js';
 import { requireUserId, hashPassword, verifyPassword } from '../auth.js';
 import { passwordChangeBodySchema } from '../validation.js';
-import { toUserProfile } from '../mappers.js';
+import { toRosterUser, toUserProfile } from '../mappers.js';
 import { withErrorHandling } from '../handler.js';
 import { checkRateLimit } from '../rateLimit.js';
 import { logAudit } from '../audit.js';
@@ -105,4 +105,26 @@ export const changePasswordHandler = withErrorHandling(async function handler(
   await logAudit({ id: user.id, username: user.username }, 'user.password_change');
 
   res.status(200).json({ ok: true });
+});
+
+/** GET /api/user/roster — every other active account, for the character-sharing user picker. */
+export const listRosterHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  const rows = await db
+    .select()
+    .from(users)
+    .where(and(ne(users.id, userId), eq(users.active, true)))
+    .orderBy(asc(users.name));
+
+  res.status(200).json({ users: rows.map(toRosterUser) });
 });

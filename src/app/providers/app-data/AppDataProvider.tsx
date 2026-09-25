@@ -6,6 +6,10 @@ import type { RpgSystem } from '@/entities/system/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
 import type { SecurityAlert } from '@/features/user-management/model/types';
+import type {
+  CharacterShareEntry,
+  SharedCharacterEntry,
+} from '@/features/sheet-sharing/model/types';
 import { ForceChangePasswordPage } from '@/pages/auth/ForceChangePasswordPage';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
 
@@ -15,6 +19,8 @@ interface AppData {
   characters: Character[];
   libraries: Record<string, SharedLibrary>;
   securityAlerts: SecurityAlert[];
+  sharedWithMe: SharedCharacterEntry[];
+  mySharesByCharacterId: Record<string, CharacterShareEntry[]>;
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -81,6 +87,35 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     api
       .post('/characters', character)
       .catch((err: unknown) => console.error('Failed to create character', err));
+  };
+
+  // Not optimistic like the rest of this file: the server is the only source of truth for who a
+  // character is shared with (it also dedupes/validates the target), and the picker only has
+  // the target's id, not their name/username to show locally in the meantime.
+  const shareCharacter: AppDataContextValue['shareCharacter'] = (characterId, userId) => {
+    api
+      .post<{ shares: CharacterShareEntry[] }>(`/characters/${characterId}/shares`, { userId })
+      .then(({ shares }) => {
+        setData((d) =>
+          d
+            ? { ...d, mySharesByCharacterId: { ...d.mySharesByCharacterId, [characterId]: shares } }
+            : d,
+        );
+      })
+      .catch((err: unknown) => console.error('Failed to share character', err));
+  };
+
+  const unshareCharacter: AppDataContextValue['unshareCharacter'] = (characterId, userId) => {
+    api
+      .delete<{ shares: CharacterShareEntry[] }>(`/characters/${characterId}/shares`, { userId })
+      .then(({ shares }) => {
+        setData((d) =>
+          d
+            ? { ...d, mySharesByCharacterId: { ...d.mySharesByCharacterId, [characterId]: shares } }
+            : d,
+        );
+      })
+      .catch((err: unknown) => console.error('Failed to unshare character', err));
   };
 
   /** Optimistically appends one item to a system's library category, then persists it to its own table. */
@@ -186,6 +221,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     characters: data.characters,
     libraries: data.libraries,
     securityAlerts: data.securityAlerts,
+    sharedWithMe: data.sharedWithMe,
+    mySharesByCharacterId: data.mySharesByCharacterId,
+    shareCharacter,
+    unshareCharacter,
     dismissSecurityAlert,
     updateUser,
     updateCharacter,

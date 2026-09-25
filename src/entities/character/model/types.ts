@@ -208,8 +208,6 @@ export interface Character {
   photoUrl: string | null;
   favorited: boolean;
   active: boolean;
-  shared: boolean;
-  shareSlug: string;
 
   identity: Identity;
   alignmentLaw: AlignmentLaw;

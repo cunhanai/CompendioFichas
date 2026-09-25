@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArchiveRestore, Camera, Check, ChevronLeft, Share2, Star, X } from 'lucide-react';
-import { useCharacter } from '@/app/providers';
+import { ArchiveRestore, Camera, Check, ChevronLeft, Eye, Share2, Star, X } from 'lucide-react';
+import { useAppData, useCharacter } from '@/app/providers';
 import {
   alignmentAbbrev,
   classesSummary,
@@ -9,11 +9,10 @@ import {
 import { joinDot } from '@/shared/lib/format';
 import {
   PhotoUploadDialog,
-  ShareDialog,
+  SharePickerDialog,
   setPhotoUrl,
   toggleActive,
   toggleFavorite,
-  useShareDialog,
 } from '@/features/sheet-sharing';
 import { setName } from '@/features/sheet-identity';
 import { Switch } from '@/shared/ui/atoms/Switch';
@@ -22,14 +21,9 @@ import { Badge } from '@/shared/ui/atoms/Badge';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 
 export function SheetHeader({ characterId, onBack }: { characterId: string; onBack: () => void }) {
-  const { character, update } = useCharacter(characterId);
-  const {
-    open: shareOpen,
-    openDialog: openShare,
-    onOpenChange: onShareOpenChange,
-    onActivate,
-    onStop,
-  } = useShareDialog(characterId);
+  const { character, update, readOnly, ownerUsername } = useCharacter(characterId);
+  const { mySharesByCharacterId, shareCharacter, unshareCharacter } = useAppData();
+  const [shareOpen, setShareOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(character.name);
@@ -39,8 +33,10 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
 
+  const canEdit = character.active && !readOnly;
+
   const startEditingName = () => {
-    if (!character.active) return;
+    if (!canEdit) return;
     setNameDraft(character.name);
     setEditingName(true);
   };
@@ -50,7 +46,14 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
     setEditingName(false);
   };
 
-  const actions = (
+  const currentShares = mySharesByCharacterId[characterId] ?? [];
+
+  const actions = readOnly ? (
+    <Badge tone="sky" size="sm">
+      <Eye className="mr-1 inline h-3 w-3" strokeWidth={2} />
+      Somente leitura
+    </Badge>
+  ) : (
     <>
       <Switch
         checked={character.active}
@@ -70,7 +73,12 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
           strokeWidth={1.8}
         />
       </IconButton>
-      <IconButton label="Compartilhar / exportar" variant="neutral" size="sm" onClick={openShare}>
+      <IconButton
+        label="Compartilhar"
+        variant="neutral"
+        size="sm"
+        onClick={() => setShareOpen(true)}
+      >
         <Share2 className="h-3.5 w-3.5" strokeWidth={1.8} />
       </IconButton>
     </>
@@ -89,14 +97,16 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         </button>
         <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
           <Avatar src={character.photoUrl} tone="amber" />
-          <button
-            type="button"
-            title="Trocar foto"
-            onClick={() => setPhotoOpen(true)}
-            className="text-ink absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-amber-500 hover:bg-amber-400"
-          >
-            <Camera className="h-3 w-3" strokeWidth={2} />
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              title="Trocar foto"
+              onClick={() => setPhotoOpen(true)}
+              className="text-ink absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-amber-500 hover:bg-amber-400"
+            >
+              <Camera className="h-3 w-3" strokeWidth={2} />
+            </button>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +138,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
               <h1
                 className="font-display cursor-text text-lg leading-tight text-neutral-100 select-none sm:text-2xl"
                 onDoubleClick={startEditingName}
-                title={character.active ? 'Clique duas vezes para editar o nome' : undefined}
+                title={canEdit ? 'Clique duas vezes para editar o nome' : undefined}
               >
                 {character.name}
               </h1>
@@ -149,27 +159,37 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         <div className="hidden shrink-0 items-center gap-2 sm:flex">{actions}</div>
       </div>
 
-      {!character.active && (
-        <div className="flex items-center gap-2 rounded-xl border border-dashed border-neutral-700 bg-neutral-900/40 px-4 py-2.5 text-xs text-neutral-500">
-          <ArchiveRestore className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-          Personagem inativa — a ficha está arquivada e não pode ser editada. Reative para editar.
+      {readOnly ? (
+        <div className="flex items-center gap-2 rounded-xl border border-dashed border-sky-800/40 bg-sky-950/20 px-4 py-2.5 text-xs text-sky-300">
+          <Eye className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+          Ficha de @{ownerUsername} compartilhada com você — somente leitura.
         </div>
+      ) : (
+        !character.active && (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-neutral-700 bg-neutral-900/40 px-4 py-2.5 text-xs text-neutral-500">
+            <ArchiveRestore className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            Personagem inativa — a ficha está arquivada e não pode ser editada. Reative para editar.
+          </div>
+        )
       )}
 
-      <PhotoUploadDialog
-        open={photoOpen}
-        onOpenChange={setPhotoOpen}
-        photoUrl={character.photoUrl}
-        onSave={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
-      />
-      <ShareDialog
-        open={shareOpen}
-        onOpenChange={onShareOpenChange}
-        shared={character.shared}
-        shareSlug={character.shareSlug}
-        onActivate={onActivate}
-        onStop={onStop}
-      />
+      {!readOnly && (
+        <>
+          <PhotoUploadDialog
+            open={photoOpen}
+            onOpenChange={setPhotoOpen}
+            photoUrl={character.photoUrl}
+            onSave={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
+          />
+          <SharePickerDialog
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+            currentShares={currentShares}
+            onShare={(userId) => shareCharacter(characterId, userId)}
+            onUnshare={(userId) => unshareCharacter(characterId, userId)}
+          />
+        </>
+      )}
     </div>
   );
 }

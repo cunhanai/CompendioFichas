@@ -18,8 +18,6 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     photoUrl: null,
     favorited: false,
     active: true,
-    shared: false,
-    shareSlug: id,
 
     identity: {
       raca: '',

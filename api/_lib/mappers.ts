@@ -1,5 +1,5 @@
 import type { users } from '../../db/schema.js';
-import type { UserProfile } from '../../src/entities/user/model/types.js';
+import type { RosterUser, UserProfile } from '../../src/entities/user/model/types.js';
 import type { AdminUserView } from '../../src/features/user-management/model/types.js';
 
 type UserRow = typeof users.$inferSelect;
@@ -15,6 +15,11 @@ export function toUserProfile(row: UserRow): UserProfile {
     isMaster: row.isMaster,
     mustChangePassword: row.mustChangePassword,
   };
+}
+
+/** Minimal shape for the character-sharing user picker — no admin/auth fields. */
+export function toRosterUser(row: UserRow): RosterUser {
+  return { id: row.id, name: row.name, username: row.username, avatarUrl: row.avatarUrl };
 }
 
 /** Admin-only listing shape — adds the account-management fields regular profiles don't need. */

@@ -26,6 +26,8 @@ export const adminUpdateUserBodySchema = z
 
 const uuid = z.uuid();
 
+export const shareBodySchema = z.object({ userId: uuid });
+
 /** A character sheet's full shape isn't modeled here (~100 fields across every tab) — this
  * checks the outer shape (id/systemId) and caps size; the rest passes through as JSONB, same
  * as before. */

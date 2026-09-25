@@ -11,11 +11,20 @@ import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { EmptyState } from '@/shared/ui/molecules/EmptyState';
-import { ShareDialog, useShareDialog } from '@/features/sheet-sharing';
+import { SharePickerDialog } from '@/features/sheet-sharing';
 
 export function CharactersPage() {
   const { systemId = '' } = useParams<{ systemId: string }>();
-  const { systems, characters, libraries, addCharacter } = useAppData();
+  const {
+    systems,
+    characters,
+    libraries,
+    addCharacter,
+    sharedWithMe,
+    mySharesByCharacterId,
+    shareCharacter,
+    unshareCharacter,
+  } = useAppData();
   const navigate = useNavigate();
   const [shareOpenId, setShareOpenId] = useState<string | null>(null);
 
@@ -25,6 +34,7 @@ export function CharactersPage() {
   const favorite = roster.find((c) => c.favorited);
   const active = roster.filter((c) => !c.favorited && c.active);
   const inactive = roster.filter((c) => !c.favorited && !c.active);
+  const sharedWithMeHere = sharedWithMe.filter((s) => s.character.systemId === systemId);
 
   const handleNewCharacter = () => {
     const character = createBlankCharacter(systemId, 'Novo personagem');
@@ -43,7 +53,7 @@ export function CharactersPage() {
     hpMax: c.hpMax,
     active: c.active,
     showStatusBadge,
-    shared: c.shared,
+    shared: (mySharesByCharacterId[c.id]?.length ?? 0) > 0,
     href: routes.sheet(c.id),
     onShare: () => setShareOpenId(c.id),
   });
@@ -135,29 +145,40 @@ export function CharactersPage() {
         </>
       )}
 
+      {sharedWithMeHere.length > 0 && (
+        <>
+          <h2 className="mt-6 mb-2.5 text-xs font-semibold tracking-wider text-sky-500/80 uppercase">
+            Fichas compartilhadas
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {sharedWithMeHere.map(({ character: c, ownerUsername }) => (
+              <CharCard
+                key={c.id}
+                name={c.name}
+                photoUrl={c.photoUrl}
+                subtitle={joinDot([
+                  `de @${ownerUsername}`,
+                  c.identity.raca,
+                  classesSummary(c.classes) || 'Sem classe',
+                ])}
+                hpCurrent={c.hpCurrent}
+                hpMax={c.hpMax}
+                href={routes.sheet(c.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       {shareOpenId && (
-        <CharacterShareDialog characterId={shareOpenId} onClose={() => setShareOpenId(null)} />
+        <SharePickerDialog
+          open
+          onOpenChange={(open) => !open && setShareOpenId(null)}
+          currentShares={mySharesByCharacterId[shareOpenId] ?? []}
+          onShare={(userId) => shareCharacter(shareOpenId, userId)}
+          onUnshare={(userId) => unshareCharacter(shareOpenId, userId)}
+        />
       )}
     </main>
-  );
-}
-
-function CharacterShareDialog({
-  characterId,
-  onClose,
-}: {
-  characterId: string;
-  onClose: () => void;
-}) {
-  const { character, onActivate, onStop } = useShareDialog(characterId);
-  return (
-    <ShareDialog
-      open
-      onOpenChange={(open) => !open && onClose()}
-      shared={character.shared}
-      shareSlug={character.shareSlug}
-      onActivate={onActivate}
-      onStop={onStop}
-    />
   );
 }
