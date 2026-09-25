@@ -97,7 +97,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         </button>
         <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
           <Avatar src={character.photoUrl} tone="amber" />
-          {!readOnly && (
+          {canEdit && (
             <button
               type="button"
               title="Trocar foto"

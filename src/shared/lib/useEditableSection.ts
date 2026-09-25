@@ -1,6 +1,21 @@
 import { useState } from 'react';
 import type { Character } from '@/entities/character/model/types';
 
+/** Reverts only the top-level keys that actually differ between `current` and `snapshot` (the
+ * character as it was when edit mode was entered), applied onto `current` — never a blind
+ * `update(() => snapshot)` full-object replace. A key that already matches the snapshot is left
+ * exactly as `current` has it rather than being reassigned to an equal-but-stale copy, so a key
+ * this popup never touches can't be rolled back to an outdated value by anything discard does. */
+export function revertChangedKeys<T extends object>(current: T, snapshot: T): T {
+  const reverted = { ...current };
+  for (const key of Object.keys(snapshot) as (keyof T)[]) {
+    if (current[key] !== snapshot[key]) {
+      reverted[key] = snapshot[key];
+    }
+  }
+  return reverted;
+}
+
 export interface UseEditableSectionArgs {
   open: boolean;
   /** When true, the popup opens straight into edit mode instead of the read-only preview —
@@ -36,19 +51,22 @@ export function useEditableSection({
   // `open` value and calling setState conditionally, right here in the render body, lets React
   // apply it before painting — no extra effect, no ref read during render.
   const [prevOpen, setPrevOpen] = useState(open);
-  const [editingState, setEditingState] = useState(isEmpty);
+  const [editingState, setEditingState] = useState(isEmpty && character.active);
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [snapshot, setSnapshot] = useState(character);
 
   if (open !== prevOpen) {
     setPrevOpen(open);
     if (open) {
-      setEditingState(isEmpty);
+      setEditingState(isEmpty && character.active);
       setSnapshot(character);
     }
   }
 
   const setEditing = (next: boolean) => {
+    // An inactive (archived) character is read-only everywhere else in the app — auto-entering
+    // edit mode just because a section happens to be empty would silently bypass that.
+    if (next && !character.active) return;
     if (next) setSnapshot(character);
     setEditingState(next);
   };
@@ -69,7 +87,7 @@ export function useEditableSection({
   };
 
   const discardChanges = () => {
-    update(() => snapshot);
+    update((current) => revertChangedKeys(current, snapshot));
     setConfirmingClose(false);
     onOpenChange(false);
   };

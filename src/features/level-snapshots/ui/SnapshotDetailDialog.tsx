@@ -40,7 +40,7 @@ export function SnapshotDetailDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const snapshot = character.levelSnapshots.find((s) => s.id === snapshotId);
-  if (!snapshot) return null;
+  if (!snapshot || snapshot.data == null) return null;
 
   const isCurrent = snapshotId === character.currentSnapshotId;
   const protectedSnapshot = isSnapshotProtected(character, snapshotId);

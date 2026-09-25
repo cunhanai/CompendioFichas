@@ -80,12 +80,29 @@ export function SnapshotTree({
   viewingId: string;
   onSelect: (id: string) => void;
 }) {
-  const visible = snapshots.filter((s) => !s.deletedAt);
+  const visible = snapshots.filter((s) => !s.deletedAt && s.data != null);
+  const byId = new Map(snapshots.map((s) => [s.id, s]));
+
+  // A node's direct parent may itself be deleted (or, for legacy data, malformed) — walk up
+  // until a visible ancestor is found so deleting a mid-tree node doesn't orphan its surviving
+  // descendants out of the tree entirely; if nothing visible remains above it, it becomes a root.
+  function nearestVisibleAncestorId(snap: LevelSnapshot): string | null {
+    let cursor = snap.parentId;
+    while (cursor) {
+      const parent = byId.get(cursor);
+      if (!parent) return null;
+      if (!parent.deletedAt && parent.data != null) return parent.id;
+      cursor = parent.parentId;
+    }
+    return null;
+  }
+
   const childrenByParent = new Map<string | null, LevelSnapshot[]>();
   for (const snap of visible) {
-    const list = childrenByParent.get(snap.parentId) ?? [];
+    const parentId = nearestVisibleAncestorId(snap);
+    const list = childrenByParent.get(parentId) ?? [];
     list.push(snap);
-    childrenByParent.set(snap.parentId, list);
+    childrenByParent.set(parentId, list);
   }
   const roots = childrenByParent.get(null) ?? [];
 

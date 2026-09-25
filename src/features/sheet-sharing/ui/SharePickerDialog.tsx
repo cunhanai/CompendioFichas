@@ -29,15 +29,21 @@ export function SharePickerDialog({
 }: SharePickerDialogProps) {
   const toast = useAppToast();
   const [roster, setRoster] = useState<RosterUser[] | null>(null);
+  const [rosterFailed, setRosterFailed] = useState(false);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!open) return;
     api
       .get<{ users: RosterUser[] }>('/user/roster')
-      .then(({ users }) => setRoster(users))
+      .then(({ users }) => {
+        setRoster(users);
+        setRosterFailed(false);
+      })
       .catch((err: unknown) => {
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível carregar usuários.');
+        setRoster([]);
+        setRosterFailed(true);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -105,9 +111,11 @@ export function SharePickerDialog({
             )}
             {roster !== null && available.length === 0 && (
               <p className="py-4 text-center text-xs text-neutral-600">
-                {roster.length === 0
-                  ? 'Nenhum outro usuário cadastrado.'
-                  : 'Nenhum usuário encontrado.'}
+                {rosterFailed
+                  ? 'Não foi possível carregar usuários.'
+                  : roster.length === 0
+                    ? 'Nenhum outro usuário cadastrado.'
+                    : 'Nenhum usuário encontrado.'}
               </p>
             )}
             {available.map((u) => (

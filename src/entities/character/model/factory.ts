@@ -106,3 +106,21 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     lastAccessedAt: new Date().toISOString(),
   };
 }
+
+/**
+ * Fills in defaults for fields that didn't exist yet when a character's JSONB blob was written —
+ * `levelSnapshots`/`currentSnapshotId` were added after real characters were already in the DB,
+ * so a stored blob predating this feature simply doesn't have them. Every character coming in
+ * from the API goes through this before the rest of the app (snapshot logic in particular) ever
+ * touches it, so nothing downstream needs to treat those fields as possibly absent.
+ */
+export function normalizeCharacter(character: Character): Character {
+  if (Array.isArray(character.levelSnapshots) && character.currentSnapshotId !== undefined) {
+    return character;
+  }
+  return {
+    ...character,
+    levelSnapshots: character.levelSnapshots ?? [],
+    currentSnapshotId: character.currentSnapshotId ?? null,
+  };
+}

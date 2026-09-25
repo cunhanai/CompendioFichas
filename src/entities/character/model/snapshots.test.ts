@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBlankCharacter } from './factory';
-import type { Character } from './types';
+import type { Character, LevelSnapshot } from './types';
 import {
   activeLineage,
   deleteSnapshot,
@@ -125,5 +125,40 @@ describe('level snapshots', () => {
     expect(otherBranches(character).some((s) => s.id === abandoned.id)).toBe(false);
     const row = character.levelSnapshots.find((s) => s.id === abandoned.id)!;
     expect(row.deletedAt).not.toBeNull();
+  });
+
+  it('treats a character predating this feature (no levelSnapshots/currentSnapshotId at all) as having no history, instead of crashing', () => {
+    const character = createBlankCharacter('pathfinder-1e', 'Teste');
+    const legacy = { ...character } as Partial<Character>;
+    delete legacy.levelSnapshots;
+    delete legacy.currentSnapshotId;
+    const legacyCharacter = legacy as Character;
+
+    expect(activeLineage(legacyCharacter)).toEqual([]);
+    expect(otherBranches(legacyCharacter)).toEqual([]);
+    expect(isSnapshotProtected(legacyCharacter, 'anything')).toBe(false);
+    expect(() => deleteSnapshot(legacyCharacter, 'anything')).not.toThrow();
+    expect(() => restoreSnapshot(legacyCharacter, 'anything')).not.toThrow();
+    expect(() => withLevelUpSnapshot((c) => bumpLevel(c, 1))(legacyCharacter)).not.toThrow();
+  });
+
+  it('excludes a malformed snapshot row (no data, e.g. corrupted or from a future format) from the lineage and branches, and never treats it as restorable', () => {
+    let character = createBlankCharacter('pathfinder-1e', 'Teste');
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character);
+    const malformed: LevelSnapshot = {
+      id: 'malformed-1',
+      parentId: character.currentSnapshotId,
+      level: 2,
+      kind: 'level-up',
+      label: 'Nível 2 (corrompido)',
+      date: new Date().toISOString(),
+      deletedAt: null,
+      data: undefined as unknown as LevelSnapshot['data'],
+    };
+    character = { ...character, levelSnapshots: [...character.levelSnapshots, malformed] };
+
+    expect(activeLineage(character).some((s) => s.id === 'malformed-1')).toBe(false);
+    expect(otherBranches(character).some((s) => s.id === 'malformed-1')).toBe(false);
+    expect(restoreSnapshot(character, 'malformed-1')).toBe(character);
   });
 });

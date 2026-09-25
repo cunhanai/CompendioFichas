@@ -13,18 +13,23 @@ const KIND_DESC: Record<SpellcastingBlock['kind'], string> = {
 
 export function SpellBookCard({
   book,
+  editable = true,
   onSearch,
   onOpenSpell,
   onSetCircleMax,
   onRemove,
 }: {
   book: SpellcastingBlock;
+  /** False for a read-only or inactive (archived) character — hides every control that would
+   * change the grimoire (edit toggle, remove, circle-max input), leaving only browsing. */
+  editable?: boolean;
   onSearch: () => void;
   onOpenSpell: (name: string) => void;
   onSetCircleMax: (circleIndex: number, max: number) => void;
   onRemove: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editingState, setEditingState] = useState(false);
+  const editing = editingState && editable;
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   return (
@@ -35,22 +40,26 @@ export function SpellBookCard({
           <span className="font-normal text-neutral-500">({book.abilityLabel})</span>
         </h3>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={onSearch}
-            className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            Buscar magia
-          </button>
-          <IconButton
-            label={editing ? 'Concluir edição' : 'Editar espaços de magia'}
-            variant={editing ? 'amber' : 'neutral'}
-            size="sm"
-            onClick={() => setEditing((e) => !e)}
-          >
-            <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
-          </IconButton>
+          {editable && (
+            <button
+              type="button"
+              onClick={onSearch}
+              className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              Buscar magia
+            </button>
+          )}
+          {editable && (
+            <IconButton
+              label={editing ? 'Concluir edição' : 'Editar espaços de magia'}
+              variant={editing ? 'amber' : 'neutral'}
+              size="sm"
+              onClick={() => setEditingState((e) => !e)}
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+            </IconButton>
+          )}
           {editing && (
             <IconButton
               label="Remover grimório"

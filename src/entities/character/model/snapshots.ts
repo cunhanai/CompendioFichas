@@ -17,7 +17,7 @@ function appendSnapshot(
 ): Character {
   const snapshot: LevelSnapshot = {
     id: crypto.randomUUID(),
-    parentId: character.currentSnapshotId,
+    parentId: character.currentSnapshotId ?? null,
     level: effectiveLevel(data.classes),
     kind,
     label,
@@ -27,7 +27,7 @@ function appendSnapshot(
   };
   return {
     ...character,
-    levelSnapshots: [...character.levelSnapshots, snapshot],
+    levelSnapshots: [...(character.levelSnapshots ?? []), snapshot],
     currentSnapshotId: snapshot.id,
   };
 }
@@ -50,13 +50,22 @@ export function withLevelUpSnapshot(
   };
 }
 
+/** Snapshots older than this feature, or otherwise corrupted, may be missing `data` (or the
+ * whole array/pointer may be absent on a character predating the feature — normalizeCharacter
+ * handles that at the API boundary, but every function here also treats it defensively so
+ * nothing here ever crashes on a character it wasn't run on). A row without `data` can't be
+ * restored or rendered, so it's excluded everywhere rather than risk it downstream. */
+function wellFormedSnapshots(character: Character): LevelSnapshot[] {
+  return (character.levelSnapshots ?? []).filter((s) => s.data != null);
+}
+
 /** True if `snapshotId` is on the character's active lineage (an ancestor of, or equal to, the
  * current snapshot) — these can never be deleted, since they're the record of how the character
  * actually got here. Anything else (restore points, and whatever followed them on an abandoned
  * branch) is fair game. */
 export function isSnapshotProtected(character: Character, snapshotId: string): boolean {
-  const byId = new Map(character.levelSnapshots.map((s) => [s.id, s]));
-  let cursor = character.currentSnapshotId;
+  const byId = new Map(wellFormedSnapshots(character).map((s) => [s.id, s]));
+  let cursor = character.currentSnapshotId ?? null;
   while (cursor) {
     if (cursor === snapshotId) return true;
     cursor = byId.get(cursor)?.parentId ?? null;
@@ -67,9 +76,9 @@ export function isSnapshotProtected(character: Character, snapshotId: string): b
 /** The active lineage, root-first — the chain of snapshots the live character actually
  * descends from. */
 export function activeLineage(character: Character): LevelSnapshot[] {
-  const byId = new Map(character.levelSnapshots.map((s) => [s.id, s]));
+  const byId = new Map(wellFormedSnapshots(character).map((s) => [s.id, s]));
   const chain: LevelSnapshot[] = [];
-  let cursor = character.currentSnapshotId;
+  let cursor = character.currentSnapshotId ?? null;
   while (cursor) {
     const snap = byId.get(cursor);
     if (!snap) break;
@@ -82,7 +91,7 @@ export function activeLineage(character: Character): LevelSnapshot[] {
 /** Every snapshot not on the active lineage — abandoned branches left behind by a restore. */
 export function otherBranches(character: Character): LevelSnapshot[] {
   const activeIds = new Set(activeLineage(character).map((s) => s.id));
-  return character.levelSnapshots.filter((s) => !activeIds.has(s.id) && !s.deletedAt);
+  return wellFormedSnapshots(character).filter((s) => !activeIds.has(s.id) && !s.deletedAt);
 }
 
 /**
@@ -93,7 +102,7 @@ export function otherBranches(character: Character): LevelSnapshot[] {
  * abandoned branch rather than disappearing.
  */
 export function restoreSnapshot(character: Character, snapshotId: string): Character {
-  const target = character.levelSnapshots.find((s) => s.id === snapshotId);
+  const target = wellFormedSnapshots(character).find((s) => s.id === snapshotId);
   if (!target || target.deletedAt) return character;
 
   const beforeRestore = appendSnapshot(
@@ -116,7 +125,7 @@ export function deleteSnapshot(character: Character, snapshotId: string): Charac
   if (isSnapshotProtected(character, snapshotId)) return character;
   return {
     ...character,
-    levelSnapshots: character.levelSnapshots.map((s) =>
+    levelSnapshots: (character.levelSnapshots ?? []).map((s) =>
       s.id === snapshotId ? { ...s, deletedAt: new Date().toISOString() } : s,
     ),
   };

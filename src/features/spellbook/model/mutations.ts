@@ -43,7 +43,7 @@ export function setCircleMax(
       return {
         ...book,
         circles: book.circles.map((circle, ci) =>
-          ci === circleIndex ? { ...circle, max: Math.max(0, max) } : circle,
+          ci === circleIndex ? { ...circle, max: Math.max(circle.used, max, 0) } : circle,
         ),
       };
     }),

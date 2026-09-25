@@ -39,12 +39,14 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex justify-end">
-        <Button onClick={() => setCreatingBook(true)}>
-          <Plus className="h-4 w-4" strokeWidth={2.2} />
-          Adicionar grimório
-        </Button>
-      </div>
+      {character.active && (
+        <div className="flex justify-end">
+          <Button onClick={() => setCreatingBook(true)}>
+            <Plus className="h-4 w-4" strokeWidth={2.2} />
+            Adicionar grimório
+          </Button>
+        </div>
+      )}
 
       {nothingYet && (
         <EmptyState
@@ -78,6 +80,7 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
         <SpellBookCard
           key={book.className}
           book={book}
+          editable={character.active}
           onSearch={() => setPickBookIndex(i)}
           onOpenSpell={openSpellDetailByName}
           onSetCircleMax={(circleIndex, max) => update((c) => setCircleMax(c, i, circleIndex, max))}
