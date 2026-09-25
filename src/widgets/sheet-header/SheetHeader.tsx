@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArchiveRestore, Camera, Check, ChevronLeft, Eye, Share2, Star, X } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Camera,
+  Check,
+  ChevronLeft,
+  Eye,
+  Pencil,
+  Share2,
+  Star,
+  X,
+} from 'lucide-react';
 import { useAppData, useCharacter } from '@/app/providers';
 import {
   alignmentAbbrev,
@@ -135,13 +145,25 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
                 </IconButton>
               </div>
             ) : (
-              <h1
-                className="font-display cursor-text text-lg leading-tight text-neutral-100 select-none sm:text-2xl"
-                onDoubleClick={startEditingName}
-                title={canEdit ? 'Clique duas vezes para editar o nome' : undefined}
-              >
-                {character.name}
-              </h1>
+              <div className="flex items-center gap-1.5">
+                <h1
+                  className="font-display cursor-text text-base leading-tight text-neutral-100 select-none sm:text-xl"
+                  onDoubleClick={startEditingName}
+                  title={canEdit ? 'Clique duas vezes para editar o nome' : undefined}
+                >
+                  {character.name}
+                </h1>
+                {canEdit && (
+                  <IconButton
+                    label="Editar nome"
+                    variant="neutral"
+                    size="sm"
+                    onClick={startEditingName}
+                  >
+                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  </IconButton>
+                )}
+              </div>
             )}
             <Badge tone={character.active ? 'emerald' : 'neutral'} size="sm">
               {character.active ? 'Ativa' : 'Inativa'}
