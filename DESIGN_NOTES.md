@@ -416,6 +416,10 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
 - Reportado pelo usuário com print: no popup de detalhe de um atributo (ex: Destreza), o número de "Modificador" usava `ABILITY_COLOR_CLASS[abilityKey]` — a cor de identidade daquele atributo (ex: verde-esmeralda pra Destreza) — em vez de refletir se o valor é positivo ou negativo. Resultado: um modificador **-5** aparecia em verde, o que lê como "bom" à primeira vista, quando é claramente ruim.
 - `ABILITY_COLOR_CLASS` continua correto onde já era usado só como identidade visual do atributo (a badge "Des"/"For"/etc. em `AbilityScoreCard` e `SkillRow`) — o problema era específico de aplicá-la a um **valor numérico com sinal**. Como nenhum outro número com sinal no app (BBA, salvaguardas, CA, modificadores variados) usa cor semântica de bom/ruim, a correção seguiu essa mesma convenção em vez de inventar uma nova: o "Modificador" em `AbilityDialog` agora usa a cor neutra padrão (`text-neutral-100`), igual a Base/Temp./Total no mesmo popup.
 
+### Nome do personagem: lápis visível + fonte menor
+- Reportado pelo usuário com print: o nome do personagem no cabeçalho da ficha só era editável por duplo-clique, sem nenhuma pista visual disso — nada ali sugeria que era clicável. Adicionado um ícone de lápis ao lado do nome (só aparece quando `canEdit`, mesma regra de sempre: ficha ativa e não compartilhada), que ao ser clicado entra direto no modo de edição — o duplo-clique no próprio texto continua funcionando também, agora como atalho extra, não como único caminho.
+- Reduzido o tamanho da fonte do nome (`text-lg sm:text-2xl` → `text-base sm:text-xl`), a pedido do usuário.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 
