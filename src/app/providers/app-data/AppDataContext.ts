@@ -29,6 +29,10 @@ export interface AppDataContextValue {
   unshareCharacter: (characterId: string, userId: string) => void;
   dismissSecurityAlert: (id: string) => void;
   updateUser: (updater: (u: UserProfile) => UserProfile) => void;
+  /** Syncs local state with a profile already confirmed saved by the server — unlike
+   * `updateUser`, this never itself calls the API (the caller already did, and needs the local
+   * state to reflect exactly what the server accepted, not an optimistic guess). */
+  setUser: (user: UserProfile) => void;
   updateCharacter: (id: string, updater: (c: Character) => Character) => void;
   addCharacter: (character: Character) => void;
   /** Generic "Novo item" add — builds the right shape per category from just a name+description. */

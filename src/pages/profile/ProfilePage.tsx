@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/atoms/Button';
 import { AccountCard, AvatarUpload } from '@/features/profile-settings';
 
 export function ProfilePage() {
-  const { user, updateUser } = useAppData();
+  const { user, updateUser, setUser } = useAppData();
   const navigate = useNavigate();
 
   return (
@@ -30,7 +30,7 @@ export function ProfilePage() {
         </div>
       </div>
 
-      <AccountCard user={user} onSave={(values) => updateUser((u) => ({ ...u, ...values }))} />
+      <AccountCard user={user} onSaved={setUser} />
 
       {user.isAdmin && (
         <Button

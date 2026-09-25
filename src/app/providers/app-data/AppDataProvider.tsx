@@ -89,6 +89,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setUser: AppDataContextValue['setUser'] = (user) => {
+    setData((d) => (d ? { ...d, user } : d));
+  };
+
   const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) => {
     setData((d) => {
       if (!d) return d;
@@ -254,6 +258,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     unshareCharacter,
     dismissSecurityAlert,
     updateUser,
+    setUser,
     updateCharacter,
     addCharacter,
     addLibraryItem,
