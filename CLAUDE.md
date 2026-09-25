@@ -73,6 +73,17 @@ import from itself or a layer below. `shared/ui` is further organized Atomic-Des
   normalized, one Postgres table per category with a plain `system_id` FK — that split happened
   because a system→item relationship is one-to-many, not because character data needed the same
   treatment. Don't assume the two follow the same pattern.
+- **Level snapshots** (`entities/character/model/snapshots.ts`) are a tree, not a list —
+  `LevelSnapshot.parentId` chains them, and `Character.currentSnapshotId` marks which one the
+  live character currently descends from (walk `parentId` back from it for "the active
+  lineage"). Restoring an older snapshot forks the tree: it appends a `'restore-point'` snapshot
+  of what was live (so nothing is lost), then moves `currentSnapshotId` to the target — whatever
+  came after the old `currentSnapshotId` is still in the tree, just no longer on the active
+  lineage, and shows up as an "other branch" instead. A snapshot can be soft-deleted
+  (`deletedAt`) only if it's *not* an ancestor of `currentSnapshotId` — that single rule is what
+  keeps the active lineage protected and makes restore-points (dead-end leaves by construction)
+  deletable without a separate case for either. New level-up entry points must wrap their
+  mutation in `withLevelUpSnapshot` so the snapshot is taken automatically.
 
 ### Backend: Vercel serverless functions + Drizzle/Neon
 

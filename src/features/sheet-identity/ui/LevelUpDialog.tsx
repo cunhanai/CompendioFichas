@@ -4,6 +4,7 @@ import type { Character } from '@/entities/character/model/types';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { Button } from '@/shared/ui/atoms/Button';
 import { cn } from '@/shared/lib/cn';
+import { withLevelUpSnapshot } from '@/entities/character/model/snapshots';
 import { levelUpClass } from '../model/mutations';
 import { ClassPickerDialog } from './ClassPickerDialog';
 
@@ -63,7 +64,7 @@ export function LevelUpDialog({ open, onOpenChange, character, update }: LevelUp
           <Button
             disabled={!selected}
             onClick={() => {
-              if (selected) update((c) => levelUpClass(c, selected));
+              if (selected) update(withLevelUpSnapshot((c) => levelUpClass(c, selected)));
               onOpenChange(false);
             }}
           >

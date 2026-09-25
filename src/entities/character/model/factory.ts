@@ -97,9 +97,10 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     equipment: [],
     armorItems: [],
 
-    levelSnapshots: [
-      { id: 'lv-1', level: 1, label: 'Ficha criada', date: new Date().toISOString().slice(0, 10) },
-    ],
+    // No snapshot yet — a blank character starts empty like everything else here, and the first
+    // one is taken automatically the first time the player levels up (see features/level-snapshots).
+    levelSnapshots: [],
+    currentSnapshotId: null,
     sessionLog: [],
 
     lastAccessedAt: new Date().toISOString(),

@@ -244,13 +244,8 @@ const ELYNDRA: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 1, label: 'Ficha criada — nascimento do personagem', date: '2025-02-03' },
-    { id: 'lv-2', level: 2, label: 'Subiu para Feiticeira 2', date: '2025-02-21' },
-    { id: 'lv-3', level: 3, label: 'Multiclasse: 1º nível de Clériga', date: '2025-03-18' },
-    { id: 'lv-4', level: 4, label: 'Feiticeira 3', date: '2025-05-02' },
-    { id: 'lv-5', level: 5, label: 'Clériga 2 — nível atual', date: '2025-06-14' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [
     {
       id: 'sess-8',
@@ -403,9 +398,8 @@ const BORIN: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 5, label: 'Ficha criada — nível atual', date: '2025-01-10' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(1),
@@ -540,9 +534,8 @@ const SABLE: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 4, label: 'Ficha criada — nível atual', date: '2025-04-02' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(3),
@@ -666,9 +659,8 @@ const KAELEN: Character = {
   equipment: [{ id: 'eq-1', name: 'Grimório', qty: 1, unitWeight: 1.5 }],
   armorItems: [],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 2, label: 'Ficha criada — nível atual', date: '2025-03-01' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(9),
