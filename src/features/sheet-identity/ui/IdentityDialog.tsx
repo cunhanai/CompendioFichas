@@ -54,6 +54,7 @@ export function IdentityDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   return (
@@ -134,7 +135,7 @@ export function IdentityDialog({
                   <button
                     key={law}
                     className={character.alignmentLaw === law ? pillOn : pillOff}
-                    onClick={() => update((c) => setAlignmentLaw(c, law))}
+                    onClick={() => trackedUpdate((c) => setAlignmentLaw(c, law))}
                   >
                     {law} ({law[0]})
                   </button>
@@ -146,7 +147,7 @@ export function IdentityDialog({
                   <button
                     key={moral}
                     className={character.alignmentMoral === moral ? pillOn : pillOff}
-                    onClick={() => update((c) => setAlignmentMoral(c, moral))}
+                    onClick={() => trackedUpdate((c) => setAlignmentMoral(c, moral))}
                   >
                     {moral} ({moral[0]})
                   </button>
@@ -161,7 +162,7 @@ export function IdentityDialog({
                   <button
                     key={size}
                     className={identity.tamanho === size ? pillOn : pillOff}
-                    onClick={() => update((c) => updateIdentity(c, { tamanho: size }))}
+                    onClick={() => trackedUpdate((c) => updateIdentity(c, { tamanho: size }))}
                   >
                     {size}
                   </button>
@@ -173,19 +174,19 @@ export function IdentityDialog({
               <TextField
                 label="Raça"
                 value={identity.raca}
-                onChange={(e) => update((c) => updateIdentity(c, { raca: e.target.value }))}
+                onChange={(e) => trackedUpdate((c) => updateIdentity(c, { raca: e.target.value }))}
               />
               <TextField
                 label="Sexo"
                 value={identity.sexo}
-                onChange={(e) => update((c) => updateIdentity(c, { sexo: e.target.value }))}
+                onChange={(e) => trackedUpdate((c) => updateIdentity(c, { sexo: e.target.value }))}
               />
               <UnitInput
                 label="Idade"
                 unit="anos"
                 value={identity.idadeNum}
                 onChange={(e) =>
-                  update((c) => updateIdentity(c, { idadeNum: Number(e.target.value) || 0 }))
+                  trackedUpdate((c) => updateIdentity(c, { idadeNum: Number(e.target.value) || 0 }))
                 }
               />
               <UnitInput
@@ -194,7 +195,9 @@ export function IdentityDialog({
                 step={0.01}
                 value={identity.alturaNum}
                 onChange={(e) =>
-                  update((c) => updateIdentity(c, { alturaNum: Number(e.target.value) || 0 }))
+                  trackedUpdate((c) =>
+                    updateIdentity(c, { alturaNum: Number(e.target.value) || 0 }),
+                  )
                 }
               />
               <UnitInput
@@ -202,29 +205,35 @@ export function IdentityDialog({
                 unit="kg"
                 value={identity.pesoNum}
                 onChange={(e) =>
-                  update((c) => updateIdentity(c, { pesoNum: Number(e.target.value) || 0 }))
+                  trackedUpdate((c) => updateIdentity(c, { pesoNum: Number(e.target.value) || 0 }))
                 }
               />
               <TextField
                 label="Cabelo"
                 value={identity.cabelo}
-                onChange={(e) => update((c) => updateIdentity(c, { cabelo: e.target.value }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => updateIdentity(c, { cabelo: e.target.value }))
+                }
               />
               <TextField
                 label="Olhos"
                 value={identity.olhos}
-                onChange={(e) => update((c) => updateIdentity(c, { olhos: e.target.value }))}
+                onChange={(e) => trackedUpdate((c) => updateIdentity(c, { olhos: e.target.value }))}
               />
               <TextField
                 label="Divindade"
                 value={identity.divindade}
-                onChange={(e) => update((c) => updateIdentity(c, { divindade: e.target.value }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => updateIdentity(c, { divindade: e.target.value }))
+                }
               />
               <div className="col-span-2">
                 <TextField
                   label="Terra natal"
                   value={identity.terraNatal}
-                  onChange={(e) => update((c) => updateIdentity(c, { terraNatal: e.target.value }))}
+                  onChange={(e) =>
+                    trackedUpdate((c) => updateIdentity(c, { terraNatal: e.target.value }))
+                  }
                 />
               </div>
             </div>

@@ -41,6 +41,7 @@ export function SavesDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   const abilities = computeAllAbilities(character.abilities);
@@ -81,23 +82,23 @@ export function SavesDialog({
             <EditRow
               label="Base"
               value={block.base}
-              onChange={(v) => update((c) => setSaveField(c, tab, 'base', v))}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'base', v))}
             />
             <Row label={SAVE_ABILITY_LABEL[tab]} value={signed(abilityMod)} />
             <EditRow
               label="Mágico"
               value={block.magic}
-              onChange={(v) => update((c) => setSaveField(c, tab, 'magic', v))}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'magic', v))}
             />
             <EditRow
               label="Variado"
               value={block.misc}
-              onChange={(v) => update((c) => setSaveField(c, tab, 'misc', v))}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'misc', v))}
             />
             <EditRow
               label="Temporário"
               value={block.temp}
-              onChange={(v) => update((c) => setSaveField(c, tab, 'temp', v))}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'temp', v))}
             />
           </div>
         )}

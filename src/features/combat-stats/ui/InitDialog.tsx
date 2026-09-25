@@ -29,6 +29,7 @@ export function InitDialog({ open, onOpenChange, character, update }: InitDialog
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
   const abilities = computeAllAbilities(character.abilities);
   const total = computeInitiative(character, abilities);
@@ -55,7 +56,7 @@ export function InitDialog({ open, onOpenChange, character, update }: InitDialog
             {editing && (
               <button
                 type="button"
-                onClick={() => update(addInitVariedMod)}
+                onClick={() => trackedUpdate(addInitVariedMod)}
                 className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
               >
                 + Adicionar
@@ -78,9 +79,13 @@ export function InitDialog({ open, onOpenChange, character, update }: InitDialog
                   key={m.id}
                   label={m.label}
                   value={m.value}
-                  onLabelChange={(label) => update((c) => updateInitVariedMod(c, m.id, { label }))}
-                  onValueChange={(value) => update((c) => updateInitVariedMod(c, m.id, { value }))}
-                  onRemove={() => update((c) => removeInitVariedMod(c, m.id))}
+                  onLabelChange={(label) =>
+                    trackedUpdate((c) => updateInitVariedMod(c, m.id, { label }))
+                  }
+                  onValueChange={(value) =>
+                    trackedUpdate((c) => updateInitVariedMod(c, m.id, { value }))
+                  }
+                  onRemove={() => trackedUpdate((c) => removeInitVariedMod(c, m.id))}
                 />
               ))}
             </div>

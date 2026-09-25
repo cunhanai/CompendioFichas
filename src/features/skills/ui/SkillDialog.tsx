@@ -34,6 +34,7 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
   const abilities = computeAllAbilities(character.abilities);
   const skill = character.skills.find((s) => s.key === skillKey);
@@ -78,7 +79,7 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
                 type="number"
                 value={skill.ranks}
                 onChange={(e) =>
-                  update((c) => setSkillRanks(c, skillKey, Number(e.target.value) || 0))
+                  trackedUpdate((c) => setSkillRanks(c, skillKey, Number(e.target.value) || 0))
                 }
                 className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
               />
@@ -93,7 +94,7 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
             ) : (
               <Switch
                 checked={skill.classSkill}
-                onCheckedChange={() => update((c) => toggleSkillClass(c, skillKey))}
+                onCheckedChange={() => trackedUpdate((c) => toggleSkillClass(c, skillKey))}
                 label="Perícia de classe"
               />
             )}
@@ -114,7 +115,7 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
             {editing && (
               <button
                 type="button"
-                onClick={() => update((c) => addSkillMod(c, skillKey))}
+                onClick={() => trackedUpdate((c) => addSkillMod(c, skillKey))}
                 className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
               >
                 + Adicionar
@@ -138,12 +139,12 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
                   label={m.label}
                   value={m.value}
                   onLabelChange={(label) =>
-                    update((c) => updateSkillMod(c, skillKey, m.id, { label }))
+                    trackedUpdate((c) => updateSkillMod(c, skillKey, m.id, { label }))
                   }
                   onValueChange={(value) =>
-                    update((c) => updateSkillMod(c, skillKey, m.id, { value }))
+                    trackedUpdate((c) => updateSkillMod(c, skillKey, m.id, { value }))
                   }
-                  onRemove={() => update((c) => removeSkillMod(c, skillKey, m.id))}
+                  onRemove={() => trackedUpdate((c) => removeSkillMod(c, skillKey, m.id))}
                 />
               ))}
             </div>

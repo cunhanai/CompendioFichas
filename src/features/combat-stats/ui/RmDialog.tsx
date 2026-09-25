@@ -23,6 +23,7 @@ export function RmDialog({ open, onOpenChange, character, update }: RmDialogProp
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
 
   return (
@@ -40,7 +41,7 @@ export function RmDialog({ open, onOpenChange, character, update }: RmDialogProp
           <input
             type="number"
             value={character.rmValue}
-            onChange={(e) => update((c) => setRmValue(c, Number(e.target.value) || 0))}
+            onChange={(e) => trackedUpdate((c) => setRmValue(c, Number(e.target.value) || 0))}
             className="mb-3 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-lg text-neutral-100 outline-none focus:border-amber-500"
           />
         )}

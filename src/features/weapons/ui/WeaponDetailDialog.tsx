@@ -44,10 +44,12 @@ export function WeaponDetailDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
   if (!weapon) return null;
 
-  const set = (patch: Partial<typeof weapon>) => update((c) => patchWeapon(c, weaponId, patch));
+  const set = (patch: Partial<typeof weapon>) =>
+    trackedUpdate((c) => patchWeapon(c, weaponId, patch));
 
   return (
     <>
@@ -139,7 +141,7 @@ export function WeaponDetailDialog({
                 <span className="text-sm text-neutral-300">Usa munição</span>
                 <Switch
                   checked={weapon.hasAmmo}
-                  onCheckedChange={() => update((c) => toggleWeaponAmmo(c, weaponId))}
+                  onCheckedChange={() => trackedUpdate((c) => toggleWeaponAmmo(c, weaponId))}
                   label="Usa munição"
                 />
               </div>
@@ -182,18 +184,27 @@ export function WeaponDetailDialog({
               />
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              <AmmoBtn onClick={() => update((c) => adjustAmmo(c, weaponId, -1))} tone="rose">
+              <AmmoBtn
+                onClick={() => trackedUpdate((c) => adjustAmmo(c, weaponId, -1))}
+                tone="rose"
+              >
                 -1
               </AmmoBtn>
-              <AmmoBtn onClick={() => update((c) => adjustAmmo(c, weaponId, -5))} tone="rose">
+              <AmmoBtn
+                onClick={() => trackedUpdate((c) => adjustAmmo(c, weaponId, -5))}
+                tone="rose"
+              >
                 -5
               </AmmoBtn>
-              <AmmoBtn onClick={() => update((c) => adjustAmmo(c, weaponId, 1))} tone="emerald">
+              <AmmoBtn
+                onClick={() => trackedUpdate((c) => adjustAmmo(c, weaponId, 1))}
+                tone="emerald"
+              >
                 +1
               </AmmoBtn>
               <button
                 title="Recarregar ao máximo"
-                onClick={() => update((c) => reloadAmmo(c, weaponId))}
+                onClick={() => trackedUpdate((c) => reloadAmmo(c, weaponId))}
                 className="h-9 rounded-md bg-neutral-800 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-700"
               >
                 Recarregar
@@ -226,7 +237,9 @@ export function WeaponDetailDialog({
                     {editing && (
                       <button
                         title="Remover registro"
-                        onClick={() => update((c) => removeAmmoLogEntry(c, weaponId, entry.id))}
+                        onClick={() =>
+                          trackedUpdate((c) => removeAmmoLogEntry(c, weaponId, entry.id))
+                        }
                         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-neutral-500 hover:bg-rose-950/60 hover:text-rose-300"
                       >
                         ×

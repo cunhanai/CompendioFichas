@@ -22,6 +22,7 @@ export function StoryDialog({ open, onOpenChange, character, update }: StoryDial
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({
     open,
     isEmpty: !character.story,
@@ -58,7 +59,7 @@ export function StoryDialog({ open, onOpenChange, character, update }: StoryDial
           <textarea
             rows={8}
             value={character.story}
-            onChange={(e) => update((c) => setStory(c, e.target.value))}
+            onChange={(e) => trackedUpdate((c) => setStory(c, e.target.value))}
             className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3.5 py-3 text-sm text-neutral-200 outline-none focus:border-amber-500"
           />
         )}

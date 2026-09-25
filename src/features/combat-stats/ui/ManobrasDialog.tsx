@@ -36,6 +36,7 @@ export function ManobrasDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({
     open,
     isEmpty: character.bbaValue === 0,
@@ -85,7 +86,9 @@ export function ManobrasDialog({
                 <input
                   type="number"
                   value={character.bbaValue}
-                  onChange={(e) => update((c) => setBbaValue(c, Number(e.target.value) || 0))}
+                  onChange={(e) =>
+                    trackedUpdate((c) => setBbaValue(c, Number(e.target.value) || 0))
+                  }
                   className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
                 />
               </div>

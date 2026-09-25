@@ -43,6 +43,7 @@ export function SpeedDialog({ open, onOpenChange, character, update }: SpeedDial
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   const swimClimbDig = [
@@ -96,49 +97,63 @@ export function SpeedDialog({ open, onOpenChange, character, update }: SpeedDial
                 unit="m"
                 step={0.5}
                 value={speed.base}
-                onChange={(e) => update((c) => setSpeed(c, { base: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { base: Number(e.target.value) || 0 }))
+                }
               />
               <UnitInput
                 label="Com armadura"
                 unit="m"
                 step={0.5}
                 value={speed.armor}
-                onChange={(e) => update((c) => setSpeed(c, { armor: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { armor: Number(e.target.value) || 0 }))
+                }
               />
               <UnitInput
                 label="Voar"
                 unit="m"
                 step={0.5}
                 value={speed.fly}
-                onChange={(e) => update((c) => setSpeed(c, { fly: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { fly: Number(e.target.value) || 0 }))
+                }
               />
               <UnitInput
                 label="Nadar"
                 unit="m"
                 step={0.5}
                 value={speed.swim}
-                onChange={(e) => update((c) => setSpeed(c, { swim: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { swim: Number(e.target.value) || 0 }))
+                }
               />
               <UnitInput
                 label="Escalar"
                 unit="m"
                 step={0.5}
                 value={speed.climb}
-                onChange={(e) => update((c) => setSpeed(c, { climb: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { climb: Number(e.target.value) || 0 }))
+                }
               />
               <UnitInput
                 label="Cavar"
                 unit="m"
                 step={0.5}
                 value={speed.dig}
-                onChange={(e) => update((c) => setSpeed(c, { dig: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  trackedUpdate((c) => setSpeed(c, { dig: Number(e.target.value) || 0 }))
+                }
               />
             </div>
             <TextField
               label="Manobrabilidade (voo)"
               placeholder="Ex: Boa, Razoável..."
               value={speed.flyManeuverability}
-              onChange={(e) => update((c) => setSpeed(c, { flyManeuverability: e.target.value }))}
+              onChange={(e) =>
+                trackedUpdate((c) => setSpeed(c, { flyManeuverability: e.target.value }))
+              }
             />
           </div>
         )}

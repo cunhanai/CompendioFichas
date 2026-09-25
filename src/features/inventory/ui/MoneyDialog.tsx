@@ -33,6 +33,7 @@ export function MoneyDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   return (
@@ -79,7 +80,7 @@ export function MoneyDialog({
                   type="number"
                   value={character.money[coin.key]}
                   onChange={(e) =>
-                    update((c) => setMoneyField(c, coin.key, Number(e.target.value) || 0))
+                    trackedUpdate((c) => setMoneyField(c, coin.key, Number(e.target.value) || 0))
                   }
                   className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                 />

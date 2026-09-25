@@ -52,6 +52,7 @@ export function AcDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   const ac = computeAc(character, computeAllAbilities(character.abilities));
@@ -103,7 +104,9 @@ export function AcDialog({
                 <input
                   type="number"
                   value={character[field]}
-                  onChange={(e) => update((c) => setAcField(c, field, Number(e.target.value) || 0))}
+                  onChange={(e) =>
+                    trackedUpdate((c) => setAcField(c, field, Number(e.target.value) || 0))
+                  }
                   className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
                 />
               </div>
@@ -113,7 +116,7 @@ export function AcDialog({
                 <span className="text-neutral-400">Variado</span>
                 <button
                   type="button"
-                  onClick={() => update(addAcVariedMod)}
+                  onClick={() => trackedUpdate(addAcVariedMod)}
                   className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
                 >
                   + Adicionar
@@ -125,9 +128,13 @@ export function AcDialog({
                     key={m.id}
                     label={m.label}
                     value={m.value}
-                    onLabelChange={(label) => update((c) => updateAcVariedMod(c, m.id, { label }))}
-                    onValueChange={(value) => update((c) => updateAcVariedMod(c, m.id, { value }))}
-                    onRemove={() => update((c) => removeAcVariedMod(c, m.id))}
+                    onLabelChange={(label) =>
+                      trackedUpdate((c) => updateAcVariedMod(c, m.id, { label }))
+                    }
+                    onValueChange={(value) =>
+                      trackedUpdate((c) => updateAcVariedMod(c, m.id, { value }))
+                    }
+                    onRemove={() => trackedUpdate((c) => removeAcVariedMod(c, m.id))}
                   />
                 ))}
               </div>

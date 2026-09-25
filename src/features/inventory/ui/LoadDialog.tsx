@@ -35,6 +35,7 @@ export function LoadDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
   const carried = computeCarriedWeight(character);
   const state = loadState(carried, character.load);
@@ -90,7 +91,7 @@ export function LoadDialog({
                     type="number"
                     value={character.load[f.key]}
                     onChange={(e) =>
-                      update((c) => setLoadField(c, f.key, Number(e.target.value) || 0))
+                      trackedUpdate((c) => setLoadField(c, f.key, Number(e.target.value) || 0))
                     }
                     className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                   />

@@ -34,6 +34,7 @@ export function ConditionalModsDialog({
     keepChanges,
     discardChanges,
     cancelClose,
+    update: trackedUpdate,
   } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
 
   return (
@@ -73,13 +74,15 @@ export function ConditionalModsDialog({
                   <input
                     type="text"
                     value={m.text}
-                    onChange={(e) => update((c) => updateConditionalMod(c, m.id, e.target.value))}
+                    onChange={(e) =>
+                      trackedUpdate((c) => updateConditionalMod(c, m.id, e.target.value))
+                    }
                     placeholder="Ex: Furtividade com armadura pesada −5"
                     className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-amber-500"
                   />
                   <button
                     type="button"
-                    onClick={() => update((c) => removeConditionalMod(c, m.id))}
+                    onClick={() => trackedUpdate((c) => removeConditionalMod(c, m.id))}
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 text-neutral-500 hover:border-rose-800/50 hover:text-rose-400"
                   >
                     <X className="h-4 w-4" strokeWidth={2} />
@@ -89,7 +92,7 @@ export function ConditionalModsDialog({
             </div>
             <button
               type="button"
-              onClick={() => update(addConditionalMod)}
+              onClick={() => trackedUpdate(addConditionalMod)}
               className="mt-3 flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
             >
               <Plus className="h-4 w-4" strokeWidth={2} />
