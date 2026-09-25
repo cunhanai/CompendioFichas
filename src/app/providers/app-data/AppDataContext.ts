@@ -8,12 +8,15 @@ import type {
   WeaponLibraryItem,
 } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
+import type { SecurityAlert } from '@/features/user-management/model/types';
 
 export interface AppDataContextValue {
   user: UserProfile;
   systems: RpgSystem[];
   characters: Character[];
   libraries: Record<string, SharedLibrary>;
+  securityAlerts: SecurityAlert[];
+  dismissSecurityAlert: (id: string) => void;
   updateUser: (updater: (u: UserProfile) => UserProfile) => void;
   updateCharacter: (id: string, updater: (c: Character) => Character) => void;
   addCharacter: (character: Character) => void;

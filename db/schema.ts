@@ -29,6 +29,20 @@ export const auditLog = pgTable('audit_log', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Standing alerts raised when the login-failure/rate-limit rate in audit_log crosses a
+ * threshold. Persists across logout/login and stays until an admin explicitly dismisses it —
+ * it's a fact about something that happened, not a live computed value.
+ */
+export const securityAlerts = pgTable('security_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  description: text('description').notNull(),
+  dismissed: boolean('dismissed').notNull().default(false),
+  dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+  dismissedBy: uuid('dismissed_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const sessions = pgTable('sessions', {
   token: text('token').primaryKey(),
   userId: uuid('user_id')

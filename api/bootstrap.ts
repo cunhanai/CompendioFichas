@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { characters, systems, users } from '../db/schema.js';
+import { characters, securityAlerts, systems, users } from '../db/schema.js';
 import { loadLibraries } from '../db/library.js';
 import { toUserProfile } from './_lib/mappers.js';
 import { requireUserId } from './_lib/auth.js';
@@ -29,10 +29,20 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
 
   const libraries = await loadLibraries(systemRows.map((s) => s.id));
 
+  // Only admins need to know about this, and only admins are allowed to dismiss it.
+  const alerts = user[0].isAdmin
+    ? await db
+        .select()
+        .from(securityAlerts)
+        .where(eq(securityAlerts.dismissed, false))
+        .orderBy(desc(securityAlerts.createdAt))
+    : [];
+
   res.status(200).json({
     user: toUserProfile(user[0]),
     systems: systemRows,
     characters: characterRows.map((row) => row.data),
     libraries,
+    securityAlerts: alerts,
   });
 });

@@ -6,7 +6,9 @@ import { db } from '../../db/client.js';
 import { sessions } from '../../db/schema.js';
 
 const COOKIE_NAME = 'session';
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// 30 days meant a stolen/leaked cookie stayed valid for a month even if you never noticed.
+// 7 days caps that exposure while still not asking a handful of known users to log in daily.
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export async function createSession(userId: string): Promise<string> {
   const token = randomBytes(32).toString('hex');

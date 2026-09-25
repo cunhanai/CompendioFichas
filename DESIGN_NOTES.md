@@ -334,6 +334,14 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
 - **Validação de entrada**: personagem (`POST`/`PATCH /api/characters`) ganhou um teto de tamanho (2MB) e uma checagem de forma via Zod (id/systemId) antes de gravar — o restante do objeto continua indo para a coluna JSONB sem um schema campo-a-campo (a ficha tem ~100 campos espalhados pelas abas; modelar tudo no Zod seria um projeto à parte, então ficou registrado como uma lacuna consciente, não coberta).
 - **Nome de usuário com @**: em toda tela (login, criar usuário, perfil, gestão de usuários) o nome de usuário aparece com `@` na frente; nos campos editáveis o `@` é só um prefixo visual dentro do input, não faz parte do valor salvo.
 
+### Deploy quebrado no plano Hobby, alertas de segurança e outros ajustes
+- **Limite de 12 funções serverless (Hobby)**: cada arquivo em `/api` vira uma função na Vercel; com 14 rotas o deploy passou a falhar. As rotas relacionadas foram consolidadas em arquivos únicos que despacham por método/caminho (`api/auth/[action].ts`, `api/admin/users/[[...path]].ts`, `api/characters/[[...path]].ts`, `api/user/[[...path]].ts`), sem mudar nenhuma URL usada pelo front-end — caiu para 7 funções.
+- **Alerta de segurança persistente**: uma nova tabela `security_alerts` guarda avisos levantados automaticamente quando o número de tentativas de login falhas/bloqueadas na última hora passa de um limite (8). O aviso aparece como uma faixa vermelha fixa em qualquer tela para administradores (não só na tela de Usuários), carregado junto do `/api/bootstrap`, e só some quando removido manualmente (com confirmação) — sobrevive a logout/login.
+- **Aba "Atividade recente"**: dentro de Gestão de usuários, mostra os últimos 100 registros de `audit_log` (quem fez o quê, com quem, quando), incluindo tentativas de login (sucesso, falha, bloqueio por limite).
+- **Rate limiting: fail-closed em erro de infraestrutura**: se o Redis não estiver configurado, o limite fica desligado (comportamento esperado antes de conectar o Upstash). Mas se estiver configurado e falhar (fora do ar, cota estourada), agora ele **bloqueia** a tentativa em vez de deixar passar — evita que uma falha do Upstash desligue silenciosamente essa proteção.
+- **Cookie de sessão reduzido de 30 para 7 dias**, para limitar por quanto tempo um cookie vazado continua válido.
+- **Code splitting por rota**: cada página carrega sob demanda (`React.lazy`); o bundle principal caiu de ~860KB para ~590KB, com a ficha de personagem (a maior tela) isolada em seu próprio pedaço, carregado só quando alguém abre uma ficha.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 
