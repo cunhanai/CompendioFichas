@@ -6,6 +6,7 @@ import { CharactersPage } from '@/pages/characters/CharactersPage';
 import { LibraryPage } from '@/pages/library/LibraryPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { CreateUserPage } from '@/pages/admin/CreateUserPage';
+import { UsersPage } from '@/pages/admin/UsersPage';
 import { SheetPage } from '@/pages/sheet/SheetPage';
 
 /** Renders the icon nav shell + whichever page the current URL points to. */
@@ -19,6 +20,7 @@ export function AppScreens() {
         <Route path="/sistemas/:systemId/biblioteca" element={<LibraryPage />} />
         <Route path="/perfil" element={<ProfilePage />} />
         <Route path="/perfil/criar-usuario" element={<CreateUserPage />} />
+        <Route path="/admin/usuarios" element={<UsersPage />} />
         <Route path="/personagens/:characterId" element={<SheetPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

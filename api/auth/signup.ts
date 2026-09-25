@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { users } from '../../db/schema.js';
 import { signupBodySchema } from '../_lib/validation.js';
-import { hashPassword, requireUserId } from '../_lib/auth.js';
+import { hashPassword, requireAdminId } from '../_lib/auth.js';
 import { toUserProfile } from '../_lib/mappers.js';
 import { withErrorHandling } from '../_lib/handler.js';
 
@@ -14,18 +14,8 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     return;
   }
 
-  const callerId = await requireUserId(req, res);
+  const callerId = await requireAdminId(req, res);
   if (!callerId) return;
-
-  const [caller] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, callerId))
-    .limit(1);
-  if (!caller?.isAdmin) {
-    res.status(403).json({ error: 'Apenas administradores podem criar novos usuários.' });
-    return;
-  }
 
   const parsed = signupBodySchema.safeParse(req.body);
   if (!parsed.success) {

@@ -43,6 +43,13 @@
       "when": 1790252516655,
       "tag": "0005_add_library_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790336184744,
+      "tag": "0006_military_quasimodo",
+      "breakpoints": true
     }
   ]
 }

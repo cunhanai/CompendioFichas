@@ -76,64 +76,62 @@ export function AccountCard({ user, onSave }: AccountCardProps) {
           <FieldView label="Nome de usuário" value={user.username} />
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <form
-            onSubmit={handleSubmit((values) => {
-              onSave(values);
-              setEditing(false);
-            })}
+        <form
+          onSubmit={handleSubmit((values) => {
+            onSave(values);
+            setEditing(false);
+          })}
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <TextField label="Nome" {...register('name')} />
+            <TextField label="Nome de usuário" {...register('username')} />
+          </div>
+          <Button type="submit" className="mt-4 w-full">
+            Salvar
+          </Button>
+        </form>
+      )}
+
+      <div className="mt-4 border-t border-neutral-800 pt-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-neutral-400">Senha</span>
+          <button
+            type="button"
+            onClick={() => setChangingPassword((c) => !c)}
+            className="flex items-center gap-1.5 text-xs font-medium text-amber-500 hover:text-amber-400"
           >
+            <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
+            Alterar senha
+          </button>
+        </div>
+        {changingPassword && (
+          <form
+            onSubmit={handlePasswordSubmit(onSavePassword)}
+            className="mt-3 flex flex-col gap-3"
+          >
+            <PasswordField
+              label="Senha atual"
+              error={passwordErrors.currentPassword?.message}
+              {...registerPassword('currentPassword')}
+            />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField label="Nome" {...register('name')} />
-              <TextField label="Nome de usuário" {...register('username')} />
+              <PasswordField
+                label="Nova senha"
+                error={passwordErrors.newPassword?.message}
+                {...registerPassword('newPassword')}
+              />
+              <PasswordField
+                label="Confirmar nova senha"
+                error={passwordErrors.confirmPassword?.message}
+                {...registerPassword('confirmPassword')}
+              />
             </div>
-            <Button type="submit" className="mt-4 w-full">
-              Salvar
+            <Button type="submit" variant="secondary" className="mt-1">
+              Salvar senha
             </Button>
           </form>
-
-          <div className="border-t border-neutral-800 pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-neutral-400">Senha</span>
-              <button
-                type="button"
-                onClick={() => setChangingPassword((c) => !c)}
-                className="flex items-center gap-1.5 text-xs font-medium text-amber-500 hover:text-amber-400"
-              >
-                <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Alterar senha
-              </button>
-            </div>
-            {changingPassword && (
-              <form
-                onSubmit={handlePasswordSubmit(onSavePassword)}
-                className="mt-3 flex flex-col gap-3"
-              >
-                <PasswordField
-                  label="Senha atual"
-                  error={passwordErrors.currentPassword?.message}
-                  {...registerPassword('currentPassword')}
-                />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <PasswordField
-                    label="Nova senha"
-                    error={passwordErrors.newPassword?.message}
-                    {...registerPassword('newPassword')}
-                  />
-                  <PasswordField
-                    label="Confirmar nova senha"
-                    error={passwordErrors.confirmPassword?.message}
-                    {...registerPassword('confirmPassword')}
-                  />
-                </div>
-                <Button type="submit" variant="secondary" className="mt-1">
-                  Salvar senha
-                </Button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </SectionCard>
   );
 }

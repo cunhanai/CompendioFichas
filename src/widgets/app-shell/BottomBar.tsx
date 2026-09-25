@@ -1,8 +1,9 @@
-import { Home, Layers, LogOut, User } from 'lucide-react';
+import { Home, Layers, LogOut, User, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 import { routes } from '@/shared/lib/routes';
 import { useSession } from '@/entities/session';
+import { useAppData } from '@/app/providers';
 
 const itemBase = 'flex flex-1 flex-col items-center justify-center py-2.5 transition';
 const itemOn = cn(itemBase, 'text-amber-400');
@@ -17,6 +18,7 @@ export function BottomBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useSession();
+  const { user } = useAppData();
 
   return (
     <nav className="fixed right-0 bottom-0 left-0 z-40 flex items-stretch border-t border-neutral-800 bg-neutral-950/95 backdrop-blur md:hidden">
@@ -44,6 +46,16 @@ export function BottomBar() {
       >
         <User className="h-5 w-5" strokeWidth={1.8} />
       </button>
+      {user.isAdmin && (
+        <button
+          type="button"
+          title="Usuários"
+          className={pathname === routes.adminUsers() ? itemOn : itemOff}
+          onClick={() => navigate(routes.adminUsers())}
+        >
+          <Users className="h-5 w-5" strokeWidth={1.8} />
+        </button>
+      )}
       <button
         type="button"
         title="Sair"

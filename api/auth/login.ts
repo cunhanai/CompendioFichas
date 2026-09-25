@@ -26,6 +26,12 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     res.status(401).json({ error: 'Usuário ou senha incorretos.' });
     return;
   }
+  if (!user.active) {
+    res.status(403).json({ error: 'Esta conta foi desativada. Fale com um administrador.' });
+    return;
+  }
+
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
 
   const token = await createSession(user.id);
   setSessionCookie(res, token);

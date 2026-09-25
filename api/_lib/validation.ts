@@ -15,6 +15,15 @@ export const passwordChangeBodySchema = z.object({
   newPassword: z.string().min(6, 'A nova senha deve ter ao menos 6 caracteres'),
 });
 
+export const adminUpdateUserBodySchema = z
+  .object({
+    active: z.boolean().optional(),
+    isAdmin: z.boolean().optional(),
+  })
+  .refine((data) => data.active !== undefined || data.isAdmin !== undefined, {
+    message: 'Nada para atualizar.',
+  });
+
 const uuid = z.uuid();
 
 export const spellItemSchema = z.object({

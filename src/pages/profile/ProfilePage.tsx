@@ -1,4 +1,4 @@
-import { UserPlus } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
@@ -36,10 +36,10 @@ export function ProfilePage() {
         <Button
           variant="secondary"
           className="w-full"
-          onClick={() => navigate(routes.adminCreateUser())}
+          onClick={() => navigate(routes.adminUsers())}
         >
-          <UserPlus className="h-4 w-4" strokeWidth={1.8} />
-          Criar usuário
+          <Users className="h-4 w-4" strokeWidth={1.8} />
+          Gerenciar usuários
         </Button>
       )}
     </main>

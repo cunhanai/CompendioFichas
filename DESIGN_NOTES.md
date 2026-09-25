@@ -316,6 +316,15 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
 ### Gap identificado (ainda não resolvido): compartilhamento por link não funciona de fato
 - O popup "Compartilhar ficha" (`ShareDialog`) sempre foi só a interface — ativa/desativa a flag `shared` e mostra uma URL (`https://compendio.app/f/:shareSlug`), mas esse domínio nem existe e nunca houve uma rota nem um endpoint público que resolvesse esse link e mostrasse a ficha em modo leitura. Diferente da foto do personagem e do PDF, isso **não** foi marcado como placeholder intencional nas notas originais — o texto descreve um recurso funcional ("qualquer pessoa com o link poderá visualizar esta ficha"). Fica registrado aqui como pendência real a decidir/priorizar.
 
+### Gestão de usuários (admin) e correções no card de conta
+- **Alterar senha** deixou de ficar preso ao modo de edição de "Dados da conta" — agora é uma seção própria, sempre visível, independente de estar editando nome/usuário ou não.
+- **Nova aba "Usuários" na navbar (`/admin/usuarios`)**, visível só para administradores (ícone próprio na sidebar/bottom bar). Lista todas as contas com: avatar, nome, `@usuário`, badges de Admin/Inativo, e "último acesso" (relativo, ex. "há 2 dias" — ou "Nunca acessou").
+- Cada conta na lista tem três ações administrativas: **ativar/desativar** (switch), **tornar/remover admin** (botão) e **redefinir senha** (gera uma senha temporária aleatória, mostrada uma única vez em um popup de confirmação, com botão de copiar). Um admin não pode desativar nem remover o próprio acesso de administrador por essa tela (evita se auto-trancar fora do sistema).
+- Redefinir senha e desativar uma conta **encerram todas as sessões ativas dela** (a tabela `sessions` é limpa para aquele usuário) — a pessoa é desconectada de todos os dispositivos imediatamente.
+- Login passou a checar `users.active`: uma conta desativada não consegue mais entrar (mensagem própria), mesmo com a senha certa. Todo login bem-sucedido agora grava `users.last_login_at`.
+- O botão "Criar usuário" saiu da tela de perfil e foi para dentro da nova tela de Usuários (a tela de criação em si, `/perfil/criar-usuario`, continua a mesma).
+- Duas colunas novas em `users`: `active boolean default true` e `last_login_at timestamp`.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 

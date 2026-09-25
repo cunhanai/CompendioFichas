@@ -1,8 +1,9 @@
-import { FileText, Home, Layers, LogOut, User } from 'lucide-react';
+import { FileText, Home, Layers, LogOut, User, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 import { routes } from '@/shared/lib/routes';
 import { useSession } from '@/entities/session';
+import { useAppData } from '@/app/providers';
 
 const itemBase = 'flex h-11 w-11 items-center justify-center rounded-lg transition';
 const itemOn = cn(itemBase, 'bg-amber-500/15 text-amber-400');
@@ -17,6 +18,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout } = useSession();
+  const { user } = useAppData();
 
   return (
     <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-neutral-800 bg-neutral-950 py-6 md:flex">
@@ -47,6 +49,16 @@ export function Sidebar() {
       >
         <User className="h-5 w-5" strokeWidth={1.8} />
       </button>
+      {user.isAdmin && (
+        <button
+          type="button"
+          title="Usuários"
+          className={pathname === routes.adminUsers() ? itemOn : itemOff}
+          onClick={() => navigate(routes.adminUsers())}
+        >
+          <Users className="h-5 w-5" strokeWidth={1.8} />
+        </button>
+      )}
       <div className="mt-auto">
         <button
           type="button"

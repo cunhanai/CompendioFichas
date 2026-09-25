@@ -1,5 +1,6 @@
 import type { users } from '../../db/schema.js';
 import type { UserProfile } from '../../src/entities/user/model/types.js';
+import type { AdminUserView } from '../../src/features/user-management/model/types.js';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -11,5 +12,19 @@ export function toUserProfile(row: UserRow): UserProfile {
     username: row.username,
     avatarUrl: row.avatarUrl,
     isAdmin: row.isAdmin,
+  };
+}
+
+/** Admin-only listing shape — adds the account-management fields regular profiles don't need. */
+export function toAdminUserView(row: UserRow): AdminUserView {
+  return {
+    id: row.id,
+    name: row.name,
+    username: row.username,
+    avatarUrl: row.avatarUrl,
+    isAdmin: row.isAdmin,
+    active: row.active,
+    lastLoginAt: row.lastLoginAt ? row.lastLoginAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
   };
 }
