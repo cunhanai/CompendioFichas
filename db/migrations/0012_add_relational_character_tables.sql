@@ -299,4 +299,29 @@ ALTER TABLE "character_spell_circles" ADD CONSTRAINT "character_spell_circles_ch
 ALTER TABLE "character_spellbooks" ADD CONSTRAINT "character_spellbooks_character_id_characters_id_fk" FOREIGN KEY ("character_id") REFERENCES "public"."characters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "character_weapon_ammo_log" ADD CONSTRAINT "character_weapon_ammo_log_weapon_id_character_weapons_id_fk" FOREIGN KEY ("weapon_id") REFERENCES "public"."character_weapons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "character_weapon_ammo_log" ADD CONSTRAINT "character_weapon_ammo_log_character_id_characters_id_fk" FOREIGN KEY ("character_id") REFERENCES "public"."characters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "character_weapons" ADD CONSTRAINT "character_weapons_character_id_characters_id_fk" FOREIGN KEY ("character_id") REFERENCES "public"."characters"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "character_weapons" ADD CONSTRAINT "character_weapons_character_id_characters_id_fk" FOREIGN KEY ("character_id") REFERENCES "public"."characters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "character_ability_log_character_id_idx" ON "character_ability_log" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_ability_mods_character_id_idx" ON "character_ability_mods" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_ac_varied_mods_character_id_idx" ON "character_ac_varied_mods" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_armor_items_character_id_idx" ON "character_armor_items" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_classes_character_id_idx" ON "character_classes" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_conditional_mods_character_id_idx" ON "character_conditional_mods" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_dr_items_character_id_idx" ON "character_dr_items" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_equipment_character_id_idx" ON "character_equipment" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_feats_character_id_idx" ON "character_feats" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_hp_log_character_id_idx" ON "character_hp_log" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_init_varied_mods_character_id_idx" ON "character_init_varied_mods" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_languages_character_id_idx" ON "character_languages" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_session_log_character_id_idx" ON "character_session_log" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_skill_mods_character_id_idx" ON "character_skill_mods" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_skill_mods_skill_id_idx" ON "character_skill_mods" USING btree ("skill_id");--> statement-breakpoint
+CREATE INDEX "character_skills_character_id_idx" ON "character_skills" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_snapshots_character_id_idx" ON "character_snapshots" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_snapshots_parent_id_idx" ON "character_snapshots" USING btree ("parent_id");--> statement-breakpoint
+CREATE INDEX "character_special_abilities_character_id_idx" ON "character_special_abilities" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_spell_circles_character_id_idx" ON "character_spell_circles" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_spell_circles_spellbook_id_idx" ON "character_spell_circles" USING btree ("spellbook_id");--> statement-breakpoint
+CREATE INDEX "character_spellbooks_character_id_idx" ON "character_spellbooks" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_weapon_ammo_log_character_id_idx" ON "character_weapon_ammo_log" USING btree ("character_id","sort_order");--> statement-breakpoint
+CREATE INDEX "character_weapon_ammo_log_weapon_id_idx" ON "character_weapon_ammo_log" USING btree ("weapon_id");--> statement-breakpoint
+CREATE INDEX "character_weapons_character_id_idx" ON "character_weapons" USING btree ("character_id","sort_order");

@@ -1,5 +1,5 @@
 {
-  "id": "f805bbec-d1b8-4197-8b37-f90337ed0747",
+  "id": "bb63afce-1006-4adc-ad24-a9d7e4b39080",
   "prevId": "6357239a-efeb-4b2e-9715-a87dbbcdb147",
   "version": "7",
   "dialect": "postgresql",
@@ -233,7 +233,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_ability_log_character_id_idx": {
+          "name": "character_ability_log_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_ability_log_character_id_characters_id_fk": {
           "name": "character_ability_log_character_id_characters_id_fk",
@@ -298,7 +320,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_ability_mods_character_id_idx": {
+          "name": "character_ability_mods_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_ability_mods_character_id_characters_id_fk": {
           "name": "character_ability_mods_character_id_characters_id_fk",
@@ -357,7 +401,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_ac_varied_mods_character_id_idx": {
+          "name": "character_ac_varied_mods_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_ac_varied_mods_character_id_characters_id_fk": {
           "name": "character_ac_varied_mods_character_id_characters_id_fk",
@@ -437,7 +503,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_armor_items_character_id_idx": {
+          "name": "character_armor_items_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_armor_items_character_id_characters_id_fk": {
           "name": "character_armor_items_character_id_characters_id_fk",
@@ -496,7 +584,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_classes_character_id_idx": {
+          "name": "character_classes_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_classes_character_id_characters_id_fk": {
           "name": "character_classes_character_id_characters_id_fk",
@@ -548,7 +658,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_conditional_mods_character_id_idx": {
+          "name": "character_conditional_mods_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_conditional_mods_character_id_characters_id_fk": {
           "name": "character_conditional_mods_character_id_characters_id_fk",
@@ -614,7 +746,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_dr_items_character_id_idx": {
+          "name": "character_dr_items_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_dr_items_character_id_characters_id_fk": {
           "name": "character_dr_items_character_id_characters_id_fk",
@@ -680,7 +834,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_equipment_character_id_idx": {
+          "name": "character_equipment_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_equipment_character_id_characters_id_fk": {
           "name": "character_equipment_character_id_characters_id_fk",
@@ -746,7 +922,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_feats_character_id_idx": {
+          "name": "character_feats_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_feats_character_id_characters_id_fk": {
           "name": "character_feats_character_id_characters_id_fk",
@@ -804,7 +1002,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_hp_log_character_id_idx": {
+          "name": "character_hp_log_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_hp_log_character_id_characters_id_fk": {
           "name": "character_hp_log_character_id_characters_id_fk",
@@ -863,7 +1083,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_init_varied_mods_character_id_idx": {
+          "name": "character_init_varied_mods_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_init_varied_mods_character_id_characters_id_fk": {
           "name": "character_init_varied_mods_character_id_characters_id_fk",
@@ -915,7 +1157,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_languages_character_id_idx": {
+          "name": "character_languages_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_languages_character_id_characters_id_fk": {
           "name": "character_languages_character_id_characters_id_fk",
@@ -980,7 +1244,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_session_log_character_id_idx": {
+          "name": "character_session_log_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_session_log_character_id_characters_id_fk": {
           "name": "character_session_log_character_id_characters_id_fk",
@@ -1148,7 +1434,44 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_skill_mods_character_id_idx": {
+          "name": "character_skill_mods_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "character_skill_mods_skill_id_idx": {
+          "name": "character_skill_mods_skill_id_idx",
+          "columns": [
+            {
+              "expression": "skill_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_skill_mods_skill_id_character_skills_id_fk": {
           "name": "character_skill_mods_skill_id_character_skills_id_fk",
@@ -1253,7 +1576,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_skills_character_id_idx": {
+          "name": "character_skills_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_skills_character_id_characters_id_fk": {
           "name": "character_skills_character_id_characters_id_fk",
@@ -1342,7 +1687,44 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_snapshots_character_id_idx": {
+          "name": "character_snapshots_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "character_snapshots_parent_id_idx": {
+          "name": "character_snapshots_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_snapshots_character_id_characters_id_fk": {
           "name": "character_snapshots_character_id_characters_id_fk",
@@ -1434,7 +1816,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_special_abilities_character_id_idx": {
+          "name": "character_special_abilities_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_special_abilities_character_id_characters_id_fk": {
           "name": "character_special_abilities_character_id_characters_id_fk",
@@ -1514,7 +1918,44 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_spell_circles_character_id_idx": {
+          "name": "character_spell_circles_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "character_spell_circles_spellbook_id_idx": {
+          "name": "character_spell_circles_spellbook_id_idx",
+          "columns": [
+            {
+              "expression": "spellbook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_spell_circles_spellbook_id_character_spellbooks_id_fk": {
           "name": "character_spell_circles_spellbook_id_character_spellbooks_id_fk",
@@ -1606,7 +2047,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_spellbooks_character_id_idx": {
+          "name": "character_spellbooks_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_spellbooks_character_id_characters_id_fk": {
           "name": "character_spellbooks_character_id_characters_id_fk",
@@ -1664,7 +2127,44 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_weapon_ammo_log_character_id_idx": {
+          "name": "character_weapon_ammo_log_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "character_weapon_ammo_log_weapon_id_idx": {
+          "name": "character_weapon_ammo_log_weapon_id_idx",
+          "columns": [
+            {
+              "expression": "weapon_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_weapon_ammo_log_weapon_id_character_weapons_id_fk": {
           "name": "character_weapon_ammo_log_weapon_id_character_weapons_id_fk",
@@ -1792,7 +2292,29 @@
           "default": 0
         }
       },
-      "indexes": {},
+      "indexes": {
+        "character_weapons_character_id_idx": {
+          "name": "character_weapons_character_id_idx",
+          "columns": [
+            {
+              "expression": "character_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "character_weapons_character_id_characters_id_fk": {
           "name": "character_weapons_character_id_characters_id_fk",

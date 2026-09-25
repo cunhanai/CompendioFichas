@@ -61,6 +61,10 @@ export const updateCharacterHandler = withErrorHandling(async function handler(
     return;
   }
   const character = parsed.data as unknown as Character;
+  if (character.id !== id) {
+    res.status(400).json({ error: 'O id do personagem não corresponde à rota.' });
+    return;
+  }
 
   const updated = await updateCharacterOwned(id, character, userId);
   if (!updated) {
