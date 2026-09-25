@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import type { AbilityKey, Character } from '@/entities/character/model/types';
 import { computeAbility } from '@/entities/character/model/calculations';
-import {
-  ABILITY_COLOR_CLASS,
-  ABILITY_DESCRIPTION,
-  ABILITY_LONG,
-} from '@/entities/character/model/constants';
+import { ABILITY_DESCRIPTION, ABILITY_LONG } from '@/entities/character/model/constants';
 import { signed } from '@/shared/lib/format';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
@@ -129,9 +125,7 @@ export function AbilityDialog({
               </div>
               <div className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
                 <p className="mb-0.5 text-[10px] text-neutral-500">Modificador</p>
-                <p className={`text-sm font-semibold ${ABILITY_COLOR_CLASS[abilityKey]}`}>
-                  {signed(computed.mod)}
-                </p>
+                <p className="text-sm font-semibold text-neutral-100">{signed(computed.mod)}</p>
               </div>
             </div>
 
