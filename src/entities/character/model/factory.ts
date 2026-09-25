@@ -7,7 +7,10 @@ function blankAbility() {
 
 /** A fresh level-1 character with sane Pathfinder 1e defaults — used by "Novo personagem". */
 export function createBlankCharacter(systemId: string, name: string): Character {
-  const id = `char-${crypto.randomUUID()}`;
+  // Must be a real UUID, not a prefixed string — it's stored as a Postgres `uuid` column and
+  // validated server-side with z.uuid(); a "char-..." id gets silently rejected (POST /characters
+  // fails validation, and the optimistic local update masks it — see DESIGN_NOTES.md).
+  const id = crypto.randomUUID();
   return {
     id,
     systemId,
