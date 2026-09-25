@@ -1,0 +1,2 @@
+CREATE INDEX "audit_log_action_created_at_idx" ON "audit_log" USING btree ("action","created_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "security_alerts_one_active" ON "security_alerts" USING btree ((true)) WHERE "security_alerts"."dismissed" = false;

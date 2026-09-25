@@ -1,3 +1,23 @@
+export interface SecurityAlert {
+  id: string;
+  description: string;
+  dismissed: boolean;
+  dismissedAt: string | null;
+  dismissedBy: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string | null;
+  actorUsername: string;
+  action: string;
+  targetUserId: string | null;
+  targetUsername: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
 export interface AdminUserView {
   id: string;
   name: string;

@@ -5,6 +5,7 @@ import type { Character } from '@/entities/character/model/types';
 import type { RpgSystem } from '@/entities/system/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
+import type { SecurityAlert } from '@/features/user-management/model/types';
 import { ForceChangePasswordPage } from '@/pages/auth/ForceChangePasswordPage';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
 
@@ -13,6 +14,7 @@ interface AppData {
   systems: RpgSystem[];
   characters: Character[];
   libraries: Record<string, SharedLibrary>;
+  securityAlerts: SecurityAlert[];
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -169,11 +171,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const dismissSecurityAlert: AppDataContextValue['dismissSecurityAlert'] = (id) => {
+    const previous = data.securityAlerts;
+    setData((d) => (d ? { ...d, securityAlerts: d.securityAlerts.filter((a) => a.id !== id) } : d));
+    api.patch(`/admin/users/security-alerts/${id}`, { dismissed: true }).catch((err: unknown) => {
+      console.error('Failed to dismiss security alert', err);
+      setData((d) => (d ? { ...d, securityAlerts: previous } : d));
+    });
+  };
+
   const value: AppDataContextValue = {
     user: data.user,
     systems: data.systems,
     characters: data.characters,
     libraries: data.libraries,
+    securityAlerts: data.securityAlerts,
+    dismissSecurityAlert,
     updateUser,
     updateCharacter,
     addCharacter,
