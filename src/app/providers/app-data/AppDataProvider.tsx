@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSession } from '@/entities/session';
-import { api } from '@/shared/lib/api';
+import { api, ApiError } from '@/shared/lib/api';
+import { useAppToast } from '@/shared/ui/organisms';
 import type { Character } from '@/entities/character/model/types';
 import { normalizeCharacter } from '@/entities/character/model/factory';
 import type { RpgSystem } from '@/entities/system/model/types';
@@ -26,6 +27,7 @@ interface AppData {
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useSession();
+  const toast = useAppToast();
   const [data, setData] = useState<AppData | null>(null);
   // Tracks the latest share/unshare request per character so an out-of-order response from an
   // older request can't overwrite the state left by a newer one that resolved first.
@@ -72,10 +74,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const updateUser: AppDataContextValue['updateUser'] = (updater) => {
     setData((d) => {
       if (!d) return d;
-      const user = updater(d.user);
-      api
-        .patch('/user', user)
-        .catch((err: unknown) => console.error('Failed to save profile', err));
+      const previousUser = d.user;
+      const user = updater(previousUser);
+      api.patch('/user', user).catch((err: unknown) => {
+        console.error('Failed to save profile', err);
+        toast.error(err instanceof ApiError ? err.message : 'Não foi possível salvar seus dados.');
+        // Unlike character edits (harmless to retry, low-stakes if briefly out of sync), a
+        // profile save can be rejected by a real, expected conflict — e.g. the username is
+        // already taken (see updateProfileHandler) — so leaving the optimistic value in place
+        // would show the user a "successful" change the server never actually made.
+        setData((current) => (current ? { ...current, user: previousUser } : current));
+      });
       return { ...d, user };
     });
   };
