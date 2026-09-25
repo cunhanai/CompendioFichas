@@ -12,6 +12,7 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     id,
     systemId,
     name,
+    photoUrl: null,
     favorited: false,
     active: true,
     shared: false,

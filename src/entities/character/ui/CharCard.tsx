@@ -7,6 +7,7 @@ import { Badge } from '@/shared/ui/atoms/Badge';
 export interface CharCardProps {
   href: string;
   name: string;
+  photoUrl?: string | null;
   subtitle: string;
   hpCurrent: number;
   hpMax: number;
@@ -31,6 +32,7 @@ export interface CharCardProps {
 export function CharCard({
   href,
   name,
+  photoUrl,
   subtitle,
   hpCurrent,
   hpMax,
@@ -58,7 +60,7 @@ export function CharCard({
           the stretched Link above — without it, a `w-full` wrapper would eat the row's width
           and push the share button out of the flex layout. */}
       <div className="pointer-events-none relative z-10 contents">
-        <Avatar tone={favorited ? 'amber' : 'neutral'} size="lg" />
+        <Avatar src={photoUrl} tone={favorited ? 'amber' : 'neutral'} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-display truncate text-lg text-neutral-100">{name}</h3>

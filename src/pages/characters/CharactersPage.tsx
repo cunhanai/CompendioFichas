@@ -34,6 +34,7 @@ export function CharactersPage() {
 
   const cardProps = (c: (typeof roster)[number], showStatusBadge = false) => ({
     name: c.name,
+    photoUrl: c.photoUrl,
     subtitle: joinDot([
       c.identity.raca,
       `${classesSummary(c.classes) || 'Sem classe'} — Nível ${effectiveLevel(c.classes)}`,

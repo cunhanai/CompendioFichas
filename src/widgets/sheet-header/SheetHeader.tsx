@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArchiveRestore, Camera, Check, ChevronLeft, Share2, Star, User, X } from 'lucide-react';
+import { ArchiveRestore, Camera, Check, ChevronLeft, Share2, Star, X } from 'lucide-react';
 import { useCharacter } from '@/app/providers';
 import {
   alignmentAbbrev,
@@ -10,6 +10,7 @@ import { joinDot } from '@/shared/lib/format';
 import {
   PhotoUploadDialog,
   ShareDialog,
+  setPhotoUrl,
   toggleActive,
   toggleFavorite,
   useShareDialog,
@@ -18,6 +19,7 @@ import { setName } from '@/features/sheet-identity';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { Avatar } from '@/shared/ui/atoms/Avatar';
 
 export function SheetHeader({ characterId, onBack }: { characterId: string; onBack: () => void }) {
   const { character, update } = useCharacter(characterId);
@@ -86,9 +88,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
           <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
         <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-amber-600/50 bg-neutral-800 text-neutral-600 sm:h-16 sm:w-16">
-            <User className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.5} />
-          </div>
+          <Avatar src={character.photoUrl} tone="amber" />
           <button
             type="button"
             title="Trocar foto"
@@ -156,7 +156,12 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         </div>
       )}
 
-      <PhotoUploadDialog open={photoOpen} onOpenChange={setPhotoOpen} />
+      <PhotoUploadDialog
+        open={photoOpen}
+        onOpenChange={setPhotoOpen}
+        photoUrl={character.photoUrl}
+        onSave={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
+      />
       <ShareDialog
         open={shareOpen}
         onOpenChange={onShareOpenChange}

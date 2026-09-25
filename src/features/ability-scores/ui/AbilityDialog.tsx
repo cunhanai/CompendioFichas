@@ -9,10 +9,12 @@ import {
 import { signed } from '@/shared/lib/format';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { VariedModRowEdit, VariedModRowView } from '@/shared/ui/molecules/VariedModRow';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { useEditableSection } from '@/shared/lib/useEditableSection';
 import {
   addAbilityMod,
   applyAbilityDamage,
@@ -49,7 +51,6 @@ export function AbilityDialog({
   update,
 }: AbilityDialogProps) {
   const [tab, setTab] = useState<Tab>('resumo');
-  const [editing, setEditing] = useState(false);
   const [removeLogId, setRemoveLogId] = useState<string | null>(null);
   const [dmgAmount, setDmgAmount] = useState(1);
   const [dmgDesc, setDmgDesc] = useState('');
@@ -59,18 +60,26 @@ export function AbilityDialog({
   const ability = character.abilities[abilityKey];
   const computed = computeAbility(ability);
   const removeLogEntry = ability.log.find((e) => e.id === removeLogId);
+  const isEmpty = ability.base === 0 && ability.mods.length === 0 && ability.log.length === 0;
+  const {
+    editing,
+    setEditing,
+    requestClose,
+    confirmingClose,
+    keepChanges,
+    discardChanges,
+    cancelClose,
+  } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   return (
     <>
       <Popup
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={requestClose}
         title={ABILITY_LONG[abilityKey]}
         subtitle={`Total ${computed.total} · Modificador ${signed(computed.mod)}`}
         size="md"
-        headerActions={
-          <EditToggleButton editing={editing} onToggle={() => setEditing((e) => !e)} />
-        }
+        headerActions={<EditToggleButton editing={editing} onToggle={() => setEditing(!editing)} />}
         tabs={
           <PillTabs
             value={tab}
@@ -329,6 +338,13 @@ export function AbilityDialog({
           if (removeLogId) update((c) => removeAbilityLogEntry(c, abilityKey, removeLogId));
           setRemoveLogId(null);
         }}
+      />
+
+      <UnsavedChangesDialog
+        open={confirmingClose}
+        onOpenChange={(o) => !o && cancelClose()}
+        onSave={keepChanges}
+        onDiscard={discardChanges}
       />
     </>
   );

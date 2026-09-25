@@ -34,6 +34,7 @@ export function DashboardPage() {
           </h2>
           <CharCard
             name={favorite.name}
+            photoUrl={favorite.photoUrl}
             subtitle={joinDot([
               favorite.identity.raca,
               classesSummary(favorite.classes) || 'Sem classe',
@@ -93,7 +94,7 @@ export function DashboardPage() {
                   to={routes.sheet(c.id)}
                   className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 text-left transition hover:bg-neutral-900"
                 >
-                  <Avatar size="sm" />
+                  <Avatar src={c.photoUrl} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-neutral-200">{c.name}</p>
                     <p className="text-xs text-neutral-500">

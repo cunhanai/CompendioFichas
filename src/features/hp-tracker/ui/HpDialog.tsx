@@ -3,9 +3,11 @@ import { Plus } from 'lucide-react';
 import type { Character } from '@/entities/character/model/types';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { useEditableSection } from '@/shared/lib/useEditableSection';
 import {
   addDrItem,
   addTempHp,
@@ -42,9 +44,23 @@ function hpLogColor(delta: number, kind: 'letal' | 'nao-letal') {
 
 export function HpDialog({ open, onOpenChange, character, update }: HpDialogProps) {
   const [tab, setTab] = useState<Tab>('ajustar');
-  const [editing, setEditing] = useState(false);
   const [drAddOpen, setDrAddOpen] = useState(false);
   const [removeLogId, setRemoveLogId] = useState<string | null>(null);
+  const {
+    editing,
+    setEditing,
+    requestClose,
+    confirmingClose,
+    keepChanges,
+    discardChanges,
+    cancelClose,
+  } = useEditableSection({
+    open,
+    isEmpty: character.hpMax === 0,
+    character,
+    update,
+    onOpenChange,
+  });
 
   const removeLogEntry = character.hpLog.find((e) => e.id === removeLogId);
 
@@ -52,12 +68,12 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
     <>
       <Popup
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={requestClose}
         title="Pontos de vida"
         size="md"
         headerActions={
           character.active && (
-            <EditToggleButton editing={editing} onToggle={() => setEditing((e) => !e)} />
+            <EditToggleButton editing={editing} onToggle={() => setEditing(!editing)} />
           )
         }
         tabs={
@@ -297,6 +313,13 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
           if (removeLogId) update((c) => removeHpLogEntry(c, removeLogId));
           setRemoveLogId(null);
         }}
+      />
+
+      <UnsavedChangesDialog
+        open={confirmingClose}
+        onOpenChange={(o) => !o && cancelClose()}
+        onSave={keepChanges}
+        onDiscard={discardChanges}
       />
     </>
   );

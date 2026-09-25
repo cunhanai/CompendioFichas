@@ -205,6 +205,7 @@ export interface Character {
   id: string;
   systemId: string;
   name: string;
+  photoUrl: string | null;
   favorited: boolean;
   active: boolean;
   shared: boolean;
