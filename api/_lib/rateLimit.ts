@@ -57,7 +57,7 @@ export interface RateLimitResult {
  * Checks and consumes one attempt against a named limiter.
  *
  * - Not configured at all (no Redis credentials): fails OPEN. This is a deliberate "feature
- *   isn't turned on yet" state — mainly local dev, before Upstash is connected — never never
+ *   isn't turned on yet" state — mainly local dev, before Upstash is connected — never
  *   locking anyone out because a step was skipped.
  * - Configured but erroring right now (outage, quota exceeded, network blip): fails CLOSED.
  *   The limiter was supposed to be protecting this endpoint, so a broken Redis should behave

@@ -1,4 +1,15 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type { Character } from '../src/entities/character/model/types.js';
 
 export const users = pgTable('users', {
@@ -18,30 +29,49 @@ export const users = pgTable('users', {
 });
 
 /** Append-only trail of account-management actions — who did what to whom, and when. */
-export const auditLog = pgTable('audit_log', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
-  actorUsername: text('actor_username').notNull(),
-  action: text('action').notNull(),
-  targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
-  targetUsername: text('target_username'),
-  detail: text('detail'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    actorUsername: text('actor_username').notNull(),
+    action: text('action').notNull(),
+    targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+    targetUsername: text('target_username'),
+    detail: text('detail'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // maybeRaiseSecurityAlert() (api/_lib/securityAlerts.ts) runs this exact filter after every
+  // failed/rate-limited login — without this, a brute-force burst causes repeated full scans
+  // of an append-only table on the same DB already under attack.
+  (table) => [index('audit_log_action_created_at_idx').on(table.action, table.createdAt)],
+);
 
 /**
  * Standing alerts raised when the login-failure/rate-limit rate in audit_log crosses a
  * threshold. Persists across logout/login and stays until an admin explicitly dismisses it —
  * it's a fact about something that happened, not a live computed value.
  */
-export const securityAlerts = pgTable('security_alerts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  description: text('description').notNull(),
-  dismissed: boolean('dismissed').notNull().default(false),
-  dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
-  dismissedBy: uuid('dismissed_by').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const securityAlerts = pgTable(
+  'security_alerts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    description: text('description').notNull(),
+    dismissed: boolean('dismissed').notNull().default(false),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    dismissedBy: uuid('dismissed_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // At most one undismissed alert can exist at a time — enforced here (a partial unique index
+  // on a constant expression), not just in application code, so concurrent threshold-crossing
+  // requests can't each insert their own duplicate alert (see maybeRaiseSecurityAlert's
+  // onConflictDoNothing()).
+  (table) => [
+    uniqueIndex('security_alerts_one_active')
+      .on(sql`(true)`)
+      .where(sql`${table.dismissed} = false`),
+  ],
+);
 
 export const sessions = pgTable('sessions', {
   token: text('token').primaryKey(),
