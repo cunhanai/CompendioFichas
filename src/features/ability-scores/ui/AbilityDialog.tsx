@@ -9,10 +9,12 @@ import {
 import { signed } from '@/shared/lib/format';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { VariedModRowEdit, VariedModRowView } from '@/shared/ui/molecules/VariedModRow';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { useEditableSection } from '@/shared/lib/useEditableSection';
 import {
   addAbilityMod,
   applyAbilityDamage,
@@ -49,7 +51,6 @@ export function AbilityDialog({
   update,
 }: AbilityDialogProps) {
   const [tab, setTab] = useState<Tab>('resumo');
-  const [editing, setEditing] = useState(false);
   const [removeLogId, setRemoveLogId] = useState<string | null>(null);
   const [dmgAmount, setDmgAmount] = useState(1);
   const [dmgDesc, setDmgDesc] = useState('');
@@ -59,18 +60,27 @@ export function AbilityDialog({
   const ability = character.abilities[abilityKey];
   const computed = computeAbility(ability);
   const removeLogEntry = ability.log.find((e) => e.id === removeLogId);
+  const isEmpty = ability.base === 0 && ability.mods.length === 0 && ability.log.length === 0;
+  const {
+    editing,
+    setEditing,
+    requestClose,
+    confirmingClose,
+    keepChanges,
+    discardChanges,
+    cancelClose,
+    update: trackedUpdate,
+  } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   return (
     <>
       <Popup
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={requestClose}
         title={ABILITY_LONG[abilityKey]}
         subtitle={`Total ${computed.total} · Modificador ${signed(computed.mod)}`}
         size="md"
-        headerActions={
-          <EditToggleButton editing={editing} onToggle={() => setEditing((e) => !e)} />
-        }
+        headerActions={<EditToggleButton editing={editing} onToggle={() => setEditing(!editing)} />}
         tabs={
           <PillTabs
             value={tab}
@@ -96,7 +106,9 @@ export function AbilityDialog({
                     type="number"
                     value={ability.base}
                     onChange={(e) =>
-                      update((c) => setAbilityBase(c, abilityKey, Number(e.target.value) || 0))
+                      trackedUpdate((c) =>
+                        setAbilityBase(c, abilityKey, Number(e.target.value) || 0),
+                      )
                     }
                     className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-1 py-2 text-center text-sm text-neutral-100 outline-none focus:border-amber-500"
                   />
@@ -143,7 +155,7 @@ export function AbilityDialog({
                 {editing && (
                   <button
                     type="button"
-                    onClick={() => update((c) => addAbilityMod(c, abilityKey))}
+                    onClick={() => trackedUpdate((c) => addAbilityMod(c, abilityKey))}
                     className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
                   >
                     + Adicionar
@@ -167,12 +179,12 @@ export function AbilityDialog({
                       label={m.label}
                       value={m.value}
                       onLabelChange={(label) =>
-                        update((c) => updateAbilityMod(c, abilityKey, m.id, { label }))
+                        trackedUpdate((c) => updateAbilityMod(c, abilityKey, m.id, { label }))
                       }
                       onValueChange={(value) =>
-                        update((c) => updateAbilityMod(c, abilityKey, m.id, { value }))
+                        trackedUpdate((c) => updateAbilityMod(c, abilityKey, m.id, { value }))
                       }
-                      onRemove={() => update((c) => removeAbilityMod(c, abilityKey, m.id))}
+                      onRemove={() => trackedUpdate((c) => removeAbilityMod(c, abilityKey, m.id))}
                     />
                   ))}
                 </div>
@@ -221,7 +233,9 @@ export function AbilityDialog({
                     <button
                       className="h-8 flex-1 rounded-md bg-emerald-950/60 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900/60"
                       onClick={() => {
-                        update((c) => applyAbilityDamage(c, abilityKey, -dmgAmount, dmgDesc));
+                        trackedUpdate((c) =>
+                          applyAbilityDamage(c, abilityKey, -dmgAmount, dmgDesc),
+                        );
                         setDmgAmount(1);
                         setDmgDesc('');
                       }}
@@ -231,7 +245,7 @@ export function AbilityDialog({
                     <button
                       className="h-8 flex-1 rounded-md bg-rose-950/60 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/60"
                       onClick={() => {
-                        update((c) => applyAbilityDamage(c, abilityKey, dmgAmount, dmgDesc));
+                        trackedUpdate((c) => applyAbilityDamage(c, abilityKey, dmgAmount, dmgDesc));
                         setDmgAmount(1);
                         setDmgDesc('');
                       }}
@@ -260,7 +274,9 @@ export function AbilityDialog({
                   <button
                     className="h-8 w-full rounded-md bg-violet-950/60 text-xs font-semibold text-violet-300 transition hover:bg-violet-900/60"
                     onClick={() => {
-                      update((c) => applyAbilityDrain(c, abilityKey, drainAmount, drainDesc));
+                      trackedUpdate((c) =>
+                        applyAbilityDrain(c, abilityKey, drainAmount, drainDesc),
+                      );
                       setDrainAmount(1);
                       setDrainDesc('');
                     }}
@@ -326,9 +342,16 @@ export function AbilityDialog({
           </>
         }
         onConfirm={() => {
-          if (removeLogId) update((c) => removeAbilityLogEntry(c, abilityKey, removeLogId));
+          if (removeLogId) trackedUpdate((c) => removeAbilityLogEntry(c, abilityKey, removeLogId));
           setRemoveLogId(null);
         }}
+      />
+
+      <UnsavedChangesDialog
+        open={confirmingClose}
+        onOpenChange={(o) => !o && cancelClose()}
+        onSave={keepChanges}
+        onDiscard={discardChanges}
       />
     </>
   );

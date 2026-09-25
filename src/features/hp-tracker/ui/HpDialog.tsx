@@ -3,9 +3,11 @@ import { Plus } from 'lucide-react';
 import type { Character } from '@/entities/character/model/types';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
+import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { useEditableSection } from '@/shared/lib/useEditableSection';
 import {
   addDrItem,
   addTempHp,
@@ -42,9 +44,24 @@ function hpLogColor(delta: number, kind: 'letal' | 'nao-letal') {
 
 export function HpDialog({ open, onOpenChange, character, update }: HpDialogProps) {
   const [tab, setTab] = useState<Tab>('ajustar');
-  const [editing, setEditing] = useState(false);
   const [drAddOpen, setDrAddOpen] = useState(false);
   const [removeLogId, setRemoveLogId] = useState<string | null>(null);
+  const {
+    editing,
+    setEditing,
+    requestClose,
+    confirmingClose,
+    keepChanges,
+    discardChanges,
+    cancelClose,
+    update: trackedUpdate,
+  } = useEditableSection({
+    open,
+    isEmpty: character.hpMax === 0,
+    character,
+    update,
+    onOpenChange,
+  });
 
   const removeLogEntry = character.hpLog.find((e) => e.id === removeLogId);
 
@@ -52,12 +69,12 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
     <>
       <Popup
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={requestClose}
         title="Pontos de vida"
         size="md"
         headerActions={
           character.active && (
-            <EditToggleButton editing={editing} onToggle={() => setEditing((e) => !e)} />
+            <EditToggleButton editing={editing} onToggle={() => setEditing(!editing)} />
           )
         }
         tabs={
@@ -82,7 +99,9 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                     <input
                       type="number"
                       value={character.hpCurrent}
-                      onChange={(e) => update((c) => setHpCurrent(c, Number(e.target.value) || 0))}
+                      onChange={(e) =>
+                        trackedUpdate((c) => setHpCurrent(c, Number(e.target.value) || 0))
+                      }
                       className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                   </label>
@@ -91,7 +110,9 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                     <input
                       type="number"
                       value={character.hpMax}
-                      onChange={(e) => update((c) => setHpMax(c, Number(e.target.value) || 1))}
+                      onChange={(e) =>
+                        trackedUpdate((c) => setHpMax(c, Number(e.target.value) || 1))
+                      }
                       className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                   </label>
@@ -119,25 +140,25 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
               <div className="grid grid-cols-4 gap-1.5">
                 <button
                   className={`${AJUSTE_BTN} bg-rose-950/60 text-rose-300 hover:bg-rose-900/60`}
-                  onClick={() => update((c) => applyLethalDamage(c, -1))}
+                  onClick={() => trackedUpdate((c) => applyLethalDamage(c, -1))}
                 >
                   -1
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-rose-950/60 text-rose-300 hover:bg-rose-900/60`}
-                  onClick={() => update((c) => applyLethalDamage(c, -5))}
+                  onClick={() => trackedUpdate((c) => applyLethalDamage(c, -5))}
                 >
                   -5
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60`}
-                  onClick={() => update((c) => applyLethalDamage(c, 1))}
+                  onClick={() => trackedUpdate((c) => applyLethalDamage(c, 1))}
                 >
                   +1
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60`}
-                  onClick={() => update((c) => applyLethalDamage(c, 5))}
+                  onClick={() => trackedUpdate((c) => applyLethalDamage(c, 5))}
                 >
                   +5
                 </button>
@@ -152,25 +173,25 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
               <div className="grid grid-cols-4 gap-1.5">
                 <button
                   className={`${AJUSTE_BTN} bg-neutral-800 text-neutral-300 hover:bg-neutral-700`}
-                  onClick={() => update((c) => applyNonLethalDamage(c, 1))}
+                  onClick={() => trackedUpdate((c) => applyNonLethalDamage(c, 1))}
                 >
                   +1
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-neutral-800 text-neutral-300 hover:bg-neutral-700`}
-                  onClick={() => update((c) => applyNonLethalDamage(c, 5))}
+                  onClick={() => trackedUpdate((c) => applyNonLethalDamage(c, 5))}
                 >
                   +5
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60`}
-                  onClick={() => update((c) => applyNonLethalDamage(c, -1))}
+                  onClick={() => trackedUpdate((c) => applyNonLethalDamage(c, -1))}
                 >
                   -1
                 </button>
                 <button
                   className={`${AJUSTE_BTN} bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60`}
-                  onClick={() => update((c) => applyNonLethalDamage(c, -5))}
+                  onClick={() => trackedUpdate((c) => applyNonLethalDamage(c, -5))}
                 >
                   -5
                 </button>
@@ -181,7 +202,7 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
               <p className="mb-2 text-xs text-neutral-500">Vida temporária</p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => update(addTempHp)}
+                  onClick={() => trackedUpdate(addTempHp)}
                   className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-amber-950/40 text-sm font-medium text-amber-300 transition hover:bg-amber-900/50"
                 >
                   <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
@@ -189,7 +210,7 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                 </button>
                 {character.tempHp > 0 && (
                   <button
-                    onClick={() => update(clearTempHp)}
+                    onClick={() => trackedUpdate(clearTempHp)}
                     className="h-9 shrink-0 rounded-md bg-neutral-800 px-3 text-sm font-medium text-neutral-300 transition hover:bg-neutral-700"
                   >
                     Limpar (+{character.tempHp})
@@ -238,7 +259,7 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                     key={dr.id}
                     type="button"
                     title="Remover"
-                    onClick={() => update((c) => removeDrItem(c, dr.id))}
+                    onClick={() => trackedUpdate((c) => removeDrItem(c, dr.id))}
                     className="transition hover:opacity-70"
                   >
                     <Badge tone={drTone(dr)} size="md">
@@ -275,7 +296,7 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
         open={drAddOpen}
         onOpenChange={setDrAddOpen}
         onSubmit={(item) => {
-          update((c) => addDrItem(c, item));
+          trackedUpdate((c) => addDrItem(c, item));
           setDrAddOpen(false);
         }}
       />
@@ -294,9 +315,16 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
           </>
         }
         onConfirm={() => {
-          if (removeLogId) update((c) => removeHpLogEntry(c, removeLogId));
+          if (removeLogId) trackedUpdate((c) => removeHpLogEntry(c, removeLogId));
           setRemoveLogId(null);
         }}
+      />
+
+      <UnsavedChangesDialog
+        open={confirmingClose}
+        onOpenChange={(o) => !o && cancelClose()}
+        onSave={keepChanges}
+        onDiscard={discardChanges}
       />
     </>
   );

@@ -4,6 +4,7 @@ import { KNOWN_CLASSES } from '@/entities/character/model/constants';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { Button } from '@/shared/ui/atoms/Button';
 import { TextInput } from '@/shared/ui/atoms/TextField';
+import { withLevelUpSnapshot } from '@/entities/character/model/snapshots';
 import { addClass } from '../model/mutations';
 
 export interface ClassPickerDialogProps {
@@ -26,7 +27,7 @@ export function ClassPickerDialog({
   const candidates = KNOWN_CLASSES.filter((n) => !known.includes(n));
 
   const pick = (name: string) => {
-    update((c) => addClass(c, name));
+    update(withLevelUpSnapshot((c) => addClass(c, name)));
     onAdded?.(name);
     setText('');
     onOpenChange(false);

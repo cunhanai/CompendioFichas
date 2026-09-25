@@ -1,11 +1,16 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSession } from '@/entities/session';
 import { api } from '@/shared/lib/api';
 import type { Character } from '@/entities/character/model/types';
+import { normalizeCharacter } from '@/entities/character/model/factory';
 import type { RpgSystem } from '@/entities/system/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
 import type { SecurityAlert } from '@/features/user-management/model/types';
+import type {
+  CharacterShareEntry,
+  SharedCharacterEntry,
+} from '@/features/sheet-sharing/model/types';
 import { ForceChangePasswordPage } from '@/pages/auth/ForceChangePasswordPage';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
 
@@ -15,11 +20,16 @@ interface AppData {
   characters: Character[];
   libraries: Record<string, SharedLibrary>;
   securityAlerts: SecurityAlert[];
+  sharedWithMe: SharedCharacterEntry[];
+  mySharesByCharacterId: Record<string, CharacterShareEntry[]>;
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useSession();
   const [data, setData] = useState<AppData | null>(null);
+  // Tracks the latest share/unshare request per character so an out-of-order response from an
+  // older request can't overwrite the state left by a newer one that resolved first.
+  const shareRequestSeq = useRef<Record<string, number>>({});
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -27,7 +37,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     api.get<AppData>('/bootstrap').then(
       (loaded) => {
-        if (!cancelled) setData(loaded);
+        if (!cancelled)
+          setData({
+            ...loaded,
+            characters: loaded.characters.map(normalizeCharacter),
+            sharedWithMe: loaded.sharedWithMe.map((s) => ({
+              ...s,
+              character: normalizeCharacter(s.character),
+            })),
+          });
       },
       (err: unknown) => console.error('Failed to load app data', err),
     );
@@ -81,6 +99,41 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     api
       .post('/characters', character)
       .catch((err: unknown) => console.error('Failed to create character', err));
+  };
+
+  // Not optimistic like the rest of this file: the server is the only source of truth for who a
+  // character is shared with (it also dedupes/validates the target), and the picker only has
+  // the target's id, not their name/username to show locally in the meantime.
+  const shareCharacter: AppDataContextValue['shareCharacter'] = (characterId, userId) => {
+    const seq = (shareRequestSeq.current[characterId] ?? 0) + 1;
+    shareRequestSeq.current[characterId] = seq;
+    api
+      .post<{ shares: CharacterShareEntry[] }>(`/characters/${characterId}/shares`, { userId })
+      .then(({ shares }) => {
+        if (shareRequestSeq.current[characterId] !== seq) return;
+        setData((d) =>
+          d
+            ? { ...d, mySharesByCharacterId: { ...d.mySharesByCharacterId, [characterId]: shares } }
+            : d,
+        );
+      })
+      .catch((err: unknown) => console.error('Failed to share character', err));
+  };
+
+  const unshareCharacter: AppDataContextValue['unshareCharacter'] = (characterId, userId) => {
+    const seq = (shareRequestSeq.current[characterId] ?? 0) + 1;
+    shareRequestSeq.current[characterId] = seq;
+    api
+      .delete<{ shares: CharacterShareEntry[] }>(`/characters/${characterId}/shares`, { userId })
+      .then(({ shares }) => {
+        if (shareRequestSeq.current[characterId] !== seq) return;
+        setData((d) =>
+          d
+            ? { ...d, mySharesByCharacterId: { ...d.mySharesByCharacterId, [characterId]: shares } }
+            : d,
+        );
+      })
+      .catch((err: unknown) => console.error('Failed to unshare character', err));
   };
 
   /** Optimistically appends one item to a system's library category, then persists it to its own table. */
@@ -186,6 +239,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     characters: data.characters,
     libraries: data.libraries,
     securityAlerts: data.securityAlerts,
+    sharedWithMe: data.sharedWithMe,
+    mySharesByCharacterId: data.mySharesByCharacterId,
+    shareCharacter,
+    unshareCharacter,
     dismissSecurityAlert,
     updateUser,
     updateCharacter,

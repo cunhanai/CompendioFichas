@@ -7,8 +7,10 @@ import {
   signed,
 } from '@/entities/character/model/calculations';
 import { Popup } from '@/shared/ui/organisms/Popup';
+import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
+import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { setSaveField } from '../model/mutations';
 
 export interface SavesDialogProps {
@@ -27,66 +29,87 @@ export function SavesDialog({
   initialTab = 'fort',
 }: SavesDialogProps) {
   const [tab, setTab] = useState<keyof Saves>(initialTab);
-  const [editing, setEditing] = useState(false);
+  const isEmpty = (['fort', 'ref', 'will'] as const).every((k) => {
+    const b = character.saves[k];
+    return b.base === 0 && b.magic === 0 && b.misc === 0 && b.temp === 0;
+  });
+  const {
+    editing,
+    setEditing,
+    requestClose,
+    confirmingClose,
+    keepChanges,
+    discardChanges,
+    cancelClose,
+    update: trackedUpdate,
+  } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
 
   const abilities = computeAllAbilities(character.abilities);
   const { total, abilityMod } = computeSave(tab, character, abilities);
   const block = character.saves[tab];
 
   return (
-    <Popup
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Jogadas de resistência"
-      size="md"
-      headerActions={<EditToggleButton editing={editing} onToggle={() => setEditing((e) => !e)} />}
-      tabs={
-        <PillTabs
-          value={tab}
-          onValueChange={setTab}
-          options={[
-            { value: 'fort', label: 'Fortitude' },
-            { value: 'ref', label: 'Reflexo' },
-            { value: 'will', label: 'Vontade' },
-          ]}
-        />
-      }
-    >
-      <p className="mb-3 text-3xl font-bold text-neutral-100">{signed(total)}</p>
-      {!editing ? (
-        <div className="flex flex-col divide-y divide-neutral-800/70">
-          <Row label="Base" value={signed(block.base)} />
-          <Row label={SAVE_ABILITY_LABEL[tab]} value={signed(abilityMod)} />
-          <Row label="Mágico" value={signed(block.magic)} />
-          <Row label="Variado" value={signed(block.misc)} />
-          <Row label="Temporário" value={signed(block.temp)} />
-        </div>
-      ) : (
-        <div className="flex flex-col divide-y divide-neutral-800/70">
-          <EditRow
-            label="Base"
-            value={block.base}
-            onChange={(v) => update((c) => setSaveField(c, tab, 'base', v))}
+    <>
+      <Popup
+        open={open}
+        onOpenChange={requestClose}
+        title="Jogadas de resistência"
+        size="md"
+        headerActions={<EditToggleButton editing={editing} onToggle={() => setEditing(!editing)} />}
+        tabs={
+          <PillTabs
+            value={tab}
+            onValueChange={setTab}
+            options={[
+              { value: 'fort', label: 'Fortitude' },
+              { value: 'ref', label: 'Reflexo' },
+              { value: 'will', label: 'Vontade' },
+            ]}
           />
-          <Row label={SAVE_ABILITY_LABEL[tab]} value={signed(abilityMod)} />
-          <EditRow
-            label="Mágico"
-            value={block.magic}
-            onChange={(v) => update((c) => setSaveField(c, tab, 'magic', v))}
-          />
-          <EditRow
-            label="Variado"
-            value={block.misc}
-            onChange={(v) => update((c) => setSaveField(c, tab, 'misc', v))}
-          />
-          <EditRow
-            label="Temporário"
-            value={block.temp}
-            onChange={(v) => update((c) => setSaveField(c, tab, 'temp', v))}
-          />
-        </div>
-      )}
-    </Popup>
+        }
+      >
+        <p className="mb-3 text-3xl font-bold text-neutral-100">{signed(total)}</p>
+        {!editing ? (
+          <div className="flex flex-col divide-y divide-neutral-800/70">
+            <Row label="Base" value={signed(block.base)} />
+            <Row label={SAVE_ABILITY_LABEL[tab]} value={signed(abilityMod)} />
+            <Row label="Mágico" value={signed(block.magic)} />
+            <Row label="Variado" value={signed(block.misc)} />
+            <Row label="Temporário" value={signed(block.temp)} />
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-neutral-800/70">
+            <EditRow
+              label="Base"
+              value={block.base}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'base', v))}
+            />
+            <Row label={SAVE_ABILITY_LABEL[tab]} value={signed(abilityMod)} />
+            <EditRow
+              label="Mágico"
+              value={block.magic}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'magic', v))}
+            />
+            <EditRow
+              label="Variado"
+              value={block.misc}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'misc', v))}
+            />
+            <EditRow
+              label="Temporário"
+              value={block.temp}
+              onChange={(v) => trackedUpdate((c) => setSaveField(c, tab, 'temp', v))}
+            />
+          </div>
+        )}
+      </Popup>
+      <UnsavedChangesDialog
+        open={confirmingClose}
+        onOpenChange={(o) => !o && cancelClose()}
+        onSave={keepChanges}
+        onDiscard={discardChanges}
+      />
+    </>
   );
 }
 

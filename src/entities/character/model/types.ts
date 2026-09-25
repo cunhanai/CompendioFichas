@@ -179,12 +179,29 @@ export interface SessionLogEntry {
   summary: string;
 }
 
+/**
+ * A full point-in-time copy of the character, taken automatically on level-up or right before a
+ * restore overwrites the live data. `parentId` chains snapshots into a tree, not a flat list:
+ * restoring to an older snapshot forks the timeline — new snapshots continue from the restored
+ * node, while whatever came after the restore point on the old branch is preserved, just no
+ * longer part of the active lineage. `data` deliberately excludes `levelSnapshots` and
+ * `currentSnapshotId` themselves (nothing here nests a copy of the tree inside itself), and
+ * `deletedAt` is a soft delete — nothing is ever actually removed, see model/mutations.ts for
+ * which snapshots can be deleted.
+ */
 export interface LevelSnapshot {
   id: string;
+  parentId: string | null;
   level: number;
+  kind: 'level-up' | 'restore-point';
   label: string;
   date: string;
+  deletedAt: string | null;
+  data: CharacterSnapshotData;
 }
+
+/** Everything about a character except its own snapshot tree/pointer — see LevelSnapshot. */
+export type CharacterSnapshotData = Omit<Character, 'levelSnapshots' | 'currentSnapshotId'>;
 
 export interface SpellSlot {
   label: string;
@@ -205,10 +222,9 @@ export interface Character {
   id: string;
   systemId: string;
   name: string;
+  photoUrl: string | null;
   favorited: boolean;
   active: boolean;
-  shared: boolean;
-  shareSlug: string;
 
   identity: Identity;
   alignmentLaw: AlignmentLaw;
@@ -259,7 +275,12 @@ export interface Character {
   equipment: EquipmentItem[];
   armorItems: ArmorItem[];
 
+  /** All snapshots ever taken, active lineage and abandoned branches alike — see LevelSnapshot. */
   levelSnapshots: LevelSnapshot[];
+  /** The snapshot the live character currently descends from — walking `parentId` from here
+   * back to a root is "the active lineage"; anything else is an "other branch". Null until the
+   * first level-up snapshot exists. */
+  currentSnapshotId: string | null;
   sessionLog: SessionLogEntry[];
 
   lastAccessedAt: string;

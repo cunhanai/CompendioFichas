@@ -13,6 +13,10 @@ import { SectionCardButton } from '@/shared/ui/molecules/SectionCard';
 
 type Popup = 'identity' | 'levelUp' | 'speed' | 'languages' | 'xp' | 'story' | null;
 
+// Rough character count at which a 3-line clamp (`line-clamp-3`) actually truncates the text at
+// this card's width — "Ler mais" only makes sense to show when there's more to read.
+const STORY_PREVIEW_THRESHOLD = 220;
+
 export function GeralTab({ characterId }: { characterId: string }) {
   const { character, update } = useCharacter(characterId);
   const [popup, setPopup] = useState<Popup>(null);
@@ -60,14 +64,20 @@ export function GeralTab({ characterId }: { characterId: string }) {
             Classes e níveis
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            {character.classes.map((cls) => (
-              <span
-                key={cls.id}
-                className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200"
-              >
-                {cls.name} <b className="text-amber-400">{cls.level}</b>
+            {character.classes.length === 0 ? (
+              <span className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-500">
+                Sem classe
               </span>
-            ))}
+            ) : (
+              character.classes.map((cls) => (
+                <span
+                  key={cls.id}
+                  className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200"
+                >
+                  {cls.name} <b className="text-amber-400">{cls.level}</b>
+                </span>
+              ))
+            )}
             <span className="flex items-center gap-2 text-sm text-neutral-400 sm:ml-auto">
               Nível efetivo:{' '}
               <b className="text-base text-neutral-100">{effectiveLevel(character.classes)}</b>
@@ -147,7 +157,9 @@ export function GeralTab({ characterId }: { characterId: string }) {
           História do personagem
         </h3>
         <p className="line-clamp-3 text-sm leading-relaxed text-neutral-300">{character.story}</p>
-        <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
+        {character.story.length > STORY_PREVIEW_THRESHOLD && (
+          <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
+        )}
       </SectionCardButton>
 
       <IdentityDialog

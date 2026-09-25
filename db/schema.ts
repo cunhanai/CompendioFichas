@@ -102,6 +102,31 @@ export const characters = pgTable('characters', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Owner-to-user sharing grants — replaces the old public-link model. Not stored in
+ * `characters.data`: the recipient isn't the character's owner, so this has to be queryable
+ * across everyone's characters, which a value nested inside one owner's JSONB blob can't do.
+ * Always view-only for the recipient; enforced by never exposing a write endpoint the recipient
+ * could call, not by a flag on this row.
+ */
+export const characterShares = pgTable(
+  'character_shares',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    sharedWithUserId: uuid('shared_with_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('character_shares_unique').on(table.characterId, table.sharedWithUserId),
+    index('character_shares_shared_with_idx').on(table.sharedWithUserId),
+  ],
+);
+
 /** Shared reference catalog, one table per library category — see entities/library-item/model/types.ts. */
 
 const librarySystemId = () =>

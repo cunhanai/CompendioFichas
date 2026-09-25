@@ -5,16 +5,26 @@ import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { classesSummary, effectiveLevel } from '@/entities/character/model/calculations';
 import { createBlankCharacter } from '@/entities/character/model/factory';
+import { joinDot } from '@/shared/lib/format';
 import { CharCard } from '@/entities/character/ui/CharCard';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { EmptyState } from '@/shared/ui/molecules/EmptyState';
-import { ShareDialog, useShareDialog } from '@/features/sheet-sharing';
+import { SharePickerDialog } from '@/features/sheet-sharing';
 
 export function CharactersPage() {
   const { systemId = '' } = useParams<{ systemId: string }>();
-  const { systems, characters, libraries, addCharacter } = useAppData();
+  const {
+    systems,
+    characters,
+    libraries,
+    addCharacter,
+    sharedWithMe,
+    mySharesByCharacterId,
+    shareCharacter,
+    unshareCharacter,
+  } = useAppData();
   const navigate = useNavigate();
   const [shareOpenId, setShareOpenId] = useState<string | null>(null);
 
@@ -24,6 +34,7 @@ export function CharactersPage() {
   const favorite = roster.find((c) => c.favorited);
   const active = roster.filter((c) => !c.favorited && c.active);
   const inactive = roster.filter((c) => !c.favorited && !c.active);
+  const sharedWithMeHere = sharedWithMe.filter((s) => s.character.systemId === systemId);
 
   const handleNewCharacter = () => {
     const character = createBlankCharacter(systemId, 'Novo personagem');
@@ -33,13 +44,17 @@ export function CharactersPage() {
 
   const cardProps = (c: (typeof roster)[number], showStatusBadge = false) => ({
     name: c.name,
-    subtitle: `${c.identity.raca} · ${classesSummary(c.classes)} — Nível ${effectiveLevel(c.classes)}`,
+    photoUrl: c.photoUrl,
+    subtitle: joinDot([
+      c.identity.raca,
+      `${classesSummary(c.classes) || 'Sem classe'} — Nível ${effectiveLevel(c.classes)}`,
+    ]),
     hpCurrent: c.hpCurrent,
     hpMax: c.hpMax,
     active: c.active,
     showStatusBadge,
-    shared: c.shared,
-    onOpen: () => navigate(routes.sheet(c.id)),
+    shared: (mySharesByCharacterId[c.id]?.length ?? 0) > 0,
+    href: routes.sheet(c.id),
     onShare: () => setShareOpenId(c.id),
   });
 
@@ -87,12 +102,12 @@ export function CharactersPage() {
             Favorito
           </h2>
           <div className="mb-6">
-            <CharCard {...cardProps(favorite)} favorited />
+            <CharCard {...cardProps(favorite, true)} favorited />
           </div>
         </>
       )}
 
-      {active.length > 0 ? (
+      {active.length > 0 && (
         <>
           <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-emerald-500/80 uppercase">
             Ativos
@@ -103,7 +118,11 @@ export function CharactersPage() {
             ))}
           </div>
         </>
-      ) : (
+      )}
+
+      {/* Only truly misleading when NO character is active — a favorited-and-active character
+          already shows above, so the empty state must not contradict it. */}
+      {!roster.some((c) => c.active) && (
         <div className="mb-6">
           <EmptyState
             icon={<Users className="h-6 w-6" strokeWidth={1.6} />}
@@ -126,29 +145,40 @@ export function CharactersPage() {
         </>
       )}
 
+      {sharedWithMeHere.length > 0 && (
+        <>
+          <h2 className="mt-6 mb-2.5 text-xs font-semibold tracking-wider text-sky-500/80 uppercase">
+            Fichas compartilhadas
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {sharedWithMeHere.map(({ character: c, ownerUsername }) => (
+              <CharCard
+                key={c.id}
+                name={c.name}
+                photoUrl={c.photoUrl}
+                subtitle={joinDot([
+                  `de @${ownerUsername}`,
+                  c.identity.raca,
+                  classesSummary(c.classes) || 'Sem classe',
+                ])}
+                hpCurrent={c.hpCurrent}
+                hpMax={c.hpMax}
+                href={routes.sheet(c.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       {shareOpenId && (
-        <CharacterShareDialog characterId={shareOpenId} onClose={() => setShareOpenId(null)} />
+        <SharePickerDialog
+          open
+          onOpenChange={(open) => !open && setShareOpenId(null)}
+          currentShares={mySharesByCharacterId[shareOpenId] ?? []}
+          onShare={(userId) => shareCharacter(shareOpenId, userId)}
+          onUnshare={(userId) => unshareCharacter(shareOpenId, userId)}
+        />
       )}
     </main>
-  );
-}
-
-function CharacterShareDialog({
-  characterId,
-  onClose,
-}: {
-  characterId: string;
-  onClose: () => void;
-}) {
-  const { character, onActivate, onStop } = useShareDialog(characterId);
-  return (
-    <ShareDialog
-      open
-      onOpenChange={(open) => !open && onClose()}
-      shared={character.shared}
-      shareSlug={character.shareSlug}
-      onActivate={onActivate}
-      onStop={onStop}
-    />
   );
 }

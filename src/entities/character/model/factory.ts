@@ -2,20 +2,22 @@ import { SKILL_CATALOG } from './skillCatalog';
 import type { Character } from './types';
 
 function blankAbility() {
-  return { base: 10, mods: [], damage: 0, drain: 0, log: [] };
+  return { base: 0, mods: [], damage: 0, drain: 0, log: [] };
 }
 
 /** A fresh level-1 character with sane Pathfinder 1e defaults — used by "Novo personagem". */
 export function createBlankCharacter(systemId: string, name: string): Character {
-  const id = `char-${crypto.randomUUID()}`;
+  // Must be a real UUID, not a prefixed string — it's stored as a Postgres `uuid` column and
+  // validated server-side with z.uuid(); a "char-..." id gets silently rejected (POST /characters
+  // fails validation, and the optimistic local update masks it — see DESIGN_NOTES.md).
+  const id = crypto.randomUUID();
   return {
     id,
     systemId,
     name,
+    photoUrl: null,
     favorited: false,
     active: true,
-    shared: false,
-    shareSlug: id,
 
     identity: {
       raca: '',
@@ -31,17 +33,17 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     },
     alignmentLaw: 'Neutro',
     alignmentMoral: 'Neutro',
-    classes: [{ id: 'cls-1', name: 'Nova classe', level: 1 }],
-    speed: { base: 9, armor: 9, fly: 0, flyManeuverability: '', swim: 0, climb: 0, dig: 0 },
-    languages: [{ id: 'lang-1', name: 'Comum' }],
+    classes: [],
+    speed: { base: 0, armor: 0, fly: 0, flyManeuverability: '', swim: 0, climb: 0, dig: 0 },
+    languages: [],
     story: '',
 
     xpEnabled: true,
     xpCurrent: 0,
     xpMax: 2000,
 
-    hpCurrent: 10,
-    hpMax: 10,
+    hpCurrent: 0,
+    hpMax: 0,
     tempHp: 0,
     hpNonLethal: 0,
     hpLog: [],
@@ -95,11 +97,30 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     equipment: [],
     armorItems: [],
 
-    levelSnapshots: [
-      { id: 'lv-1', level: 1, label: 'Ficha criada', date: new Date().toISOString().slice(0, 10) },
-    ],
+    // No snapshot yet — a blank character starts empty like everything else here, and the first
+    // one is taken automatically the first time the player levels up (see features/level-snapshots).
+    levelSnapshots: [],
+    currentSnapshotId: null,
     sessionLog: [],
 
     lastAccessedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Fills in defaults for fields that didn't exist yet when a character's JSONB blob was written —
+ * `levelSnapshots`/`currentSnapshotId` were added after real characters were already in the DB,
+ * so a stored blob predating this feature simply doesn't have them. Every character coming in
+ * from the API goes through this before the rest of the app (snapshot logic in particular) ever
+ * touches it, so nothing downstream needs to treat those fields as possibly absent.
+ */
+export function normalizeCharacter(character: Character): Character {
+  if (Array.isArray(character.levelSnapshots) && character.currentSnapshotId !== undefined) {
+    return character;
+  }
+  return {
+    ...character,
+    levelSnapshots: character.levelSnapshots ?? [],
+    currentSnapshotId: character.currentSnapshotId ?? null,
   };
 }

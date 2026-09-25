@@ -9,14 +9,36 @@ export function useAppData(): AppDataContextValue {
   return ctx;
 }
 
-/** Convenience hook: the character with `id` + a bound updater. Throws if not found. */
+/**
+ * Convenience hook: the character with `id` + a bound updater. Throws if not found.
+ *
+ * Also resolves characters someone else shared with me (`sharedWithMe`), which are always
+ * `readOnly: true` — `update` on those is a safe no-op rather than throwing, so a stray click
+ * on an edit affordance a specific popup forgot to hide can never actually mutate anything or
+ * reach the server. That backstop is what actually guarantees "never editable", not any single
+ * popup's own UI gating.
+ */
 export function useCharacter(id: string) {
-  const { characters, updateCharacter } = useAppData();
-  const character = characters.find((c) => c.id === id);
-  if (!character) throw new Error(`Character not found: ${id}`);
+  const { characters, sharedWithMe, updateCharacter } = useAppData();
+  const own = characters.find((c) => c.id === id);
+  if (own) {
+    return {
+      character: own,
+      readOnly: false,
+      ownerName: undefined,
+      ownerUsername: undefined,
+      update: (updater: (c: Character) => Character) => updateCharacter(id, updater),
+    };
+  }
+
+  const shared = sharedWithMe.find((s) => s.character.id === id);
+  if (!shared) throw new Error(`Character not found: ${id}`);
   return {
-    character,
-    update: (updater: (c: Character) => Character) => updateCharacter(id, updater),
+    character: shared.character,
+    readOnly: true,
+    ownerName: shared.ownerName,
+    ownerUsername: shared.ownerUsername,
+    update: () => console.warn(`Ignored edit attempt on read-only shared character ${id}`),
   };
 }
 

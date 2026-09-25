@@ -22,10 +22,9 @@ const ELYNDRA: Character = {
   id: 'elyndra',
   systemId: PATHFINDER_SYSTEM_ID,
   name: 'Elyndra Duskwhisper',
+  photoUrl: null,
   favorited: true,
   active: true,
-  shared: false,
-  shareSlug: 'elyndra-9f3a',
 
   identity: {
     raca: 'Meio-Elfa',
@@ -245,13 +244,8 @@ const ELYNDRA: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 1, label: 'Ficha criada — nascimento do personagem', date: '2025-02-03' },
-    { id: 'lv-2', level: 2, label: 'Subiu para Feiticeira 2', date: '2025-02-21' },
-    { id: 'lv-3', level: 3, label: 'Multiclasse: 1º nível de Clériga', date: '2025-03-18' },
-    { id: 'lv-4', level: 4, label: 'Feiticeira 3', date: '2025-05-02' },
-    { id: 'lv-5', level: 5, label: 'Clériga 2 — nível atual', date: '2025-06-14' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [
     {
       id: 'sess-8',
@@ -275,10 +269,9 @@ const BORIN: Character = {
   id: 'borin',
   systemId: PATHFINDER_SYSTEM_ID,
   name: 'Boris Ironchest',
+  photoUrl: null,
   favorited: false,
   active: true,
-  shared: true,
-  shareSlug: 'borin-2c7e',
 
   identity: {
     raca: 'Anão da Colina',
@@ -405,9 +398,8 @@ const BORIN: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 5, label: 'Ficha criada — nível atual', date: '2025-01-10' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(1),
@@ -417,10 +409,9 @@ const SABLE: Character = {
   id: 'sable',
   systemId: PATHFINDER_SYSTEM_ID,
   name: 'Sable Vantry',
+  photoUrl: null,
   favorited: false,
   active: true,
-  shared: false,
-  shareSlug: 'sable-4a1d',
 
   identity: {
     raca: 'Humana',
@@ -543,9 +534,8 @@ const SABLE: Character = {
     },
   ],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 4, label: 'Ficha criada — nível atual', date: '2025-04-02' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(3),
@@ -555,10 +545,9 @@ const KAELEN: Character = {
   id: 'kaelen',
   systemId: PATHFINDER_SYSTEM_ID,
   name: 'Kaelen Bravent',
+  photoUrl: null,
   favorited: false,
   active: false,
-  shared: false,
-  shareSlug: 'kaelen-7b0f',
 
   identity: {
     raca: 'Elfo',
@@ -670,9 +659,8 @@ const KAELEN: Character = {
   equipment: [{ id: 'eq-1', name: 'Grimório', qty: 1, unitWeight: 1.5 }],
   armorItems: [],
 
-  levelSnapshots: [
-    { id: 'lv-1', level: 2, label: 'Ficha criada — nível atual', date: '2025-03-01' },
-  ],
+  levelSnapshots: [],
+  currentSnapshotId: null,
   sessionLog: [],
 
   lastAccessedAt: daysAgo(9),

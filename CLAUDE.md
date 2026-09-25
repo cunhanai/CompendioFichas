@@ -73,6 +73,17 @@ import from itself or a layer below. `shared/ui` is further organized Atomic-Des
   normalized, one Postgres table per category with a plain `system_id` FK — that split happened
   because a system→item relationship is one-to-many, not because character data needed the same
   treatment. Don't assume the two follow the same pattern.
+- **Level snapshots** (`entities/character/model/snapshots.ts`) are a tree, not a list —
+  `LevelSnapshot.parentId` chains them, and `Character.currentSnapshotId` marks which one the
+  live character currently descends from (walk `parentId` back from it for "the active
+  lineage"). Restoring an older snapshot forks the tree: it appends a `'restore-point'` snapshot
+  of what was live (so nothing is lost), then moves `currentSnapshotId` to the target — whatever
+  came after the old `currentSnapshotId` is still in the tree, just no longer on the active
+  lineage, and shows up as an "other branch" instead. A snapshot can be soft-deleted
+  (`deletedAt`) only if it's *not* an ancestor of `currentSnapshotId` — that single rule is what
+  keeps the active lineage protected and makes restore-points (dead-end leaves by construction)
+  deletable without a separate case for either. New level-up entry points must wrap their
+  mutation in `withLevelUpSnapshot` so the snapshot is taken automatically.
 
 ### Backend: Vercel serverless functions + Drizzle/Neon
 
@@ -105,6 +116,15 @@ see the rewrites array and the matching `segments[0] === '__root'` check in each
 new dispatcher that needs a bare-path route must add the same pair (rewrite + `__root` check) —
 don't assume the bare path just works without it.
 
+- **Character sharing**: `character_shares` (`character_id`, `shared_with_user_id`) is a real
+  table, not a field inside `characters.data` — unlike everything else about a character, "who
+  else can see this" needs to be queryable from the *recipient's* side (their bootstrap needs
+  "what's been shared with me"), which a value nested in the owner's JSONB blob can't support.
+  Always view-only: the recipient never gets a write endpoint for someone else's character.
+  `useCharacter()` (`app/providers/app-data/useAppData.ts`) resolves both owned and
+  shared-with-me characters, and for the latter returns a no-op `update` — that's the actual
+  enforcement (every editing popup receives the same `update` reference), not each popup's own
+  UI gating, which doesn't yet check `readOnly` everywhere (see DESIGN_NOTES.md).
 - **Auth**: cookie-based sessions in a `sessions` table (`api/_lib/session.ts`), not JWT —
   chosen because a DB-backed session can be revoked immediately (used when deactivating a user,
   resetting a password, or a user changing their own password). Cookie is `httpOnly`, `secure`,
