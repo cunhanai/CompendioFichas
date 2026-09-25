@@ -6,6 +6,7 @@ import {
   listActivityHandler,
   listSecurityAlertsHandler,
   dismissSecurityAlertHandler,
+  runCharacterSchemaMigrationHandler,
 } from '../../_lib/routes/adminUsers.js';
 
 /**
@@ -18,6 +19,7 @@ import {
  *   PATCH  /api/admin/users/security-alerts/:id    -> dismiss one alert
  *   PATCH  /api/admin/users/:id                    -> update active/admin status
  *   POST   /api/admin/users/:id/reset-password     -> reset a user's password
+ *   POST   /api/admin/users/run-character-schema-migration -> TEMPORARY, see handler doc comment
  *
  * NOTE: `[[...path]]` is Next.js filename syntax, but this isn't a Next.js app — Vercel's
  * generic (non-Next.js) Serverless Functions router treats it identically to `[...path]`
@@ -38,6 +40,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (segments.length === 1 && segments[0] === 'security-alerts') {
     return listSecurityAlertsHandler(req, res);
+  }
+  // TEMPORARY — see runCharacterSchemaMigrationHandler's own doc comment; remove this route too
+  // once the migration is confirmed applied in production.
+  if (segments.length === 1 && segments[0] === 'run-character-schema-migration') {
+    return runCharacterSchemaMigrationHandler(req, res);
   }
   if (segments.length === 2 && segments[0] === 'security-alerts') {
     return dismissSecurityAlertHandler(req, res, segments[1]);
