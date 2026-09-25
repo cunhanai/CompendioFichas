@@ -46,6 +46,7 @@ export function CreateUserForm() {
         <TextField
           label="Nome de usuário"
           placeholder="novo_usuario"
+          startAdornment="@"
           error={errors.username?.message}
           {...register('username')}
         />

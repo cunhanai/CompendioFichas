@@ -73,7 +73,7 @@ export function AccountCard({ user, onSave }: AccountCardProps) {
       {!editing ? (
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
           <FieldView label="Nome" value={user.name} />
-          <FieldView label="Nome de usuário" value={user.username} />
+          <FieldView label="Nome de usuário" value={`@${user.username}`} />
         </div>
       ) : (
         <form
@@ -84,7 +84,7 @@ export function AccountCard({ user, onSave }: AccountCardProps) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <TextField label="Nome" {...register('name')} />
-            <TextField label="Nome de usuário" {...register('username')} />
+            <TextField label="Nome de usuário" startAdornment="@" {...register('username')} />
           </div>
           <Button type="submit" className="mt-4 w-full">
             Salvar

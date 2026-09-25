@@ -26,6 +26,17 @@ export const adminUpdateUserBodySchema = z
 
 const uuid = z.uuid();
 
+/** A character sheet's full shape isn't modeled here (~100 fields across every tab) — this
+ * checks the outer shape (id/systemId) and caps size; the rest passes through as JSONB, same
+ * as before. */
+export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
+export const characterBodySchema = z
+  .object({
+    id: uuid,
+    systemId: z.string().min(1),
+  })
+  .passthrough();
+
 export const spellItemSchema = z.object({
   id: uuid,
   name: z.string().min(1),

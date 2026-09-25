@@ -12,6 +12,8 @@ export function toUserProfile(row: UserRow): UserProfile {
     username: row.username,
     avatarUrl: row.avatarUrl,
     isAdmin: row.isAdmin,
+    isMaster: row.isMaster,
+    mustChangePassword: row.mustChangePassword,
   };
 }
 
@@ -23,6 +25,8 @@ export function toAdminUserView(row: UserRow): AdminUserView {
     username: row.username,
     avatarUrl: row.avatarUrl,
     isAdmin: row.isAdmin,
+    isMaster: row.isMaster,
+    mustChangePassword: row.mustChangePassword,
     active: row.active,
     lastLoginAt: row.lastLoginAt ? row.lastLoginAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),

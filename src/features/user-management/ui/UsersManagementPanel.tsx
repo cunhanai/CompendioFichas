@@ -79,6 +79,11 @@ export function UsersManagementPanel() {
           <div className="flex flex-col">
             {users.map((u) => {
               const isSelf = u.id === self.id;
+              // The master account can't be activated/deactivated or promoted/demoted from
+              // here at all, and only the master itself can reset its own password.
+              const canManageAccess = !u.isMaster;
+              const canToggleAdmin = self.isMaster && !u.isMaster;
+              const canResetPassword = !u.isMaster || isSelf;
               return (
                 <div
                   key={u.id}
@@ -88,14 +93,25 @@ export function UsersManagementPanel() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-sm font-medium text-neutral-100">{u.name}</p>
-                      {u.isAdmin && (
-                        <Badge tone="amber" size="sm">
-                          Admin
+                      {u.isMaster ? (
+                        <Badge tone="violet" size="sm">
+                          Master
                         </Badge>
+                      ) : (
+                        u.isAdmin && (
+                          <Badge tone="amber" size="sm">
+                            Admin
+                          </Badge>
+                        )
                       )}
                       {!u.active && (
                         <Badge tone="rose" size="sm">
                           Inativo
+                        </Badge>
+                      )}
+                      {u.mustChangePassword && (
+                        <Badge tone="sky" size="sm">
+                          Deve trocar senha
                         </Badge>
                       )}
                     </div>
@@ -107,24 +123,30 @@ export function UsersManagementPanel() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                    <Switch
-                      checked={u.active}
-                      onCheckedChange={(active) => patchUser(u.id, { active })}
-                      label={u.active ? 'Desativar conta' : 'Ativar conta'}
-                      disabled={isSelf}
-                      tone="emerald"
-                    />
-                    <IconButton
-                      label={u.isAdmin ? 'Remover administrador' : 'Tornar administrador'}
-                      variant={u.isAdmin ? 'amber' : 'neutral'}
-                      disabled={isSelf}
-                      onClick={() => patchUser(u.id, { isAdmin: !u.isAdmin })}
-                    >
-                      <ShieldCheck className="h-4 w-4" strokeWidth={1.8} />
-                    </IconButton>
-                    <IconButton label="Redefinir senha" onClick={() => setResetTarget(u)}>
-                      <KeyRound className="h-4 w-4" strokeWidth={1.8} />
-                    </IconButton>
+                    {canManageAccess && (
+                      <Switch
+                        checked={u.active}
+                        onCheckedChange={(active) => patchUser(u.id, { active })}
+                        label={u.active ? 'Desativar conta' : 'Ativar conta'}
+                        disabled={isSelf}
+                        tone="emerald"
+                      />
+                    )}
+                    {canToggleAdmin && (
+                      <IconButton
+                        label={u.isAdmin ? 'Remover administrador' : 'Tornar administrador'}
+                        variant={u.isAdmin ? 'amber' : 'neutral'}
+                        disabled={isSelf}
+                        onClick={() => patchUser(u.id, { isAdmin: !u.isAdmin })}
+                      >
+                        <ShieldCheck className="h-4 w-4" strokeWidth={1.8} />
+                      </IconButton>
+                    )}
+                    {canResetPassword && (
+                      <IconButton label="Redefinir senha" onClick={() => setResetTarget(u)}>
+                        <KeyRound className="h-4 w-4" strokeWidth={1.8} />
+                      </IconButton>
+                    )}
                   </div>
                 </div>
               );

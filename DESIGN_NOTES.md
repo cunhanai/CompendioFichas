@@ -325,6 +325,15 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
 - O botão "Criar usuário" saiu da tela de perfil e foi para dentro da nova tela de Usuários (a tela de criação em si, `/perfil/criar-usuario`, continua a mesma).
 - Duas colunas novas em `users`: `active boolean default true` e `last_login_at timestamp`.
 
+### Camada de segurança: admin master, auditoria, rate limiting, troca de senha obrigatória
+- **Administrador master**: uma nova coluna `users.is_master` (nunca exposta/editável por nenhum endpoint, só definida direto no banco) marca a conta `ana` como única capaz de conceder ou remover acesso de administrador de outra conta. Um admin comum não consegue promover nem despromover ninguém — só o master pode. A conta master também não pode ser desativada, promovida/despromovida ou ter a senha redefinida por ninguém além dela mesma, por essa tela.
+- **Log de auditoria** (`audit_log`): toda ação de gestão de conta (criar usuário, ativar, desativar, promover, despromover, redefinir senha por admin, trocar a própria senha) grava quem fez, em quem, quando. Ainda não tem tela própria — fica registrado no banco para consulta futura, se necessário.
+- **Troca de senha obrigatória após reset**: quando um admin redefine a senha de alguém (`users.must_change_password`), a próxima vez que a conta logar cai direto numa tela de troca de senha obrigatória — não dá pra usar o resto do app com a senha temporária.
+- **Limite de tentativas (rate limiting)**: login (por usuário e por IP) e troca de senha agora passam por um limitador via Upstash Redis (Vercel Marketplace) antes de tocar no banco. Sem as credenciais do Redis configuradas, o limite fica desativado silenciosamente (não bloqueia o app em desenvolvimento) — plano é o usuário conectar a integração Upstash na Vercel e me passar o nome exato das variáveis de ambiente, do mesmo jeito que aconteceu com o Postgres/Neon.
+- **Headers de segurança** (`vercel.json`): CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS passaram a ser enviados em toda resposta.
+- **Validação de entrada**: personagem (`POST`/`PATCH /api/characters`) ganhou um teto de tamanho (2MB) e uma checagem de forma via Zod (id/systemId) antes de gravar — o restante do objeto continua indo para a coluna JSONB sem um schema campo-a-campo (a ficha tem ~100 campos espalhados pelas abas; modelar tudo no Zod seria um projeto à parte, então ficou registrado como uma lacuna consciente, não coberta).
+- **Nome de usuário com @**: em toda tela (login, criar usuário, perfil, gestão de usuários) o nome de usuário aparece com `@` na frente; nos campos editáveis o `@` é só um prefixo visual dentro do input, não faz parte do valor salvo.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 

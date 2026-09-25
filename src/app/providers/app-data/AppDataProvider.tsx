@@ -5,6 +5,7 @@ import type { Character } from '@/entities/character/model/types';
 import type { RpgSystem } from '@/entities/system/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
+import { ForceChangePasswordPage } from '@/pages/auth/ForceChangePasswordPage';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
 
 interface AppData {
@@ -37,6 +38,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) return <>{children}</>;
   if (!data) return <div className="min-h-screen bg-neutral-950" />;
+
+  if (data.user.mustChangePassword) {
+    return (
+      <ForceChangePasswordPage
+        onChanged={() =>
+          setData((d) => (d ? { ...d, user: { ...d.user, mustChangePassword: false } } : d))
+        }
+      />
+    );
+  }
 
   const updateUser: AppDataContextValue['updateUser'] = (updater) => {
     setData((d) => {

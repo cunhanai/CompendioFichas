@@ -28,22 +28,29 @@ export async function requireUserId(
   return userId;
 }
 
+type UserRow = typeof users.$inferSelect;
+
+/** Resolves the authenticated caller's full row, requiring it to belong to an admin — writes 401/403 and returns null otherwise. */
+export async function requireAdminUser(
+  req: VercelRequest,
+  res: VercelResponse,
+): Promise<UserRow | null> {
+  const userId = await requireUserId(req, res);
+  if (!userId) return null;
+
+  const [caller] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!caller?.isAdmin) {
+    res.status(403).json({ error: 'Apenas administradores podem fazer isso.' });
+    return null;
+  }
+  return caller;
+}
+
 /** Resolves the authenticated user id, requiring it to belong to an admin — writes 401/403 and returns null otherwise. */
 export async function requireAdminId(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<string | null> {
-  const userId = await requireUserId(req, res);
-  if (!userId) return null;
-
-  const [caller] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  if (!caller?.isAdmin) {
-    res.status(403).json({ error: 'Apenas administradores podem fazer isso.' });
-    return null;
-  }
-  return userId;
+  const caller = await requireAdminUser(req, res);
+  return caller?.id ?? null;
 }

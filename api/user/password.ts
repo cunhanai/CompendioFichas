@@ -5,6 +5,8 @@ import { users } from '../../db/schema.js';
 import { requireUserId, hashPassword, verifyPassword } from '../_lib/auth.js';
 import { passwordChangeBodySchema } from '../_lib/validation.js';
 import { withErrorHandling } from '../_lib/handler.js';
+import { checkRateLimit } from '../_lib/rateLimit.js';
+import { logAudit } from '../_lib/audit.js';
 
 export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH') {
@@ -22,6 +24,12 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   }
   const { currentPassword, newPassword } = parsed.data;
 
+  const limit = await checkRateLimit('password-change', userId, 5, '10 m');
+  if (limit.limited) {
+    res.status(429).json({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' });
+    return;
+  }
+
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user || !(await verifyPassword(currentPassword, user.passwordHash))) {
     res.status(401).json({ error: 'Senha atual incorreta.' });
@@ -29,7 +37,12 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   }
 
   const passwordHash = await hashPassword(newPassword);
-  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ passwordHash, mustChangePassword: false })
+    .where(eq(users.id, userId));
+
+  await logAudit({ id: user.id, username: user.username }, 'user.password_change');
 
   res.status(200).json({ ok: true });
 });

@@ -8,8 +8,24 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   avatarUrl: text('avatar_url'),
   isAdmin: boolean('is_admin').notNull().default(false),
+  /** The one account (ana) allowed to grant/revoke admin from others — never settable through the API. */
+  isMaster: boolean('is_master').notNull().default(false),
+  /** Forces the change-password screen on next load — set when an admin resets this account's password. */
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
   active: boolean('active').notNull().default(true),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Append-only trail of account-management actions — who did what to whom, and when. */
+export const auditLog = pgTable('audit_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  actorUsername: text('actor_username').notNull(),
+  action: text('action').notNull(),
+  targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  targetUsername: text('target_username'),
+  detail: text('detail'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

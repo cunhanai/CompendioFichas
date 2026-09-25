@@ -4,4 +4,6 @@ export interface UserProfile {
   username: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  isMaster: boolean;
+  mustChangePassword: boolean;
 }

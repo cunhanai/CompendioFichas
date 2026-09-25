@@ -3,8 +3,9 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { users } from '../../db/schema.js';
 import { signupBodySchema } from '../_lib/validation.js';
-import { hashPassword, requireAdminId } from '../_lib/auth.js';
+import { hashPassword, requireAdminUser } from '../_lib/auth.js';
 import { toUserProfile } from '../_lib/mappers.js';
+import { logAudit } from '../_lib/audit.js';
 import { withErrorHandling } from '../_lib/handler.js';
 
 /** Creating accounts is an admin action, not public self-registration — it never touches the caller's own session. */
@@ -14,8 +15,8 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     return;
   }
 
-  const callerId = await requireAdminId(req, res);
-  if (!callerId) return;
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
 
   const parsed = signupBodySchema.safeParse(req.body);
   if (!parsed.success) {
@@ -39,6 +40,11 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     .insert(users)
     .values({ name: username, username, passwordHash })
     .returning();
+
+  await logAudit({ id: caller.id, username: caller.username }, 'user.create', {
+    id: user.id,
+    username: user.username,
+  });
 
   res.status(201).json({ user: toUserProfile(user) });
 });

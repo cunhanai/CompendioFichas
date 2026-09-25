@@ -38,6 +38,7 @@ export function LoginForm() {
           type="text"
           autoComplete="username"
           placeholder="seu_usuario"
+          startAdornment="@"
           error={errors.username?.message}
           {...register('username')}
         />

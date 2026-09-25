@@ -5,6 +5,8 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   ref?: Ref<HTMLInputElement>;
+  /** Content pinned inside the input's left edge, e.g. the "@" prefix on username fields. */
+  startAdornment?: ReactNode;
   /** Content pinned inside the input's right edge, e.g. a show/hide password button. */
   endAdornment?: ReactNode;
 }
@@ -34,6 +36,7 @@ export function TextField({
   className,
   id,
   ref,
+  startAdornment,
   endAdornment,
   ...props
 }: TextFieldProps) {
@@ -41,10 +44,15 @@ export function TextField({
     <label className="flex flex-col gap-1.5" htmlFor={id}>
       {label && <span className="text-xs font-medium text-neutral-400">{label}</span>}
       <div className="relative">
+        {startAdornment && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-neutral-500">
+            {startAdornment}
+          </div>
+        )}
         <TextInput
           ref={ref}
           id={id}
-          className={cn(endAdornment && 'pr-10', className)}
+          className={cn(startAdornment && 'pl-7', endAdornment && 'pr-10', className)}
           {...props}
         />
         {endAdornment && (
