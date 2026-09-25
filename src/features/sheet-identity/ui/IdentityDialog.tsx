@@ -10,7 +10,7 @@ import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { UnitInput } from '@/shared/ui/atoms/UnitInput';
 import { cn } from '@/shared/lib/cn';
-import { setAlignmentLaw, setAlignmentMoral, setName, updateIdentity } from '../model/mutations';
+import { setAlignmentLaw, setAlignmentMoral, updateIdentity } from '../model/mutations';
 
 export interface IdentityDialogProps {
   open: boolean;
@@ -81,14 +81,20 @@ export function IdentityDialog({
               Classes e níveis
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              {character.classes.map((cls) => (
-                <span
-                  key={cls.id}
-                  className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200"
-                >
-                  {cls.name} <b className="text-amber-400">{cls.level}</b>
+              {character.classes.length === 0 ? (
+                <span className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-500">
+                  Sem classe
                 </span>
-              ))}
+              ) : (
+                character.classes.map((cls) => (
+                  <span
+                    key={cls.id}
+                    className="rounded-full bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200"
+                  >
+                    {cls.name} <b className="text-amber-400">{cls.level}</b>
+                  </span>
+                ))
+              )}
               <span className="flex items-center gap-2 text-sm text-neutral-400 sm:ml-auto">
                 Nível efetivo:{' '}
                 <b className="text-base text-neutral-100">{effectiveLevel(character.classes)}</b>
@@ -98,12 +104,6 @@ export function IdentityDialog({
         </>
       ) : (
         <div className="flex flex-col gap-4">
-          <TextField
-            label="Nome do personagem"
-            value={character.name}
-            onChange={(e) => update((c) => setName(c, e.target.value))}
-          />
-
           <div>
             <span className="mb-1 block text-xs text-neutral-500">Tendência (ordem)</span>
             <div className="mb-2 flex gap-2">

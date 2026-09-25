@@ -5,6 +5,7 @@ import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { classesSummary, effectiveLevel } from '@/entities/character/model/calculations';
 import { createBlankCharacter } from '@/entities/character/model/factory';
+import { joinDot } from '@/shared/lib/format';
 import { CharCard } from '@/entities/character/ui/CharCard';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
@@ -33,13 +34,16 @@ export function CharactersPage() {
 
   const cardProps = (c: (typeof roster)[number], showStatusBadge = false) => ({
     name: c.name,
-    subtitle: `${c.identity.raca} · ${classesSummary(c.classes)} — Nível ${effectiveLevel(c.classes)}`,
+    subtitle: joinDot([
+      c.identity.raca,
+      `${classesSummary(c.classes) || 'Sem classe'} — Nível ${effectiveLevel(c.classes)}`,
+    ]),
     hpCurrent: c.hpCurrent,
     hpMax: c.hpMax,
     active: c.active,
     showStatusBadge,
     shared: c.shared,
-    onOpen: () => navigate(routes.sheet(c.id)),
+    href: routes.sheet(c.id),
     onShare: () => setShareOpenId(c.id),
   });
 
@@ -87,12 +91,12 @@ export function CharactersPage() {
             Favorito
           </h2>
           <div className="mb-6">
-            <CharCard {...cardProps(favorite)} favorited />
+            <CharCard {...cardProps(favorite, true)} favorited />
           </div>
         </>
       )}
 
-      {active.length > 0 ? (
+      {active.length > 0 && (
         <>
           <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-emerald-500/80 uppercase">
             Ativos
@@ -103,7 +107,11 @@ export function CharactersPage() {
             ))}
           </div>
         </>
-      ) : (
+      )}
+
+      {/* Only truly misleading when NO character is active — a favorited-and-active character
+          already shows above, so the empty state must not contradict it. */}
+      {!roster.some((c) => c.active) && (
         <div className="mb-6">
           <EmptyState
             icon={<Users className="h-6 w-6" strokeWidth={1.6} />}

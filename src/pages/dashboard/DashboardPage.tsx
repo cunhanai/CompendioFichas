@@ -1,9 +1,10 @@
 import { Star } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { formatRelativeTime } from '@/shared/lib/format';
 import { classesSummary } from '@/entities/character/model/calculations';
+import { joinDot } from '@/shared/lib/format';
 import { CharCard } from '@/entities/character/ui/CharCard';
 import { SystemCard } from '@/entities/system/ui/SystemCard';
 import { getSystemStatus } from '@/entities/system/model/selectors';
@@ -33,11 +34,16 @@ export function DashboardPage() {
           </h2>
           <CharCard
             name={favorite.name}
-            subtitle={`${favorite.identity.raca} · ${classesSummary(favorite.classes)}`}
+            subtitle={joinDot([
+              favorite.identity.raca,
+              classesSummary(favorite.classes) || 'Sem classe',
+            ])}
             hpCurrent={favorite.hpCurrent}
             hpMax={favorite.hpMax}
             favorited
-            onOpen={() => navigate(routes.sheet(favorite.id))}
+            active={favorite.active}
+            showStatusBadge
+            href={routes.sheet(favorite.id)}
           />
         </section>
       )}
@@ -82,10 +88,9 @@ export function DashboardPage() {
             {recent.map((c) => {
               const system = systems.find((s) => s.id === c.systemId);
               return (
-                <button
+                <Link
                   key={c.id}
-                  type="button"
-                  onClick={() => navigate(routes.sheet(c.id))}
+                  to={routes.sheet(c.id)}
                   className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3 text-left transition hover:bg-neutral-900"
                 >
                   <Avatar size="sm" />
@@ -98,7 +103,7 @@ export function DashboardPage() {
                   {c.favorited && (
                     <Star className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" />
                   )}
-                </button>
+                </Link>
               );
             })}
           </div>

@@ -10,3 +10,11 @@ export function signed(n: number): string {
 export function formatRelativeTime(iso: string): string {
   return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
 }
+
+/**
+ * Joins non-empty parts with " · ", dropping empty/blank ones instead of leaving a stray
+ * separator — e.g. a brand-new character with no race/class yet shouldn't show "· · Nível 1".
+ */
+export function joinDot(parts: (string | null | undefined)[]): string {
+  return parts.filter((p): p is string => Boolean(p && p.trim())).join(' · ');
+}
