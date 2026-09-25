@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characters, characterShares, users } from '../../../db/schema.js';
+import { createCharacter, updateCharacterOwned } from '../characterRepo.js';
 import { requireUserId } from '../auth.js';
 import { withErrorHandling } from '../handler.js';
 import { characterBodySchema, MAX_CHARACTER_JSON_LENGTH, shareBodySchema } from '../validation.js';
@@ -31,12 +32,9 @@ export const createCharacterHandler = withErrorHandling(async function handler(
   }
   const character = parsed.data as unknown as Character;
 
-  const [row] = await db
-    .insert(characters)
-    .values({ id: character.id, userId, systemId: character.systemId, data: character })
-    .returning();
+  await createCharacter(character, userId);
 
-  res.status(201).json({ character: row.data });
+  res.status(201).json({ character });
 });
 
 /** PATCH /api/characters/:id — updates a character owned by the caller. */
@@ -64,18 +62,13 @@ export const updateCharacterHandler = withErrorHandling(async function handler(
   }
   const character = parsed.data as unknown as Character;
 
-  const [row] = await db
-    .update(characters)
-    .set({ data: character, updatedAt: new Date() })
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .returning();
-
-  if (!row) {
+  const updated = await updateCharacterOwned(id, character, userId);
+  if (!updated) {
     res.status(404).json({ error: 'Personagem não encontrado.' });
     return;
   }
 
-  res.status(200).json({ character: row.data });
+  res.status(200).json({ character });
 });
 
 async function listShares(characterId: string) {

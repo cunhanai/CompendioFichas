@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { characters, characterShares, securityAlerts, systems, users } from '../db/schema.js';
+import { characterShares, securityAlerts, systems, users } from '../db/schema.js';
 import { loadLibraries } from '../db/library.js';
+import { loadCharactersForUser, loadSharedWithMe } from './_lib/characterRepo.js';
 import { toUserProfile } from './_lib/mappers.js';
 import { requireUserId } from './_lib/auth.js';
 import { withErrorHandling } from './_lib/handler.js';
@@ -16,10 +17,10 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   const userId = await requireUserId(req, res);
   if (!userId) return;
 
-  const [user, systemRows, characterRows] = await Promise.all([
+  const [user, systemRows, myCharacters] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     db.select().from(systems),
-    db.select().from(characters).where(eq(characters.userId, userId)),
+    loadCharactersForUser(userId),
   ]);
 
   if (!user[0]) {
@@ -40,15 +41,10 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
 
   // Characters someone else shared with me — always view-only, never mixed into `characters`
   // (which the whole app treats as "mine, editable").
-  const sharedWithMeRows = await db
-    .select({ character: characters.data, ownerName: users.name, ownerUsername: users.username })
-    .from(characterShares)
-    .innerJoin(characters, eq(characterShares.characterId, characters.id))
-    .innerJoin(users, eq(characters.userId, users.id))
-    .where(eq(characterShares.sharedWithUserId, userId));
+  const sharedWithMeRows = await loadSharedWithMe(userId);
 
   // Who each of MY OWN characters is shared with, so the owner's UI can show/manage it.
-  const myCharacterIds = characterRows.map((row) => row.id);
+  const myCharacterIds = myCharacters.map((c) => c.id);
   const myShareRows =
     myCharacterIds.length > 0
       ? await db
@@ -77,7 +73,7 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   res.status(200).json({
     user: toUserProfile(user[0]),
     systems: systemRows,
-    characters: characterRows.map((row) => row.data),
+    characters: myCharacters,
     libraries,
     securityAlerts: alerts,
     sharedWithMe: sharedWithMeRows,
