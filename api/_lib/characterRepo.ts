@@ -433,6 +433,17 @@ export async function loadCharactersForUser(userId: string): Promise<Character[]
   return assembleCharacters(coreRows);
 }
 
+/** Re-reads a single character straight from the DB — used right after `createCharacter`/
+ * `updateCharacterOwned` so a POST/PATCH response reflects what was actually committed (e.g. a
+ * `real` column's float4 rounding) rather than echoing back the request body as if it were
+ * confirmed saved verbatim. */
+export async function loadCharacterById(id: string): Promise<Character | null> {
+  const [row] = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  if (!row) return null;
+  const [assembled] = await assembleCharacters([row]);
+  return assembled ?? null;
+}
+
 /** Characters someone else shared with `userId` — always view-only, resolved separately from
  * "mine" (see character_shares in db/schema.ts). */
 export async function loadSharedWithMe(
@@ -941,7 +952,12 @@ export async function updateCharacterOwned(
 
   const core = coreRowValues(character, userId);
   await db.batch([
-    db.update(characters).set(core).where(eq(characters.id, id)),
+    // Re-asserts ownership in the write itself (not just the SELECT above) — a future caller
+    // of this function that skips re-deriving that check still can't move another user's row.
+    db
+      .update(characters)
+      .set(core)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId))),
     ...buildDeletes(id),
     ...buildInserts(character),
   ] as [BatchQuery, ...BatchQuery[]]);

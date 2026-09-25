@@ -25,6 +25,10 @@ export const adminUpdateUserBodySchema = z
   });
 
 const uuid = z.uuid();
+/** Every character field backed by a Postgres `integer` column (as opposed to `real`) is
+ * validated with this instead of a bare `z.number()` — matches int4's actual range/precision,
+ * so an out-of-range or non-integer value 400s here instead of crashing the DB write with a 500. */
+const int4 = z.number().int().min(-2147483648).max(2147483647);
 
 export const shareBodySchema = z.object({ userId: uuid });
 
@@ -38,18 +42,18 @@ export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
  * decomposition into rows (a `TypeError` from a missing field access), so the shape has to be
  * validated at the boundary instead.
  */
-const variedModSchema = z.object({ id: uuid, label: z.string(), value: z.number() });
+const variedModSchema = z.object({ id: uuid, label: z.string(), value: int4 });
 const abilityLogEntrySchema = z.object({
   id: uuid,
   type: z.enum(['dano', 'dreno']),
-  delta: z.number(),
+  delta: int4,
   desc: z.string(),
 });
 const abilitySchema = z.object({
-  base: z.number(),
+  base: int4,
   mods: z.array(variedModSchema),
-  damage: z.number(),
-  drain: z.number(),
+  damage: int4,
+  drain: int4,
   log: z.array(abilityLogEntrySchema),
 });
 const abilityKeySchema = z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']);
@@ -61,12 +65,12 @@ const abilitiesSchema = z.object({
   wis: abilitySchema,
   cha: abilitySchema,
 });
-const characterClassSchema = z.object({ id: uuid, name: z.string(), level: z.number().int() });
+const characterClassSchema = z.object({ id: uuid, name: z.string(), level: int4 });
 const identitySchema = z.object({
   raca: z.string(),
   tamanho: z.enum(['Miúdo', 'Diminuto', 'Pequeno', 'Médio', 'Grande', 'Enorme', 'Colossal']),
   sexo: z.string(),
-  idadeNum: z.number(),
+  idadeNum: int4,
   alturaNum: z.number(),
   pesoNum: z.number(),
   cabelo: z.string(),
@@ -75,19 +79,19 @@ const identitySchema = z.object({
   terraNatal: z.string(),
 });
 const speedSchema = z.object({
-  base: z.number(),
-  armor: z.number(),
-  fly: z.number(),
+  base: int4,
+  armor: int4,
+  fly: int4,
   flyManeuverability: z.string(),
-  swim: z.number(),
-  climb: z.number(),
-  dig: z.number(),
+  swim: int4,
+  climb: int4,
+  dig: int4,
 });
 const saveBlockSchema = z.object({
-  base: z.number(),
-  magic: z.number(),
-  misc: z.number(),
-  temp: z.number(),
+  base: int4,
+  magic: int4,
+  misc: int4,
+  temp: int4,
 });
 const savesSchema = z.object({
   fort: saveBlockSchema,
@@ -97,14 +101,14 @@ const savesSchema = z.object({
 const languageSchema = z.object({ id: uuid, name: z.string() });
 const hpLogEntrySchema = z.object({
   id: uuid,
-  delta: z.number(),
+  delta: int4,
   kind: z.enum(['letal', 'nao-letal']),
 });
 const drItemSchema = z.object({
   id: uuid,
   type: z.string(),
   immune: z.boolean(),
-  amount: z.number(),
+  amount: int4,
 });
 const skillSchema = z.object({
   key: z.string(),
@@ -112,11 +116,11 @@ const skillSchema = z.object({
   ability: abilityKeySchema,
   classSkill: z.boolean(),
   trainedOnly: z.boolean(),
-  ranks: z.number(),
+  ranks: int4,
   mods: z.array(variedModSchema),
   conditional: z.string().optional(),
 });
-const ammoLogEntrySchema = z.object({ id: uuid, delta: z.number() });
+const ammoLogEntrySchema = z.object({ id: uuid, delta: int4 });
 const characterWeaponSchema = z.object({
   id: uuid,
   name: z.string(),
@@ -127,8 +131,8 @@ const characterWeaponSchema = z.object({
   range: z.string(),
   desc: z.string(),
   hasAmmo: z.boolean(),
-  ammoCurrent: z.number(),
-  ammoMax: z.number(),
+  ammoCurrent: int4,
+  ammoMax: int4,
   ammoLog: z.array(ammoLogEntrySchema),
 });
 const characterFeatSchema = z.object({
@@ -145,7 +149,7 @@ const characterSpecialAbilitySchema = z.object({
   desc: z.string(),
 });
 const conditionalModSchema = z.object({ id: uuid, text: z.string() });
-const moneySchema = z.object({ pc: z.number(), pp: z.number(), po: z.number(), pl: z.number() });
+const moneySchema = z.object({ pc: int4, pp: int4, po: int4, pl: int4 });
 const loadSchema = z.object({
   light: z.number(),
   medium: z.number(),
@@ -157,15 +161,15 @@ const loadSchema = z.object({
 const equipmentItemSchema = z.object({
   id: uuid,
   name: z.string(),
-  qty: z.number(),
+  qty: int4,
   unitWeight: z.number(),
 });
 const armorItemSchema = z.object({
   id: uuid,
   name: z.string(),
-  bonus: z.number(),
-  checkPenalty: z.number(),
-  arcaneFailure: z.number(),
+  bonus: int4,
+  checkPenalty: int4,
+  arcaneFailure: int4,
   weight: z.number(),
 });
 const sessionLogEntrySchema = z.object({
@@ -176,8 +180,8 @@ const sessionLogEntrySchema = z.object({
 });
 const spellSlotSchema = z.object({
   label: z.string(),
-  used: z.number(),
-  max: z.number(),
+  used: int4,
+  max: int4,
   spells: z.array(z.string()),
 });
 const spellcastingBlockSchema = z.object({
@@ -205,24 +209,24 @@ const characterSnapshotDataSchema = z.object({
   languages: z.array(languageSchema),
   story: z.string(),
   xpEnabled: z.boolean(),
-  xpCurrent: z.number(),
-  xpMax: z.number(),
-  hpCurrent: z.number(),
-  hpMax: z.number(),
-  tempHp: z.number(),
-  hpNonLethal: z.number(),
+  xpCurrent: int4,
+  xpMax: int4,
+  hpCurrent: int4,
+  hpMax: int4,
+  tempHp: int4,
+  hpNonLethal: int4,
   hpLog: z.array(hpLogEntrySchema),
   drItems: z.array(drItemSchema),
   abilities: abilitiesSchema,
-  acArmor: z.number(),
-  acShield: z.number(),
-  acNatural: z.number(),
-  acDeflection: z.number(),
+  acArmor: int4,
+  acShield: int4,
+  acNatural: int4,
+  acDeflection: int4,
   acVariedMods: z.array(variedModSchema),
   initVariedMods: z.array(variedModSchema),
   saves: savesSchema,
-  bbaValue: z.number(),
-  rmValue: z.number(),
+  bbaValue: int4,
+  rmValue: int4,
   favoredSchool: z.string(),
   opposedSchools: z.array(z.string()),
   spellbooks: z.array(spellcastingBlockSchema),
@@ -243,12 +247,18 @@ const characterSnapshotDataSchema = z.object({
 const levelSnapshotSchema = z.object({
   id: uuid,
   parentId: uuid.nullable(),
-  level: z.number(),
+  level: int4,
   kind: z.enum(['level-up', 'restore-point']),
   label: z.string(),
   date: z.string(),
   deletedAt: z.string().nullable(),
-  data: characterSnapshotDataSchema,
+  // Deliberately not `characterSnapshotDataSchema`: a snapshot's `data` is only ever written via
+  // `JSON.stringify` and read back via `JSON.parse` (see characterRepo.ts) — nothing in the write
+  // path dereferences a field on it, so pinning it to the *current* Character shape would reject
+  // every save of a character with snapshot history the day a required field is ever added to
+  // Character, not just going forward. Still required to be a real object (not null/an array/a
+  // primitive), just not shape-checked against today's schema.
+  data: z.record(z.string(), z.unknown()),
 });
 
 export const characterBodySchema = characterSnapshotDataSchema.extend({

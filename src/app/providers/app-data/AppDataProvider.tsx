@@ -96,12 +96,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) => {
     setData((d) => {
       if (!d) return d;
-      const characters = d.characters.map((c) => (c.id === id ? updater(c) : c));
+      const previousCharacters = d.characters;
+      const characters = previousCharacters.map((c) => (c.id === id ? updater(c) : c));
       const updated = characters.find((c) => c.id === id);
       if (updated) {
-        api
-          .patch(`/characters/${id}`, updated)
-          .catch((err: unknown) => console.error('Failed to save character', err));
+        api.patch(`/characters/${id}`, updated).catch((err: unknown) => {
+          console.error('Failed to save character', err);
+          toast.error(
+            err instanceof ApiError ? err.message : 'Não foi possível salvar o personagem.',
+          );
+          setData((current) =>
+            current ? { ...current, characters: previousCharacters } : current,
+          );
+        });
       }
       return { ...d, characters };
     });
@@ -109,9 +116,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addCharacter: AppDataContextValue['addCharacter'] = (character) => {
     setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
-    api
-      .post('/characters', character)
-      .catch((err: unknown) => console.error('Failed to create character', err));
+    api.post('/characters', character).catch((err: unknown) => {
+      console.error('Failed to create character', err);
+      toast.error(err instanceof ApiError ? err.message : 'Não foi possível criar o personagem.');
+      setData((current) =>
+        current
+          ? { ...current, characters: current.characters.filter((c) => c.id !== character.id) }
+          : current,
+      );
+    });
   };
 
   // Not optimistic like the rest of this file: the server is the only source of truth for who a
