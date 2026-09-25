@@ -1,7 +1,9 @@
 {
   "git": {
     "deploymentEnabled": {
-      "main": true
+      "*": false,
+      "main": true,
+      "claude/focused-albattani-atp3py": false
     }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
