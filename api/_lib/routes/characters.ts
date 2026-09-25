@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characters, characterShares, users } from '../../../db/schema.js';
+import { createCharacter, loadCharacterById, updateCharacterOwned } from '../characterRepo.js';
 import { requireUserId } from '../auth.js';
 import { withErrorHandling } from '../handler.js';
 import { characterBodySchema, MAX_CHARACTER_JSON_LENGTH, shareBodySchema } from '../validation.js';
@@ -26,17 +27,16 @@ export const createCharacterHandler = withErrorHandling(async function handler(
   }
   const parsed = characterBodySchema.safeParse(req.body);
   if (!parsed.success) {
+    console.error('Invalid character payload on create', parsed.error.issues);
     res.status(400).json({ error: 'Personagem inválido.' });
     return;
   }
   const character = parsed.data as unknown as Character;
 
-  const [row] = await db
-    .insert(characters)
-    .values({ id: character.id, userId, systemId: character.systemId, data: character })
-    .returning();
+  await createCharacter(character, userId);
+  const saved = await loadCharacterById(character.id);
 
-  res.status(201).json({ character: row.data });
+  res.status(201).json({ character: saved });
 });
 
 /** PATCH /api/characters/:id — updates a character owned by the caller. */
@@ -59,23 +59,24 @@ export const updateCharacterHandler = withErrorHandling(async function handler(
   }
   const parsed = characterBodySchema.safeParse(req.body);
   if (!parsed.success) {
+    console.error('Invalid character payload on update', parsed.error.issues);
     res.status(400).json({ error: 'Personagem inválido.' });
     return;
   }
   const character = parsed.data as unknown as Character;
-
-  const [row] = await db
-    .update(characters)
-    .set({ data: character, updatedAt: new Date() })
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .returning();
-
-  if (!row) {
-    res.status(404).json({ error: 'Personagem não encontrado.' });
+  if (character.id !== id) {
+    res.status(400).json({ error: 'O id do personagem não corresponde à rota.' });
     return;
   }
 
-  res.status(200).json({ character: row.data });
+  const updated = await updateCharacterOwned(id, character, userId);
+  if (!updated) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+  const saved = await loadCharacterById(id);
+
+  res.status(200).json({ character: saved });
 });
 
 async function listShares(characterId: string) {

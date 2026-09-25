@@ -20,14 +20,23 @@ import {
 
 export interface AccountCardProps {
   user: UserProfile;
-  onSave: (values: AccountValues) => void;
+  /** Called with the server-confirmed profile after a successful save — name/username aren't
+   * saved optimistically like most of the app's edits, since a duplicate username is a real,
+   * expected rejection the user needs to see and fix, not something to silently revert after
+   * the fact (see `onSaveAccount` below). */
+  onSaved: (user: UserProfile) => void;
 }
 
-export function AccountCard({ user, onSave }: AccountCardProps) {
+export function AccountCard({ user, onSaved }: AccountCardProps) {
   const toast = useAppToast();
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const { register, handleSubmit } = useForm<AccountValues>({
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
     values: { name: user.name, username: user.username },
   });
@@ -38,6 +47,21 @@ export function AccountCard({ user, onSave }: AccountCardProps) {
     setError: setPasswordError,
     formState: { errors: passwordErrors },
   } = useForm<PasswordValues>({ resolver: zodResolver(passwordSchema) });
+
+  const onSaveAccount = async (values: AccountValues) => {
+    try {
+      const { user: updated } = await api.patch<{ user: UserProfile }>('/user', values);
+      onSaved(updated);
+      setEditing(false);
+    } catch (err) {
+      const apiErr = err instanceof ApiError ? err : null;
+      if (apiErr?.status === 409) {
+        setError('username', { message: apiErr.message });
+      } else {
+        toast.error(apiErr?.message ?? 'Não foi possível salvar seus dados.');
+      }
+    }
+  };
 
   const onSavePassword = async (values: PasswordValues) => {
     try {
@@ -76,15 +100,15 @@ export function AccountCard({ user, onSave }: AccountCardProps) {
           <FieldView label="Nome de usuário" value={`@${user.username}`} />
         </div>
       ) : (
-        <form
-          onSubmit={handleSubmit((values) => {
-            onSave(values);
-            setEditing(false);
-          })}
-        >
+        <form onSubmit={handleSubmit(onSaveAccount)}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <TextField label="Nome" {...register('name')} />
-            <TextField label="Nome de usuário" startAdornment="@" {...register('username')} />
+            <TextField
+              label="Nome de usuário"
+              startAdornment="@"
+              error={errors.username?.message}
+              {...register('username')}
+            />
           </div>
           <Button type="submit" className="mt-4 w-full">
             Salvar

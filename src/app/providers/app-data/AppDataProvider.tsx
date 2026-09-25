@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSession } from '@/entities/session';
-import { api } from '@/shared/lib/api';
+import { api, ApiError } from '@/shared/lib/api';
+import { useAppToast } from '@/shared/ui/organisms';
 import type { Character } from '@/entities/character/model/types';
 import { normalizeCharacter } from '@/entities/character/model/factory';
 import type { RpgSystem } from '@/entities/system/model/types';
@@ -26,6 +27,7 @@ interface AppData {
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useSession();
+  const toast = useAppToast();
   const [data, setData] = useState<AppData | null>(null);
   // Tracks the latest share/unshare request per character so an out-of-order response from an
   // older request can't overwrite the state left by a newer one that resolved first.
@@ -72,23 +74,41 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const updateUser: AppDataContextValue['updateUser'] = (updater) => {
     setData((d) => {
       if (!d) return d;
-      const user = updater(d.user);
-      api
-        .patch('/user', user)
-        .catch((err: unknown) => console.error('Failed to save profile', err));
+      const previousUser = d.user;
+      const user = updater(previousUser);
+      api.patch('/user', user).catch((err: unknown) => {
+        console.error('Failed to save profile', err);
+        toast.error(err instanceof ApiError ? err.message : 'Não foi possível salvar seus dados.');
+        // Unlike character edits (harmless to retry, low-stakes if briefly out of sync), a
+        // profile save can be rejected by a real, expected conflict — e.g. the username is
+        // already taken (see updateProfileHandler) — so leaving the optimistic value in place
+        // would show the user a "successful" change the server never actually made.
+        setData((current) => (current ? { ...current, user: previousUser } : current));
+      });
       return { ...d, user };
     });
+  };
+
+  const setUser: AppDataContextValue['setUser'] = (user) => {
+    setData((d) => (d ? { ...d, user } : d));
   };
 
   const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) => {
     setData((d) => {
       if (!d) return d;
-      const characters = d.characters.map((c) => (c.id === id ? updater(c) : c));
+      const previousCharacters = d.characters;
+      const characters = previousCharacters.map((c) => (c.id === id ? updater(c) : c));
       const updated = characters.find((c) => c.id === id);
       if (updated) {
-        api
-          .patch(`/characters/${id}`, updated)
-          .catch((err: unknown) => console.error('Failed to save character', err));
+        api.patch(`/characters/${id}`, updated).catch((err: unknown) => {
+          console.error('Failed to save character', err);
+          toast.error(
+            err instanceof ApiError ? err.message : 'Não foi possível salvar o personagem.',
+          );
+          setData((current) =>
+            current ? { ...current, characters: previousCharacters } : current,
+          );
+        });
       }
       return { ...d, characters };
     });
@@ -96,9 +116,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addCharacter: AppDataContextValue['addCharacter'] = (character) => {
     setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
-    api
-      .post('/characters', character)
-      .catch((err: unknown) => console.error('Failed to create character', err));
+    api.post('/characters', character).catch((err: unknown) => {
+      console.error('Failed to create character', err);
+      toast.error(err instanceof ApiError ? err.message : 'Não foi possível criar o personagem.');
+      setData((current) =>
+        current
+          ? { ...current, characters: current.characters.filter((c) => c.id !== character.id) }
+          : current,
+      );
+    });
   };
 
   // Not optimistic like the rest of this file: the server is the only source of truth for who a
@@ -245,6 +271,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     unshareCharacter,
     dismissSecurityAlert,
     updateUser,
+    setUser,
     updateCharacter,
     addCharacter,
     addLibraryItem,

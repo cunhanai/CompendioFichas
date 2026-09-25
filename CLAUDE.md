@@ -66,13 +66,14 @@ import from itself or a layer below. `shared/ui` is further organized Atomic-Des
 - `app/AppScreens.tsx` lazy-loads every page (`React.lazy`) — the character sheet page alone is
   a large chunk (~10 tabs, ~35 popups across many `features/*` slices), so keep new heavy pages
   lazy too rather than adding to the eagerly-loaded bundle.
-- A `Character` is one big typed JSONB blob (`src/entities/character/model/types.ts`, ~250
-  lines covering every tab) stored as a single `characters.data` column — deliberately not
-  normalized into relational tables, since the whole app already treats it as one object. The
-  shared library (spells/weapons/feats/skills/languages/creatures/special abilities) **is**
-  normalized, one Postgres table per category with a plain `system_id` FK — that split happened
-  because a system→item relationship is one-to-many, not because character data needed the same
-  treatment. Don't assume the two follow the same pattern.
+- `Character` (`src/entities/character/model/types.ts`, ~250 lines covering every tab) is the
+  shape the frontend has always worked with — one big nested object — but it is **not** how it's
+  stored. Storage is fully relational (see `db/schema.ts` and the Backend section below); the API
+  boundary (`GET /api/bootstrap`, `PATCH /api/characters/:id`) is what assembles/decomposes
+  between the two, so nothing under `src/` needed to change when the storage layer was rewritten
+  off JSONB. The shared library (spells/weapons/feats/skills/languages/creatures/special
+  abilities) is normalized the same way — one Postgres table per category with a plain
+  `system_id` FK.
 - **Level snapshots** (`entities/character/model/snapshots.ts`) are a tree, not a list —
   `LevelSnapshot.parentId` chains them, and `Character.currentSnapshotId` marks which one the
   live character currently descends from (walk `parentId` back from it for "the active
@@ -116,10 +117,36 @@ see the rewrites array and the matching `segments[0] === '__root'` check in each
 new dispatcher that needs a bare-path route must add the same pair (rewrite + `__root` check) —
 don't assume the bare path just works without it.
 
+- **Character storage is fully relational, not JSONB.** `characters` holds every fixed 1:1
+  attribute (identity/speed/saves/money/load flattened into columns — no cardinality reason to
+  split those into their own tables); every list-shaped section of `Character` (classes,
+  languages, hpLog, drItems, abilities + their mods/log, skills + mods, weapons + ammo log,
+  spellbooks + circles, feats, special abilities, equipment, armor items, session log) has its
+  own child table with a `character_id` FK (`ON DELETE CASCADE`) and a `sort_order` column
+  (Postgres doesn't preserve row order, and the frontend's arrays are order-sensitive). The one
+  exception is `character_snapshots.data`, kept as a serialized JSON text blob rather than ~20
+  more snapshot-shaped tables — a snapshot is immutable and never queried field-by-field, so
+  normalizing it further would be pure overhead. `api/_lib/characterRepo.ts` is the only place
+  that touches these tables: it assembles a full `Character` object from them (batched, one query
+  per table across every requested character id, not one round trip per character) and
+  decomposes one back into rows on every create/update. Every write is a full replace — delete
+  this character's rows in every child table, then insert fresh ones from the incoming object —
+  matching the "send the whole character, every time" contract the frontend already used against
+  the old JSONB column, so no incremental diffing is needed. It all runs inside one `db.batch(...)`
+  call: the neon-http driver has no session-based `db.transaction()` (it throws), but `batch`
+  sends every statement as one atomic HTTP call. Every row's primary key is the id already on the
+  nested object from the client (weapons, feats, skills, etc. all carry their own `id` in the
+  `Character` type), so no statement in the batch depends on another one's result — except a
+  parent row (spellbook, skill, weapon) that must be inserted before its child rows in the same
+  batch, and `character_snapshots.parent_id`, which self-references and is instead set in a
+  second pass (insert every snapshot row with `parent_id` null, then update it) so insert order
+  never matters there. See DESIGN_NOTES.md's "Dados do personagem: de um blob JSONB para tabelas
+  relacionais" for the full reasoning and the two-step migration this required
+  (`0011_drop_characters_data_jsonb.sql` + `0012_add_relational_character_tables.sql`).
 - **Character sharing**: `character_shares` (`character_id`, `shared_with_user_id`) is a real
-  table, not a field inside `characters.data` — unlike everything else about a character, "who
-  else can see this" needs to be queryable from the *recipient's* side (their bootstrap needs
-  "what's been shared with me"), which a value nested in the owner's JSONB blob can't support.
+  table — unlike everything else about a character, "who else can see this" needs to be
+  queryable from the *recipient's* side (their bootstrap needs "what's been shared with me"),
+  which a value scoped to one owner's character row can't support on its own.
   Always view-only: the recipient never gets a write endpoint for someone else's character.
   `useCharacter()` (`app/providers/app-data/useAppData.ts`) resolves both owned and
   shared-with-me characters, and for the latter returns a no-op `update` — that's the actual
