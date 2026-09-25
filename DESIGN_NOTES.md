@@ -349,6 +349,10 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
 - Causa raiz confirmada direto no código-fonte público da Vercel (`packages/fs-detectors` no repo `vercel/vercel`, já que `vercel.com` está bloqueado por rede neste ambiente mas `github.com` não): a sintaxe de colchete duplo `[[...path]].ts` ("catch-all opcional") só tem esse comportamento especial dentro do roteador do Next.js. Para uma Serverless Function comum (sem framework, que é o caso deste projeto), a Vercel trata `[[...path]].ts` exatamente igual a `[...path].ts` — sempre exige pelo menos um segmento no caminho. `GET /api/admin/users/activity` batia certinho (um segmento), mas `GET /api/admin/users` sozinho (zero segmentos) caía direto num 404 genérico da própria Vercel, sem nem chegar no código da função. O mesmo bug afetava `POST /api/characters` e `PATCH /api/user`.
 - Corrigido com um rewrite em `vercel.json` para cada uma dessas três rotas "base", redirecionando o caminho sem segmento nenhum para um segmento sintético (`/api/admin/users/__root`, etc.), que cada função trata exatamente como o caso de zero segmentos.
 
+### Vercel Speed Insights e Analytics
+- `@vercel/speed-insights` e `@vercel/analytics` instalados; os componentes `<SpeedInsights />` e `<Analytics />` foram adicionados em `src/app/App.tsx`, junto do `BrowserRouter`, seguindo o guia oficial da Vercel. Passam a coletar Web Vitals e visualizações de página assim que o deploy for para produção.
+- Não foi preciso mexer na CSP (`vercel.json`): em produção os dois pacotes carregam o script e enviam os dados via caminhos de mesma origem (`/_vercel/insights/script.js`, `/_vercel/speed-insights/script.js`), então `script-src 'self'` já cobre.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 
