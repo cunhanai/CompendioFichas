@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { users } from '../../db/schema.js';
+import { sessions, users } from '../../db/schema.js';
 import { requireUserId, hashPassword, verifyPassword } from '../_lib/auth.js';
 import { passwordChangeBodySchema } from '../_lib/validation.js';
 import { withErrorHandling } from '../_lib/handler.js';
 import { checkRateLimit } from '../_lib/rateLimit.js';
 import { logAudit } from '../_lib/audit.js';
+import { createSession, setSessionCookie } from '../_lib/session.js';
 
 export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH') {
@@ -41,6 +42,12 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     .update(users)
     .set({ passwordHash, mustChangePassword: false })
     .where(eq(users.id, userId));
+
+  // A changed password should sign out every other device/browser — only this one stays in,
+  // via a freshly issued session — in case the old password (and its cookie) had leaked.
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+  const token = await createSession(userId);
+  setSessionCookie(res, token);
 
   await logAudit({ id: user.id, username: user.username }, 'user.password_change');
 

@@ -8,10 +8,14 @@ export type AuditAction =
   | 'user.promote'
   | 'user.demote'
   | 'user.password_reset'
-  | 'user.password_change';
+  | 'user.password_change'
+  | 'auth.login_success'
+  | 'auth.login_failed'
+  | 'auth.rate_limited';
 
 interface AuditActor {
-  id: string;
+  /** Omitted when the attempt never resolved to a real account (e.g. a failed login for an unknown username). */
+  id?: string;
   username: string;
 }
 
