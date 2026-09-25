@@ -94,9 +94,10 @@ path-derived id straight through to the wrapped handler.
 **`[[...path]].ts` gotcha (verified against Vercel's own `fs-detectors` source — this is not
 Next.js docs behavior, which differs):** the double-bracket "optional catch-all" filename only
 behaves that way inside Next.js's own router. For a plain Serverless Function like these, it's
-treated identically to `[...path].ts` — exactly one mandatory segment, and it **never matches
-the bare base path** (`GET /api/admin/users` with nothing after it 404s at Vercel's edge before
-the function is even invoked; `GET /api/admin/users/activity` works fine). Every dispatcher that
+treated identically to `[...path].ts` — a mandatory catch-all (one or more segments; multi-segment
+routes like `security-alerts/:id` work fine) that **never matches the bare base path with zero
+segments** (`GET /api/admin/users` with nothing after it 404s at Vercel's edge before the
+function is even invoked; `GET /api/admin/users/activity` works fine). Every dispatcher that
 needs to handle a bare-path route works around this with a `vercel.json` rewrite from the bare
 path to a synthetic `/…/__root` segment, which the dispatcher treats the same as zero segments —
 see the rewrites array and the matching `segments[0] === '__root'` check in each of
