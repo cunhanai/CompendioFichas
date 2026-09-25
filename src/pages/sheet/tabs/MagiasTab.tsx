@@ -1,10 +1,21 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useCharacter, useLibrary } from '@/app/providers';
 import type { SpellLibraryItem } from '@/entities/library-item/model/types';
-import { SpellBookCard, SpellPickDialog, addSpellToBook } from '@/features/spellbook';
+import {
+  SpellBookCard,
+  SpellBookCreateDialog,
+  SpellPickDialog,
+  addSpellToBook,
+  createSpellbook,
+  removeSpellbook,
+  setCircleMax,
+} from '@/features/spellbook';
 import { SectionCard, SectionCardButton } from '@/shared/ui/molecules/SectionCard';
 import { InfoDialog } from '@/shared/ui/organisms/InfoDialog';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { Button } from '@/shared/ui/atoms/Button';
+import { EmptyState } from '@/shared/ui/molecules/EmptyState';
 
 export function MagiasTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
@@ -12,6 +23,7 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
   const [pickBookIndex, setPickBookIndex] = useState<number | null>(null);
   const [detailSpell, setDetailSpell] = useState<SpellLibraryItem | null>(null);
   const [detailSlaId, setDetailSlaId] = useState<string | null>(null);
+  const [creatingBook, setCreatingBook] = useState(false);
 
   const openSpellDetailByName = (name: string) => {
     const found = library?.magias.find((s) => s.name === name);
@@ -19,9 +31,29 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
   };
 
   const sla = character.spellLikeAbilities.find((s) => s.id === detailSlaId);
+  const nothingYet =
+    character.spellbooks.length === 0 &&
+    character.spellLikeAbilities.length === 0 &&
+    !character.favoredSchool &&
+    character.opposedSchools.length === 0;
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex justify-end">
+        <Button onClick={() => setCreatingBook(true)}>
+          <Plus className="h-4 w-4" strokeWidth={2.2} />
+          Adicionar grimório
+        </Button>
+      </div>
+
+      {nothingYet && (
+        <EmptyState
+          icon={<Plus className="h-6 w-6" strokeWidth={1.6} />}
+          title="Nenhuma magia registrada ainda"
+          description="Se o personagem conjura magias, adicione um grimório para começar a registrar truques e magias por círculo."
+        />
+      )}
+
       {(character.favoredSchool || character.opposedSchools.length > 0) && (
         <SectionCard>
           <h3 className="mb-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
@@ -48,6 +80,8 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
           book={book}
           onSearch={() => setPickBookIndex(i)}
           onOpenSpell={openSpellDetailByName}
+          onSetCircleMax={(circleIndex, max) => update((c) => setCircleMax(c, i, circleIndex, max))}
+          onRemove={() => update((c) => removeSpellbook(c, i))}
         />
       ))}
 
@@ -119,6 +153,15 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
         title={sla?.name ?? ''}
         subtitle={sla?.subtitle}
         description={sla?.desc}
+      />
+
+      <SpellBookCreateDialog
+        open={creatingBook}
+        onOpenChange={setCreatingBook}
+        onCreate={(input) => {
+          update((c) => createSpellbook(c, input));
+          setCreatingBook(false);
+        }}
       />
     </div>
   );

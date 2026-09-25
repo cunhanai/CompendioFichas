@@ -374,6 +374,11 @@ Nome, raça, classes/níveis, nível efetivo, tendência, divindade, tamanho, se
   - **Fechar com alterações não salvas pergunta antes**: como cada campo desses popups já salva imediatamente a cada mudança (não existe rascunho separado), "alteração não salva" aqui significa "mudou algo desde que entrou no modo de edição, e ainda dá pra desfazer". Ao tentar fechar (X, clique fora, Esc) nessas condições, aparece um diálogo com "Salvar" (só fecha — já está salvo) ou "Sair sem salvar" (restaura a ficha pro estado de quando entrou no modo de edição).
   - **Reabrir sempre volta pro modo de visualização**, nunca retoma o modo de edição, independente de como foi fechado da última vez.
 
+### Aba Magias: criar grimório
+- A aba já tinha os componentes pra mostrar/gerenciar um grimório (`SpellBookCard`, `SpellPickDialog`), mas não existia nenhuma forma de criar um — `character.spellbooks` sempre começava vazio e ficava vazio pra sempre. Agora tem um botão "Adicionar grimório" que abre um popup pra escolher a classe conjuradora, o atributo de conjuração, o tipo (espontânea/preparada) e quantos círculos ela conjura.
+- Os espaços de magia por círculo (`max`) começam em 0 (não modelamos as tabelas de progressão de espaços por classe/nível do PF1e) — um botão de editar (lápis) no próprio grimório permite ajustar esse número a qualquer momento, incluindo depois de upar de nível, do mesmo jeito manual que BBA/RM/CA já funcionam nesta ficha. O mesmo modo de edição permite remover o grimório inteiro (com confirmação).
+- Estado vazio: quando não há nenhum grimório, habilidade similar a magia, nem escola focada/oposta, aparece uma mensagem explicando que a aba serve pra personagens conjuradores.
+
 ## Regra permanente de processo
 - **Toda mudança pedida deve ser registrada neste arquivo.** A cada solicitação do usuário, as novas regras e decisões de design devem ser adicionadas ao DESIGN_NOTES.md, incluindo quaisquer regras decididas anteriormente que ainda não tenham sido documentadas aqui. Não é necessário o usuário pedir isso explicitamente a cada vez.
 
