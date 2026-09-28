@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { asc, desc, eq } from 'drizzle-orm';
+import { migrate } from 'drizzle-orm/neon-http/migrator';
 import { z } from 'zod';
+import path from 'node:path';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
 import { requireAdminUser, hashPassword } from '../auth.js';
@@ -206,4 +208,39 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
   }
 
   res.status(200).json({ alert });
+});
+
+/**
+ * TEMPORARY, one-time-use endpoint. Runs every pending migration under db/migrations (at the
+ * moment, just 0011/0012: JSONB -> relational character schema) against whatever DB this
+ * deployment is connected to — added specifically because nobody has local shell access to run
+ * `npm run db:migrate` against production themselves. Master-only.
+ *
+ * Uses Drizzle's own migrator rather than executing the .sql files by hand: it tracks applied
+ * migrations in `__drizzle_migrations` the same way `npm run db:migrate` does, so (a) calling
+ * this more than once is a safe no-op once everything's applied — the completion check is the
+ * journal table, not a guess at which column a migration happens to add first — and (b) a real
+ * `npm run db:migrate` run later won't try to re-apply what this endpoint already did.
+ *
+ * Delete this handler and its dispatcher wiring once the migration is confirmed applied — it has
+ * no reason to exist afterward.
+ */
+export const runCharacterSchemaMigrationHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
+  if (!caller.isMaster) {
+    res.status(403).json({ error: 'Apenas o administrador master pode fazer isso.' });
+    return;
+  }
+
+  await migrate(db, { migrationsFolder: path.join(process.cwd(), 'db', 'migrations') });
+
+  res.status(200).json({ ok: true });
 });

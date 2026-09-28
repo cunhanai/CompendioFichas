@@ -6,6 +6,11 @@
       "claude/focused-albattani-atp3py": false
     }
   },
+  "functions": {
+    "api/admin/users/[[...path]].ts": {
+      "includeFiles": "db/migrations/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/admin/users", "destination": "/api/admin/users/__root" },
     { "source": "/api/characters", "destination": "/api/characters/__root" },
