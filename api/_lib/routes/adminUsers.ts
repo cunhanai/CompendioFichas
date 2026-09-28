@@ -252,11 +252,27 @@ const PENDING_CHARACTER_SCHEMA_MIGRATIONS = [
  * Delete this handler, its dispatcher wiring, and migrationSql.ts once the migration is confirmed
  * applied — none of it has a reason to exist afterward.
  */
+function migrationPageHtml(body: string): string {
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Migração do schema de personagens</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; max-width: 40rem; margin: 3rem auto; padding: 0 1.5rem; line-height: 1.5; }
+  button { font-size: 1rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: none; background: #f59e0b; color: #0a0a0a; font-weight: 600; cursor: pointer; }
+  button:hover { background: #fbbf24; }
+  pre { background: #171717; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; white-space: pre-wrap; }
+  a { color: #f59e0b; }
+</style></head>
+<body>${body}</body></html>`;
+}
+
+/** GET: a plain HTML page with a form (no JS/fetch/console needed) so an admin can trigger the
+ * migration below just by clicking a button. POST (the form's target): runs it. */
 export const runCharacterSchemaMigrationHandler = withErrorHandling(async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
@@ -264,6 +280,20 @@ export const runCharacterSchemaMigrationHandler = withErrorHandling(async functi
   if (!caller) return;
   if (!caller.isMaster) {
     res.status(403).json({ error: 'Apenas o administrador master pode fazer isso.' });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    res
+      .status(200)
+      .setHeader('Content-Type', 'text/html; charset=utf-8')
+      .send(
+        migrationPageHtml(`
+          <h1>Migração do schema de personagens</h1>
+          <p>Logado como <strong>${caller.username}</strong>. Clique no botão abaixo para aplicar a migração 0011/0012 (JSONB → tabelas relacionais) no banco de produção.</p>
+          <form method="POST"><button type="submit">Rodar migração</button></form>
+        `),
+      );
     return;
   }
 
@@ -283,21 +313,43 @@ export const runCharacterSchemaMigrationHandler = withErrorHandling(async functi
     : 0;
 
   let migrationsApplied = 0;
-  for (const migration of PENDING_CHARACTER_SCHEMA_MIGRATIONS) {
-    if (migration.folderMillis <= lastAppliedMillis) continue;
+  try {
+    for (const migration of PENDING_CHARACTER_SCHEMA_MIGRATIONS) {
+      if (migration.folderMillis <= lastAppliedMillis) continue;
 
-    const statements = migration.sql
-      .split('--> statement-breakpoint')
-      .map((statement) => statement.trim())
-      .filter(Boolean);
-    for (const statement of statements) {
-      await db.execute(sql.raw(statement));
+      const statements = migration.sql
+        .split('--> statement-breakpoint')
+        .map((statement) => statement.trim())
+        .filter(Boolean);
+      for (const statement of statements) {
+        await db.execute(sql.raw(statement));
+      }
+      await db.execute(
+        sql`insert into "drizzle"."__drizzle_migrations" ("hash", "created_at") values (${migration.hash}, ${migration.folderMillis})`,
+      );
+      migrationsApplied += 1;
     }
-    await db.execute(
-      sql`insert into "drizzle"."__drizzle_migrations" ("hash", "created_at") values (${migration.hash}, ${migration.folderMillis})`,
-    );
-    migrationsApplied += 1;
+  } catch (err) {
+    res
+      .status(500)
+      .setHeader('Content-Type', 'text/html; charset=utf-8')
+      .send(
+        migrationPageHtml(`
+          <h1>Erro na migração</h1>
+          <p>${migrationsApplied} de ${PENDING_CHARACTER_SCHEMA_MIGRATIONS.length} migrações aplicadas antes do erro:</p>
+          <pre>${String(err instanceof Error ? (err.stack ?? err.message) : err)}</pre>
+        `),
+      );
+    return;
   }
 
-  res.status(200).json({ ok: true, migrationsApplied });
+  res
+    .status(200)
+    .setHeader('Content-Type', 'text/html; charset=utf-8')
+    .send(
+      migrationPageHtml(`
+        <h1>Pronto ✅</h1>
+        <p>${migrationsApplied} migração(ões) aplicada(s). Pode fechar esta aba e <a href="/">voltar para o app</a>.</p>
+      `),
+    );
 });
