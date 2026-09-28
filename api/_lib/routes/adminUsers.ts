@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { asc, desc, eq } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/neon-http/migrator';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import path from 'node:path';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
 import { requireAdminUser, hashPassword } from '../auth.js';
@@ -11,6 +9,14 @@ import { toAdminUserView } from '../mappers.js';
 import { generateTempPassword } from '../password.js';
 import { logAudit } from '../audit.js';
 import { withErrorHandling } from '../handler.js';
+import {
+  MIGRATION_0011_SQL,
+  MIGRATION_0011_HASH,
+  MIGRATION_0011_FOLDER_MILLIS,
+  MIGRATION_0012_SQL,
+  MIGRATION_0012_HASH,
+  MIGRATION_0012_FOLDER_MILLIS,
+} from '../migrationSql.js';
 
 /** GET /api/admin/users — lists every account for the user-management screen. */
 export const listUsersHandler = withErrorHandling(async function handler(
@@ -210,20 +216,41 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
   res.status(200).json({ alert });
 });
 
+const PENDING_CHARACTER_SCHEMA_MIGRATIONS = [
+  {
+    sql: MIGRATION_0011_SQL,
+    hash: MIGRATION_0011_HASH,
+    folderMillis: MIGRATION_0011_FOLDER_MILLIS,
+  },
+  {
+    sql: MIGRATION_0012_SQL,
+    hash: MIGRATION_0012_HASH,
+    folderMillis: MIGRATION_0012_FOLDER_MILLIS,
+  },
+];
+
 /**
- * TEMPORARY, one-time-use endpoint. Runs every pending migration under db/migrations (at the
- * moment, just 0011/0012: JSONB -> relational character schema) against whatever DB this
- * deployment is connected to — added specifically because nobody has local shell access to run
- * `npm run db:migrate` against production themselves. Master-only.
+ * TEMPORARY, one-time-use endpoint. Runs the 0011/0012 migrations (JSONB -> relational character
+ * schema) against whatever DB this deployment is connected to — added specifically because
+ * nobody has local shell access to run `npm run db:migrate` against production themselves.
+ * Master-only.
  *
- * Uses Drizzle's own migrator rather than executing the .sql files by hand: it tracks applied
- * migrations in `__drizzle_migrations` the same way `npm run db:migrate` does, so (a) calling
- * this more than once is a safe no-op once everything's applied — the completion check is the
- * journal table, not a guess at which column a migration happens to add first — and (b) a real
- * `npm run db:migrate` run later won't try to re-apply what this endpoint already did.
+ * The migration SQL is embedded in migrationSql.ts (not read from db/migrations/*.sql at
+ * runtime): a first version of this handler used `fs.readFileSync`/Drizzle's own file-based
+ * migrator, which needed a `vercel.json` `functions.includeFiles` entry to guarantee the .sql
+ * files were bundled — that entry turned out to break this dispatcher's route-segment parsing in
+ * production (every request under /api/admin/users/* was landing on the bare-path branch
+ * regardless of the actual sub-path or HTTP method). Embedding the SQL as plain string constants
+ * needs no filesystem access at all, so there's nothing for vercel.json to special-case.
  *
- * Delete this handler and its dispatcher wiring once the migration is confirmed applied — it has
- * no reason to exist afterward.
+ * Tracking applied migrations replicates exactly what Drizzle's own migrator does (same
+ * `drizzle.__drizzle_migrations` table, same hash/created_at bookkeeping) so (a) calling this
+ * more than once is a safe no-op once everything's applied, and (b) a real `npm run db:migrate`
+ * run later — once someone does have shell access — recognizes 0011/0012 as already done instead
+ * of re-applying them.
+ *
+ * Delete this handler, its dispatcher wiring, and migrationSql.ts once the migration is confirmed
+ * applied — none of it has a reason to exist afterward.
  */
 export const runCharacterSchemaMigrationHandler = withErrorHandling(async function handler(
   req: VercelRequest,
@@ -240,7 +267,37 @@ export const runCharacterSchemaMigrationHandler = withErrorHandling(async functi
     return;
   }
 
-  await migrate(db, { migrationsFolder: path.join(process.cwd(), 'db', 'migrations') });
+  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS "drizzle"`);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS "drizzle"."__drizzle_migrations" (
+      id SERIAL PRIMARY KEY,
+      hash text NOT NULL,
+      created_at bigint
+    )
+  `);
+  const lastApplied = await db.execute(
+    sql`select created_at from "drizzle"."__drizzle_migrations" order by created_at desc limit 1`,
+  );
+  const lastAppliedMillis = lastApplied.rows[0]
+    ? Number((lastApplied.rows[0] as { created_at: string | number }).created_at)
+    : 0;
 
-  res.status(200).json({ ok: true });
+  let migrationsApplied = 0;
+  for (const migration of PENDING_CHARACTER_SCHEMA_MIGRATIONS) {
+    if (migration.folderMillis <= lastAppliedMillis) continue;
+
+    const statements = migration.sql
+      .split('--> statement-breakpoint')
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+    for (const statement of statements) {
+      await db.execute(sql.raw(statement));
+    }
+    await db.execute(
+      sql`insert into "drizzle"."__drizzle_migrations" ("hash", "created_at") values (${migration.hash}, ${migration.folderMillis})`,
+    );
+    migrationsApplied += 1;
+  }
+
+  res.status(200).json({ ok: true, migrationsApplied });
 });
