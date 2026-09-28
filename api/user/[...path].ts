@@ -8,9 +8,11 @@ import {
 /**
  * One function serving /api/user (PATCH), /api/user/password (PATCH), /api/user/roster (GET).
  *
- * NOTE: `[[...path]]` doesn't match the bare base path outside Next.js (see the identical
- * comment in api/admin/users/[[...path]].ts) — vercel.json rewrites /api/user to
- * /api/user/__root so it reaches this function as one real segment.
+ * This file is named `[...path].ts` (single bracket, mandatory catch-all), not the Next.js
+ * "optional catch-all" `[[...path]].ts` — see the doc comment in
+ * api/admin/users/[...path].ts for why the double-bracket name silently broke
+ * `req.query.path` in production. vercel.json rewrites /api/user to /api/user/__root so the
+ * bare base path reaches this function as one real segment.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segments = ([] as string[]).concat(req.query.path ?? []);

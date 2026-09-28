@@ -11,9 +11,11 @@ import {
  * /api/characters/:id/shares (POST to grant, DELETE to revoke) — keeps the Hobby-plan
  * serverless function count down.
  *
- * NOTE: `[[...path]]` doesn't match the bare base path outside Next.js (see the identical
- * comment in api/admin/users/[[...path]].ts) — vercel.json rewrites /api/characters to
- * /api/characters/__root so it reaches this function as one real segment.
+ * This file is named `[...path].ts` (single bracket, mandatory catch-all), not the Next.js
+ * "optional catch-all" `[[...path]].ts` — see the doc comment in
+ * api/admin/users/[...path].ts for why the double-bracket name silently broke
+ * `req.query.path` in production. vercel.json rewrites /api/characters to
+ * /api/characters/__root so the bare base path reaches this function as one real segment.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segments = ([] as string[]).concat(req.query.path ?? []);
