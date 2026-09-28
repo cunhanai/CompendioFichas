@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
@@ -9,14 +9,6 @@ import { toAdminUserView } from '../mappers.js';
 import { generateTempPassword } from '../password.js';
 import { logAudit } from '../audit.js';
 import { withErrorHandling } from '../handler.js';
-import {
-  MIGRATION_0011_SQL,
-  MIGRATION_0011_HASH,
-  MIGRATION_0011_FOLDER_MILLIS,
-  MIGRATION_0012_SQL,
-  MIGRATION_0012_HASH,
-  MIGRATION_0012_FOLDER_MILLIS,
-} from '../migrationSql.js';
 
 /** GET /api/admin/users — lists every account for the user-management screen. */
 export const listUsersHandler = withErrorHandling(async function handler(
@@ -214,142 +206,4 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
   }
 
   res.status(200).json({ alert });
-});
-
-const PENDING_CHARACTER_SCHEMA_MIGRATIONS = [
-  {
-    sql: MIGRATION_0011_SQL,
-    hash: MIGRATION_0011_HASH,
-    folderMillis: MIGRATION_0011_FOLDER_MILLIS,
-  },
-  {
-    sql: MIGRATION_0012_SQL,
-    hash: MIGRATION_0012_HASH,
-    folderMillis: MIGRATION_0012_FOLDER_MILLIS,
-  },
-];
-
-/**
- * TEMPORARY, one-time-use endpoint. Runs the 0011/0012 migrations (JSONB -> relational character
- * schema) against whatever DB this deployment is connected to — added specifically because
- * nobody has local shell access to run `npm run db:migrate` against production themselves.
- * Master-only.
- *
- * The migration SQL is embedded in migrationSql.ts (not read from db/migrations/*.sql at
- * runtime): a first version of this handler used `fs.readFileSync`/Drizzle's own file-based
- * migrator, which needed a `vercel.json` `functions.includeFiles` entry to guarantee the .sql
- * files were bundled — that entry turned out to break this dispatcher's route-segment parsing in
- * production (every request under /api/admin/users/* was landing on the bare-path branch
- * regardless of the actual sub-path or HTTP method). Embedding the SQL as plain string constants
- * needs no filesystem access at all, so there's nothing for vercel.json to special-case.
- *
- * Tracking applied migrations replicates exactly what Drizzle's own migrator does (same
- * `drizzle.__drizzle_migrations` table, same hash/created_at bookkeeping) so (a) calling this
- * more than once is a safe no-op once everything's applied, and (b) a real `npm run db:migrate`
- * run later — once someone does have shell access — recognizes 0011/0012 as already done instead
- * of re-applying them.
- *
- * Delete this handler, its dispatcher wiring, and migrationSql.ts once the migration is confirmed
- * applied — none of it has a reason to exist afterward.
- */
-function migrationPageHtml(body: string): string {
-  return `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8">
-<title>Migração do schema de personagens</title>
-<style>
-  body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; max-width: 40rem; margin: 3rem auto; padding: 0 1.5rem; line-height: 1.5; }
-  button { font-size: 1rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: none; background: #f59e0b; color: #0a0a0a; font-weight: 600; cursor: pointer; }
-  button:hover { background: #fbbf24; }
-  pre { background: #171717; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; white-space: pre-wrap; }
-  a { color: #f59e0b; }
-</style></head>
-<body>${body}</body></html>`;
-}
-
-/** GET: a plain HTML page with a form (no JS/fetch/console needed) so an admin can trigger the
- * migration below just by clicking a button. POST (the form's target): runs it. */
-export const runCharacterSchemaMigrationHandler = withErrorHandling(async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-  const caller = await requireAdminUser(req, res);
-  if (!caller) return;
-  if (!caller.isMaster) {
-    res.status(403).json({ error: 'Apenas o administrador master pode fazer isso.' });
-    return;
-  }
-
-  if (req.method === 'GET') {
-    res
-      .status(200)
-      .setHeader('Content-Type', 'text/html; charset=utf-8')
-      .send(
-        migrationPageHtml(`
-          <h1>Migração do schema de personagens</h1>
-          <p>Logado como <strong>${caller.username}</strong>. Clique no botão abaixo para aplicar a migração 0011/0012 (JSONB → tabelas relacionais) no banco de produção.</p>
-          <form method="POST"><button type="submit">Rodar migração</button></form>
-        `),
-      );
-    return;
-  }
-
-  await db.execute(sql`CREATE SCHEMA IF NOT EXISTS "drizzle"`);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "drizzle"."__drizzle_migrations" (
-      id SERIAL PRIMARY KEY,
-      hash text NOT NULL,
-      created_at bigint
-    )
-  `);
-  const lastApplied = await db.execute(
-    sql`select created_at from "drizzle"."__drizzle_migrations" order by created_at desc limit 1`,
-  );
-  const lastAppliedMillis = lastApplied.rows[0]
-    ? Number((lastApplied.rows[0] as { created_at: string | number }).created_at)
-    : 0;
-
-  let migrationsApplied = 0;
-  try {
-    for (const migration of PENDING_CHARACTER_SCHEMA_MIGRATIONS) {
-      if (migration.folderMillis <= lastAppliedMillis) continue;
-
-      const statements = migration.sql
-        .split('--> statement-breakpoint')
-        .map((statement) => statement.trim())
-        .filter(Boolean);
-      for (const statement of statements) {
-        await db.execute(sql.raw(statement));
-      }
-      await db.execute(
-        sql`insert into "drizzle"."__drizzle_migrations" ("hash", "created_at") values (${migration.hash}, ${migration.folderMillis})`,
-      );
-      migrationsApplied += 1;
-    }
-  } catch (err) {
-    res
-      .status(500)
-      .setHeader('Content-Type', 'text/html; charset=utf-8')
-      .send(
-        migrationPageHtml(`
-          <h1>Erro na migração</h1>
-          <p>${migrationsApplied} de ${PENDING_CHARACTER_SCHEMA_MIGRATIONS.length} migrações aplicadas antes do erro:</p>
-          <pre>${String(err instanceof Error ? (err.stack ?? err.message) : err)}</pre>
-        `),
-      );
-    return;
-  }
-
-  res
-    .status(200)
-    .setHeader('Content-Type', 'text/html; charset=utf-8')
-    .send(
-      migrationPageHtml(`
-        <h1>Pronto ✅</h1>
-        <p>${migrationsApplied} migração(ões) aplicada(s). Pode fechar esta aba e <a href="/">voltar para o app</a>.</p>
-      `),
-    );
 });
