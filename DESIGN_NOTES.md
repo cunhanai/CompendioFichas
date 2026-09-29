@@ -460,3 +460,11 @@ Reportado pelo usuário: em "Editar dados" no perfil, dava pra colocar um nome d
 
 - Primeira correção: `updateUser` (AppDataProvider) passou a reverter para o valor anterior e mostrar um toast de erro quando a chamada falha.
 - O usuário pediu uma UX melhor: o erro de "nome já em uso" deveria aparecer como mensagem de campo, antes/no lugar de fingir que salvou. `AccountCard` agora chama `PATCH /api/user` diretamente (como o formulário de senha já fazia) em vez de passar pelo `updateUser` otimista — em caso de 409, mostra o erro embaixo do campo "Nome de usuário" via `setError` do react-hook-form e mantém o formulário aberto para o usuário corrigir; só fecha e sincroniza o estado global (via `setUser`, sem chamada extra à API) quando o servidor confirma o sucesso.
+
+## Nome de usuário passou a ser case-insensitive
+
+Pedido explícito do usuário: "ANA", "ana", "Ana", "AnA", "aNa" etc. devem ser tratados como o mesmo usuário para todos os efeitos (login, cadastro, conflito ao editar perfil).
+
+- `db/schema.ts`: `users.username` perdeu o `.unique()` simples (que era case-sensitive no Postgres por padrão) e ganhou um índice único funcional em `lower(username)` (`users_username_lower_unique`), via `uniqueIndex(...).on(sql\`lower(${table.username})\`)`.
+- Novo helper `usernameEquals(username)` em `api/_lib/auth.ts` (`sql\`lower(${users.username}) = lower(${username})\``), usado em todo lugar que compara username contra o banco: login (`loginHandler`), verificação de duplicidade no cadastro (`signupHandler`), e verificação de conflito ao editar o próprio perfil (`updateProfileHandler`). Um `eq(users.username, ...)` simples nesses pontos voltaria a ser case-sensitive, então ficou documentado como comentário no schema para não regredir.
+- Migração `0013_charming_scorpion.sql` (drop da constraint antiga + create do índice funcional) precisa ser aplicada em produção — como o usuário não tem acesso a terminal, foi entregue como script SQL avulso para colar direto no editor do Neon (mesmo padrão que resolveu o bug de produção do JSONB), incluindo uma checagem prévia que aborta com erro claro se já existirem dois usernames duplicados ignorando maiúsculas/minúsculas, e o registro de bookkeeping em `drizzle.__drizzle_migrations` para o `npm run db:migrate` reconhecer a migração como já aplicada no futuro.

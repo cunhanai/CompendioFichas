@@ -13,21 +13,29 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  username: text('username').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  avatarUrl: text('avatar_url'),
-  isAdmin: boolean('is_admin').notNull().default(false),
-  /** The one account (ana) allowed to grant/revoke admin from others — never settable through the API. */
-  isMaster: boolean('is_master').notNull().default(false),
-  /** Forces the change-password screen on next load — set when an admin resets this account's password. */
-  mustChangePassword: boolean('must_change_password').notNull().default(false),
-  active: boolean('active').notNull().default(true),
-  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    // No .unique() here — usernames are case-insensitive ("ANA" === "ana" === "Ana"), enforced
+    // instead by the functional unique index below on lower(username). Every query that looks a
+    // user up or checks for a conflict by username must compare case-insensitively too (see
+    // usernameEquals() in api/_lib/auth.ts) — a plain eq(users.username, ...) would miss this.
+    username: text('username').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    avatarUrl: text('avatar_url'),
+    isAdmin: boolean('is_admin').notNull().default(false),
+    /** The one account (ana) allowed to grant/revoke admin from others — never settable through the API. */
+    isMaster: boolean('is_master').notNull().default(false),
+    /** Forces the change-password screen on next load — set when an admin resets this account's password. */
+    mustChangePassword: boolean('must_change_password').notNull().default(false),
+    active: boolean('active').notNull().default(true),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('users_username_lower_unique').on(sql`lower(${table.username})`)],
+);
 
 /** Append-only trail of account-management actions — who did what to whom, and when. */
 export const auditLog = pgTable(
