@@ -3,7 +3,7 @@ import { and, asc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { sessions, users } from '../../../db/schema.js';
-import { requireUserId, hashPassword, verifyPassword } from '../auth.js';
+import { requireUserId, hashPassword, verifyPassword, usernameEquals } from '../auth.js';
 import { passwordChangeBodySchema } from '../validation.js';
 import { toRosterUser, toUserProfile } from '../mappers.js';
 import { withErrorHandling } from '../handler.js';
@@ -42,7 +42,7 @@ export const updateProfileHandler = withErrorHandling(async function handler(
   const [conflict] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(ne(users.id, userId), eq(users.username, username)))
+    .where(and(ne(users.id, userId), usernameEquals(username)))
     .limit(1);
   if (conflict) {
     res.status(409).json({ error: 'Já existe uma conta com esse nome de usuário.' });

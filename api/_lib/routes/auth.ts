@@ -3,7 +3,7 @@ import { eq, lt } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { sessions, users } from '../../../db/schema.js';
 import { loginBodySchema, signupBodySchema } from '../validation.js';
-import { hashPassword, requireAdminUser, verifyPassword } from '../auth.js';
+import { hashPassword, requireAdminUser, verifyPassword, usernameEquals } from '../auth.js';
 import { toUserProfile } from '../mappers.js';
 import {
   createSession,
@@ -54,7 +54,7 @@ export const loginHandler = withErrorHandling(async function handler(
     return;
   }
 
-  const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  const [user] = await db.select().from(users).where(usernameEquals(username)).limit(1);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     await logAudit({ id: user?.id, username }, 'auth.login_failed', undefined, `IP ${ip}`);
     await maybeRaiseSecurityAlert();
@@ -146,7 +146,7 @@ export const signupHandler = withErrorHandling(async function handler(
   const [existing] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.username, username))
+    .where(usernameEquals(username))
     .limit(1);
   if (existing) {
     res.status(409).json({ error: 'Já existe uma conta com esse nome de usuário.' });

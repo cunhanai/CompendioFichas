@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { eq } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { users } from '../../db/schema.js';
 import { getUserId } from './session.js';
@@ -9,6 +9,13 @@ const SALT_ROUNDS = 10;
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+/** Case-insensitive username match ("ANA" === "ana" === "Ana") — use this instead of
+ * eq(users.username, ...) everywhere a username is looked up or checked for a conflict, to match
+ * the functional unique index on lower(username) in db/schema.ts. */
+export function usernameEquals(username: string): SQL {
+  return sql`lower(${users.username}) = lower(${username})`;
 }
 
 export function verifyPassword(password: string, hash: string): Promise<boolean> {
