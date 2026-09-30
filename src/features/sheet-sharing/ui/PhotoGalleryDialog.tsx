@@ -37,13 +37,20 @@ export function PhotoGalleryDialog({
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // Guards against an earlier fetch (e.g. from a fast close+reopen, or a characterId change
+  // while open) resolving after a later one and clobbering it with stale photos.
+  const fetchSeq = useRef(0);
 
   useEffect(() => {
     if (!open) return;
+    const seq = ++fetchSeq.current;
     api
       .get<{ photos: CharacterPhoto[] }>(`/characters/${characterId}/photos`)
-      .then(({ photos: rows }) => setPhotos(rows))
+      .then(({ photos: rows }) => {
+        if (seq === fetchSeq.current) setPhotos(rows);
+      })
       .catch((err: unknown) => {
+        if (seq !== fetchSeq.current) return;
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível carregar a galeria.');
         setPhotos([]);
       });

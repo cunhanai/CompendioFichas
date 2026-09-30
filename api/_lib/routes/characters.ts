@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characterPhotos, characters, characterShares, users } from '../../../db/schema.js';
 import { createCharacter, loadCharacterById, updateCharacterOwned } from '../characterRepo.js';
@@ -196,15 +196,19 @@ async function listPhotos(characterId: string) {
     .orderBy(asc(characterPhotos.sortOrder));
 }
 
-/** Whether `userId` may at least look at `characterId` — owns it, or it's been shared with them
- * (always view-only for the latter, enforced by which handlers call this vs. `assertOwner`). */
-async function canView(characterId: string, userId: string): Promise<boolean> {
+async function isOwner(characterId: string, userId: string): Promise<boolean> {
   const [owned] = await db
     .select({ id: characters.id })
     .from(characters)
     .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
     .limit(1);
-  if (owned) return true;
+  return !!owned;
+}
+
+/** Whether `userId` may at least look at `characterId` — owns it, or it's been shared with them
+ * (always view-only for the latter, enforced by which handlers call this vs. `isOwner`). */
+async function canView(characterId: string, userId: string): Promise<boolean> {
+  if (await isOwner(characterId, userId)) return true;
 
   const [shared] = await db
     .select({ characterId: characterShares.characterId })
@@ -217,15 +221,6 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
     )
     .limit(1);
   return !!shared;
-}
-
-async function isOwner(characterId: string, userId: string): Promise<boolean> {
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
-    .limit(1);
-  return !!owned;
 }
 
 // Not a real-world gallery size — a generous ceiling against a runaway upload loop or abuse,
@@ -283,18 +278,23 @@ export const addCharacterPhotoHandler = withErrorHandling(async function handler
     return;
   }
 
-  const existing = await listPhotos(id);
-  if (existing.length >= MAX_PHOTOS_PER_CHARACTER) {
+  // Atomic INSERT ... SELECT ... WHERE: the count cap and the sort_order assignment both read
+  // the current row set, so doing them as a separate SELECT-then-INSERT (as before) is racy
+  // under concurrent uploads — two requests could both read a count under the cap, or both
+  // compute the same sort_order, and both succeed. Folding both into one statement's SELECT
+  // makes the whole check-and-write atomic within Postgres, with no transaction needed (the
+  // neon-http driver doesn't support multi-statement transactions).
+  const inserted = await db.execute(sql`
+    INSERT INTO ${characterPhotos} (${characterPhotos.id}, ${characterPhotos.characterId}, ${characterPhotos.dataUrl}, ${characterPhotos.sortOrder})
+    SELECT ${crypto.randomUUID()}, ${id}, ${parsed.data.dataUrl},
+      COALESCE((SELECT MAX(${characterPhotos.sortOrder}) + 1 FROM ${characterPhotos} WHERE ${characterPhotos.characterId} = ${id}), 0)
+    WHERE (SELECT COUNT(*) FROM ${characterPhotos} WHERE ${characterPhotos.characterId} = ${id}) < ${MAX_PHOTOS_PER_CHARACTER}
+    RETURNING ${characterPhotos.id}
+  `);
+  if (inserted.rows.length === 0) {
     res.status(400).json({ error: `Limite de ${MAX_PHOTOS_PER_CHARACTER} fotos por personagem.` });
     return;
   }
-
-  await db.insert(characterPhotos).values({
-    id: crypto.randomUUID(),
-    characterId: id,
-    dataUrl: parsed.data.dataUrl,
-    sortOrder: existing.length,
-  });
 
   res.status(201).json({ photos: await listPhotos(id) });
 });

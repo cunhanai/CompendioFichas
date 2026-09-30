@@ -520,6 +520,15 @@ Pedido do usuário: além da foto única (avatar, `photoUrl`, inalterada), um pe
 - `PhotoGalleryDialog` (nova, em `features/sheet-sharing`): grade de miniaturas + tile de "adicionar"; clicar numa miniatura abre visualização ampliada com navegação anterior/próxima e botão de remover (com confirmação). Leitura (navegar a galeria) é permitida a quem só tem a ficha compartilhada (somente leitura); adicionar/remover é só do dono — reforçado no próprio endpoint (`isOwner` vs. `canView`), não só escondendo o botão na UI.
 - Acesso pelo cabeçalho da ficha (`SheetHeader`): novo botão "Galeria de fotos" ao lado de Favoritar/Compartilhar, visível tanto pro dono quanto pra quem recebeu a ficha compartilhada.
 
+### Correções de um `/code-review` local sobre a galeria já mergeada
+
+O usuário rodou `/code-review` localmente sobre o código da galeria (já em `main`) e trouxe 4 achados verificados, todos corrigidos numa branch separada (`claude/fix-photo-gallery-review`):
+
+- **Condição de corrida em `addCharacterPhotoHandler`**: a versão original fazia `listPhotos()` (conta as fotos existentes) e só depois `insert()`, em duas idas ao banco separadas — duas requisições concorrentes podiam ambas ler uma contagem abaixo do teto e ambas inserir, furando `MAX_PHOTOS_PER_CHARACTER`, ou calcular o mesmo `sort_order` pras duas. Trocado por um único `INSERT ... SELECT ... WHERE (SELECT COUNT(*) ...) < limite` via `db.execute(sql\`...\`)` — contagem, cálculo de `sort_order` (`COALESCE(MAX(sort_order)+1, 0)`) e inserção viram uma única instrução SQL atômica, sem precisar de transação (o driver neon-http não suporta `db.transaction()`, mesmo motivo documentado no CLAUDE.md pra `characterRepo.ts`). Um `RETURNING id` vazio significa que o teto bloqueou a inserção.
+- **Corrida na busca do `PhotoGalleryDialog`**: o `useEffect` que busca `GET /.../photos` não tinha proteção contra uma resposta antiga chegar depois de uma mais nova (fechar/abrir rápido, ou trocar de personagem com o diálogo aberto) e sobrescrever com dado desatualizado. Corrigido com o mesmo padrão de `shareRequestSeq` já usado em `shareCharacter`/`unshareCharacter` (`AppDataProvider.tsx`): um `useRef` de número de sequência, incrementado a cada busca, e só aplica o resultado se ainda for o mais recente.
+- **`canView` duplicava a query de `isOwner`** em vez de chamá-la — corrigido pra reaproveitar `isOwner` diretamente.
+- **Comentário de `canView` citava um `assertOwner` que não existe** (o helper real se chama `isOwner`) — corrigido.
+
 ## Lista grande de pedidos pendentes — registrados em `BACKLOG.md`, alguns já resolvidos nesta leva
 
 O usuário mandou uma lista de 16 pedidos de uma vez, pedindo explicitamente pra registrar todos
