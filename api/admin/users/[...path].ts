@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../../_lib/request.js';
 import {
   listUsersHandler,
   updateUserHandler,
@@ -19,35 +20,23 @@ import {
  *   PATCH  /api/admin/users/:id                    -> update active/admin status
  *   POST   /api/admin/users/:id/reset-password     -> reset a user's password
  *
- * This file is named `[...path].ts` (single bracket — mandatory catch-all), not
- * `[[...path]].ts` (double bracket — Next.js's "optional catch-all" syntax). It used to be the
- * double-bracket name; that turned out to be the actual cause of a long-standing bug where every
- * request under /api/admin/users/*, /api/characters/*, and /api/user/* with a real sub-path
- * (not just the bare base path) was served as if it had zero path segments, regardless of the
- * real sub-path or HTTP method. Root cause confirmed by reading Vercel's own
- * `packages/fs-detectors/src/detect-builders.ts` (github.com/vercel/vercel): its
- * `getSegmentName()` helper strips exactly one bracket character off each end of the filename's
- * param segment to get the query key to forward. For `[...path]` that correctly yields `path`.
- * For `[[...path]]` it only strips one layer and yields `[...path]` — still bracketed — so the
- * generated route's `dest` forwards the segment as `?[...path]=$1` instead of `?path=$1`, and
- * `req.query.path` is simply never populated, even though the route still matches and the
- * function is still invoked correctly (this is a distinct bug from the already-documented
- * zero-segment-routing gotcha below — that one is about whether the function gets invoked at
- * all; this one is about a mis-set query key on requests that already reached it fine).
- * Renaming to the single-bracket, genuinely-mandatory form fixed it. Never rename these
- * dispatcher files back to double brackets.
+ * Path segments come from `getPathSegments()` (api/_lib/request.ts), NOT `req.query.path`.
+ * Confirmed in production Runtime Logs that Vercel forwards this dynamic route's segment under
+ * the literal query key `...path` (dots included), never `path` — so `req.query.path` was always
+ * undefined and every request with a real sub-path was silently treated as the bare base path,
+ * regardless of file naming (`[...path].ts` vs the earlier, also-broken `[[...path]].ts`) or HTTP
+ * method. Parsing segments straight out of `req.url` instead sidesteps that Vercel-internal quirk
+ * entirely. Do not go back to reading `req.query.path` here.
  *
- * It never matches the bare `/api/admin/users` path (zero segments), which instead hits Vercel's
- * synthesized `/api(/.*)?` 404 fallback before this function is ever invoked. vercel.json's
- * `rewrites` routes that bare path to `/api/admin/users/__root` so it lands here as one real
- * segment instead of zero.
+ * The bare `/api/admin/users` path (zero segments) never reaches a dynamic-route function on its
+ * own — Vercel's synthesized `/api(/.*)?` 404 fallback catches it first. vercel.json's `rewrites`
+ * routes that bare path to `/api/admin/users/__root` so it lands here as one real segment
+ * instead, which `getPathSegments()` folds back into an empty array.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = ([] as string[]).concat(req.query.path ?? []);
-  // TEMPORARY diagnostic — remove once the reported 404/405s on this dispatcher are explained.
-  console.log('[diag admin/users]', req.method, req.url, JSON.stringify(req.query), segments);
+  const segments = getPathSegments(req, '/api/admin/users/');
 
-  if (segments.length === 0 || (segments.length === 1 && segments[0] === '__root')) {
+  if (segments.length === 0) {
     return listUsersHandler(req, res);
   }
   if (segments.length === 1 && segments[0] === 'activity') {

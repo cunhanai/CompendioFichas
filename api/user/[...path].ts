@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getPathSegments } from '../_lib/request.js';
 import {
   updateProfileHandler,
   changePasswordHandler,
@@ -8,18 +9,17 @@ import {
 /**
  * One function serving /api/user (PATCH), /api/user/password (PATCH), /api/user/roster (GET).
  *
- * This file is named `[...path].ts` (single bracket, mandatory catch-all), not the Next.js
- * "optional catch-all" `[[...path]].ts` — see the doc comment in
- * api/admin/users/[...path].ts for why the double-bracket name silently broke
- * `req.query.path` in production. vercel.json rewrites /api/user to /api/user/__root so the
- * bare base path reaches this function as one real segment.
+ * Path segments come from `getPathSegments()` (api/_lib/request.ts), NOT `req.query.path` — see
+ * the doc comment in api/admin/users/[...path].ts for why: Vercel forwards this dynamic route's
+ * segment under the literal query key `...path`, never `path`, so `req.query.path` was always
+ * undefined in production regardless of file naming. vercel.json rewrites /api/user to
+ * /api/user/__root so the bare base path reaches this function as one real segment, which
+ * `getPathSegments()` folds back into an empty array.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const segments = ([] as string[]).concat(req.query.path ?? []);
-  // TEMPORARY diagnostic — remove once the reported 400s on this dispatcher are explained.
-  console.log('[diag user]', req.method, req.url, JSON.stringify(req.query), segments);
+  const segments = getPathSegments(req, '/api/user/');
 
-  if (segments.length === 0 || (segments.length === 1 && segments[0] === '__root')) {
+  if (segments.length === 0) {
     return updateProfileHandler(req, res);
   }
   if (segments.length === 1 && segments[0] === 'password') {
