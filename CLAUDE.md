@@ -103,31 +103,44 @@ create a new dispatcher only if none of the existing areas fit. `withErrorHandli
 over extra handler args (`Handler<Args>`) specifically so a dispatcher can forward a
 path-derived id straight through to the wrapped handler.
 
-**Always name catch-all dispatcher files `[...path].ts` (single bracket), never
-`[[...path]].ts` (double bracket).** Two separate, confirmed bugs — both verified directly
-against Vercel's own `fs-detectors` source, since this is not Next.js and Next.js docs about
-`[[...path]]` don't apply here:
-1. **Zero-segment routing**: a mandatory catch-all (single or double bracket — identical for this
-   part) **never matches the bare base path with zero segments** (`GET /api/admin/users` with
-   nothing after it 404s at Vercel's edge before the function is even invoked; `GET
-   /api/admin/users/activity` works fine). Every dispatcher that needs to handle a bare-path
-   route works around this with a `vercel.json` rewrite from the bare path to a synthetic
-   `/…/__root` segment, which the dispatcher treats the same as zero segments — see the rewrites
-   array and the matching `segments[0] === '__root'` check in each of
-   `api/admin/users/[...path].ts`, `api/characters/[...path].ts`, `api/user/[...path].ts`. A new
-   dispatcher that needs a bare-path route must add the same pair (rewrite + `__root` check) —
-   don't assume the bare path just works without it.
-2. **Double-bracket query forwarding is broken, full stop, even for matched requests**: this
-   project actually shipped with `[[...path]].ts` filenames for a while, which caused every
-   request with a *real* sub-path (not just the bare path from bug 1) to be served as if it had
-   zero segments — `PATCH /api/characters/:id` landing on the `createCharacterHandler` branch and
-   failing with a 405, etc. Root cause: `fs-detectors`' `getSegmentName()` strips exactly one
-   bracket character off each end of the filename's param segment to get the query key it
-   forwards. For `[...path]` that correctly yields `path`. For `[[...path]]` it only strips one
-   layer and yields `[...path]` — still bracketed — so the generated route forwards the segment
-   as `?[...path]=$1` instead of `?path=$1`, and `req.query.path` is simply never populated on
-   the deployed function, even though the route still matches and invokes it. This is silent:
-   no error, no log, just every multi-segment request behaving as if it were the bare path.
+**Never read `req.query.path` in a catch-all dispatcher — use `getPathSegments(req, basePath)`
+from `api/_lib/request.ts` instead.** This project spent a long time chasing a bug where every
+request with a *real* sub-path under `/api/admin/users/*`, `/api/characters/*`, and `/api/user/*`
+was silently served as if it had zero path segments — `PATCH /api/characters/:id` landing on the
+POST-only create handler and failing with a 405, `PATCH /api/user/password` landing on the
+profile-update handler and failing zod validation with a confusing "expected string, received
+undefined", etc. — with nothing logged (a normal `res.status(405)` response isn't an exception).
+Two theories were tried and both turned out to be red herrings:
+- Renaming `[[...path]].ts` (Next.js's "optional catch-all" syntax, which only means anything
+  inside Next.js's own router) to `[...path].ts` (a genuinely generic Vercel dynamic route) —
+  this looked plausible from reading Vercel's `fs-detectors` source and even seemed to fix a
+  narrower, real, separately-confirmed bug (see the zero-segment note below), but the main
+  symptom came back identically afterward.
+- Suspecting `vercel.json`'s `functions.includeFiles`.
+
+**The actual, empirically confirmed root cause** (found by adding a temporary
+`console.log(req.method, req.url, req.query)` to a dispatcher, deploying, reproducing the bug,
+and reading the resulting Vercel Runtime Log line): for these dynamic routes, Vercel forwards the
+matched path segment under the **literal query key `...path`** (dots included), not `path` — e.g.
+`req.query` was `{"...path": "00595c1b-..."}`. `req.query.path` was therefore *always*
+`undefined`, on every request, regardless of single vs. double bracket in the filename. Every
+dispatcher's `segments = ([] as string[]).concat(req.query.path ?? [])` silently evaluated to
+`[]` for every request with a real sub-path, all along.
+
+**The fix**: don't rely on Vercel's dynamic-route query forwarding for this at all.
+`getPathSegments(req, basePath)` (`api/_lib/request.ts`) parses segments directly out of
+`req.url`'s pathname instead — see its doc comment for the full story. Every dispatcher
+(`api/admin/users/[...path].ts`, `api/characters/[...path].ts`, `api/user/[...path].ts`) uses it;
+a new dispatcher must too. It also folds the bare-path `__root` rewrite segment (see below) back
+into an empty array, so callers just check `segments.length === 0`.
+
+Separately, and still true: a mandatory catch-all **never matches the bare base path with zero
+segments** (`GET /api/admin/users` with nothing after it 404s at Vercel's edge before the
+function is even invoked; `GET /api/admin/users/activity` works fine). Every dispatcher that
+needs to handle a bare-path route works around this with a `vercel.json` rewrite from the bare
+path to a synthetic `/…/__root` segment — see the rewrites array. A new dispatcher that needs a
+bare-path route must add the same rewrite entry — don't assume the bare path just works without
+it.
 
 - **Character storage is fully relational, not JSONB.** `characters` holds every fixed 1:1
   attribute (identity/speed/saves/money/load flattened into columns — no cardinality reason to
