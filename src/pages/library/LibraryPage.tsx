@@ -11,6 +11,7 @@ import { AddLibraryItemDialog } from '@/features/shared-library';
 import { cn } from '@/shared/lib/cn';
 
 const CATEGORIES: { value: LibraryCategory; label: string }[] = [
+  { value: 'classes', label: 'Classes' },
   { value: 'magias', label: 'Magias' },
   { value: 'talentos', label: 'Talentos' },
   { value: 'pericias', label: 'Perícias' },

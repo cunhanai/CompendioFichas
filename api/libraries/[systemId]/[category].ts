@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../db/client.js';
 import {
+  libraryClasses,
   libraryCreatures,
   libraryFeats,
   libraryLanguages,
@@ -123,6 +124,19 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
       }
       const [row] = await db
         .insert(libraryCreatures)
+        .values({ ...parsed.data, systemId })
+        .returning();
+      res.status(201).json({ item: row });
+      return;
+    }
+    case 'classes': {
+      const parsed = genericLibraryItemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Dados inválidos.' });
+        return;
+      }
+      const [row] = await db
+        .insert(libraryClasses)
         .values({ ...parsed.data, systemId })
         .returning();
       res.status(201).json({ item: row });

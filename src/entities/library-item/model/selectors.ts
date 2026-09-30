@@ -46,5 +46,7 @@ export function toDisplayItems(library: SharedLibrary, category: LibraryCategory
       return library.idiomas;
     case 'criaturas':
       return library.criaturas;
+    case 'classes':
+      return library.classes.map((c) => ({ ...c, tag: c.tag || 'Classe' }));
   }
 }

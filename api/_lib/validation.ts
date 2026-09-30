@@ -68,7 +68,7 @@ const abilitiesSchema = z.object({
 const characterClassSchema = z.object({ id: uuid, name: z.string(), level: int4 });
 const identitySchema = z.object({
   raca: z.string(),
-  tamanho: z.enum(['Miúdo', 'Diminuto', 'Pequeno', 'Médio', 'Grande', 'Enorme', 'Colossal']),
+  tamanho: z.enum(['', 'Miúdo', 'Diminuto', 'Pequeno', 'Médio', 'Grande', 'Enorme', 'Colossal']),
   sexo: z.string(),
   idadeNum: int4,
   alturaNum: z.number(),
@@ -202,8 +202,8 @@ const characterSnapshotDataSchema = z.object({
   favorited: z.boolean(),
   active: z.boolean(),
   identity: identitySchema,
-  alignmentLaw: z.enum(['Ordeiro', 'Neutro', 'Caótico']),
-  alignmentMoral: z.enum(['Bom', 'Neutro', 'Mau']),
+  alignmentLaw: z.enum(['', 'Ordeiro', 'Neutro', 'Caótico']),
+  alignmentMoral: z.enum(['', 'Bom', 'Neutro', 'Mau']),
   classes: z.array(characterClassSchema),
   speed: speedSchema,
   languages: z.array(languageSchema),

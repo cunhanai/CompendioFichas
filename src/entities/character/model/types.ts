@@ -1,9 +1,12 @@
 export type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 
-export type Size = 'Miúdo' | 'Diminuto' | 'Pequeno' | 'Médio' | 'Grande' | 'Enorme' | 'Colossal';
+// '' means "not chosen yet" — new characters start with these unset rather than defaulted to
+// Médio/Neutro, per explicit product request.
+export type Size =
+  '' | 'Miúdo' | 'Diminuto' | 'Pequeno' | 'Médio' | 'Grande' | 'Enorme' | 'Colossal';
 
-export type AlignmentLaw = 'Ordeiro' | 'Neutro' | 'Caótico';
-export type AlignmentMoral = 'Bom' | 'Neutro' | 'Mau';
+export type AlignmentLaw = '' | 'Ordeiro' | 'Neutro' | 'Caótico';
+export type AlignmentMoral = '' | 'Bom' | 'Neutro' | 'Mau';
 
 export interface VariedMod {
   id: string;
