@@ -73,6 +73,13 @@ export const changePasswordHandler = withErrorHandling(async function handler(
 
   const parsed = passwordChangeBodySchema.safeParse(req.body);
   if (!parsed.success) {
+    // TEMPORARY diagnostic — remove once the reported 400s here are explained. Never log the
+    // body itself (it's the current/new password) — only its shape and the validation issues.
+    console.log(
+      '[diag password]',
+      req.body && typeof req.body === 'object' ? Object.keys(req.body) : typeof req.body,
+      JSON.stringify(parsed.error.issues),
+    );
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;
   }

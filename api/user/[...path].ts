@@ -16,6 +16,8 @@ import {
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segments = ([] as string[]).concat(req.query.path ?? []);
+  // TEMPORARY diagnostic — remove once the reported 400s on this dispatcher are explained.
+  console.log('[diag user]', req.method, req.url, JSON.stringify(req.query), segments);
 
   if (segments.length === 0 || (segments.length === 1 && segments[0] === '__root')) {
     return updateProfileHandler(req, res);
