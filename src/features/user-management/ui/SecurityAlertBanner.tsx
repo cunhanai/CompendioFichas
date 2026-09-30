@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { ShieldAlert, X } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
+import { routes } from '@/shared/lib/routes';
 import { formatRelativeTime } from '@/shared/lib/format';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
+import { NotificationBanner } from '@/shared/ui/organisms/NotificationBanner';
 
 /**
  * Persistent, admin-only banner for standing security alerts (e.g. a burst of failed
  * logins). Shows on every page as soon as an admin loads the app — not just inside the
  * Usuários screen — and stays until manually dismissed, surviving logout/login since it's
- * backed by a DB row, not local state.
+ * backed by a DB row, not local state. Built on the generic `NotificationBanner` shell — this
+ * file only supplies what's specific to a security alert (its tone, icon, message, and what
+ * clicking it opens); a future notification kind would be its own thin wrapper the same way,
+ * not a change to the shell.
  *
  * Only ever shows the single most recent undismissed alert (`securityAlerts` is already
  * `desc(createdAt)` from `GET /api/bootstrap`), matching the product design of "at most one
@@ -19,30 +25,22 @@ import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
  */
 export function SecurityAlertBanner() {
   const { user, securityAlerts, dismissSecurityAlert } = useAppData();
+  const navigate = useNavigate();
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const alert = securityAlerts[0];
   if (!user.isAdmin || !alert) return null;
 
   return (
-    <div className="flex flex-col gap-2 border-b border-rose-900/50 bg-rose-950/30 px-5 py-3 md:px-10">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5">
-          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" strokeWidth={1.8} />
-          <div>
-            <p className="text-sm text-rose-200">{alert.description}</p>
-            <p className="text-[11px] text-rose-400/70">{formatRelativeTime(alert.createdAt)}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setConfirmId(alert.id)}
-          aria-label="Remover alerta"
-          className="shrink-0 text-rose-400 transition hover:text-rose-300"
-        >
-          <X className="h-4 w-4" strokeWidth={1.8} />
-        </button>
-      </div>
+    <>
+      <NotificationBanner
+        tone="rose"
+        icon={ShieldAlert}
+        message={alert.description}
+        timestamp={formatRelativeTime(alert.createdAt)}
+        onDismiss={() => setConfirmId(alert.id)}
+        onClick={() => navigate(routes.adminUsers('activity'))}
+      />
 
       <ConfirmDialog
         open={confirmId !== null}
@@ -55,6 +53,6 @@ export function SecurityAlertBanner() {
           setConfirmId(null);
         }}
       />
-    </div>
+    </>
   );
 }

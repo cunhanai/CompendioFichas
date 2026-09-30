@@ -490,3 +490,72 @@ Depois que o bug de roteamento foi corrigido e o app voltou a ser usado de verda
 - **Fonte grande no nome em modo de edição**: o `<input>` de edição do nome usava `text-lg sm:text-2xl`, maior que o `<h1>` de exibição (`text-base sm:text-xl`) — texto "pulava" de tamanho ao clicar em editar. Igualado ao tamanho de exibição.
 - **Tendência e Tamanho vazios por padrão**: `createBlankCharacter` definia `tamanho: 'Médio'` e `alignmentLaw/alignmentMoral: 'Neutro'` para todo personagem novo — o usuário pediu que viessem vazios, exigindo escolha explícita. `Size`/`AlignmentLaw`/`AlignmentMoral` (em `entities/character/model/types.ts`) ganharam `''` como valor válido ("não escolhido ainda"); `SIZE_MODIFIER['']` vale 0 (igual a Médio, pra não distorcer CA/CMB antes do jogador escolher um tamanho) e `alignmentAbbrev`/`alignmentFull` retornam `''` se qualquer eixo estiver vazio (some da UI via `joinDot`, em vez de mostrar "undefined"). Migração `0014_dear_quasimodo.sql` também atualiza o `DEFAULT` dessas colunas no banco (não tinha efeito prático — toda escrita já manda o valor explicitamente — mas evita default inconsistente com o app).
 - **Classes agora vêm da biblioteca compartilhada, não de uma lista fixa no código**: existia uma constante `KNOWN_CLASSES` hardcoded (11 classes) usada só pelo `ClassPickerDialog`. Removida; nova tabela `library_classes` (mesmo formato `{id, systemId, name, desc, tag}` das outras categorias genéricas da biblioteca, como talentos/perícias/idiomas/criaturas) segue exatamente o padrão já existente para magias/armas/habilidades/etc — mesmo endpoint genérico `POST /api/libraries/:systemId/:category`, mesmo `addLibraryItem` no `AppDataProvider`. `ClassPickerDialog` agora lista `library.classes` em vez da constante, e digitar uma classe nova já a grava na biblioteca do sistema (fica disponível pra próxima ficha) além de adicionar ao personagem atual. Sem seed inicial de classes — como nenhuma outra categoria da biblioteca vem pré-populada (todas começam vazias e crescem conforme os jogadores adicionam), classes seguem o mesmo padrão; a lista começa vazia neste sistema até alguém adicionar a primeira.
+
+## CSP bloqueava o upload de foto do personagem
+
+O upload de foto (`PhotoUploadDialog` → `resizeImageToDataUrl`) carrega o arquivo escolhido num `<img>` via `URL.createObjectURL(file)` (URL `blob:`) para poder desenhá-lo num canvas e reamostrar/recomprimir. O CSP em `vercel.json` tinha `img-src 'self' data:` — sem `blob:` — então esse `<img>` nunca carregava (bloqueado silenciosamente pelo navegador, sem erro JS, só um aviso de CSP no console) e todo upload falhava com "Esse arquivo não é uma imagem válida." mesmo para imagens válidas. Corrigido adicionando `blob:` a `img-src`.
+
+## Alerta de segurança: 404 ao dispensar tratado como "já resolvido", não como falha
+
+Mesmo depois da correção definitiva do roteamento, um alerta específico continuou voltando ao dispensar (X → confirmar → o item reaparece). O log de rede mostrou 404 real vindo do próprio `dismissSecurityAlertHandler` (`{error: 'Alerta não encontrado.'}`) — a linha não existe mais na tabela por algum motivo não totalmente investigado (possivelmente um resquício de quando os 4 alertas duplicados relatados antes foram tratados). Independente da causa exata: pedir pra "dispensar" algo que já não existe não é uma falha do ponto de vista de quem está usando — é um objetivo já alcançado. `dismissSecurityAlert` (AppDataProvider) agora trata um 404 especificamente como sucesso silencioso (mantém a remoção otimista em vez de reverter); qualquer outro erro continua revertendo e sendo logado normalmente.
+
+## Notificações viraram um componente genérico, com comportamento de clique
+
+Pedido explícito do usuário: clicar na notificação de alerta de segurança deve levar para a tela de Atividade recente, e o código deve ser genérico desde já porque outros tipos de notificação (outras cores, textos, comportamentos de clique) vêm no futuro.
+
+- Novo `NotificationBanner` (`shared/ui/organisms`) é a casca genérica: recebe `tone` (reaproveitando a mesma paleta do `Badge`: neutral/amber/emerald/rose/sky/violet), `icon`, `message`, `timestamp`, `onDismiss` e um `onClick` opcional — não sabe nada sobre "alerta de segurança" especificamente. `SecurityAlertBanner` virou um wrapper fino que só fornece o que é específico dele (tom rose, ícone `ShieldAlert`, texto do alerta, e o `onClick` que navega pra `/admin/usuarios?tab=activity`). Um tipo de notificação futuro seria outro wrapper fino do mesmo jeito, não uma mudança na casca.
+- `routes.adminUsers(tab?)` ganhou um parâmetro opcional de aba. `UsersPage` passou a derivar a aba ativa do `?tab=` da URL (via `useSearchParams`) em vez de `useState` — importante porque clicar na notificação enquanto a página já está montada é só uma troca de query string, que não remonta o componente; um `useState` inicializado uma vez não veria a mudança.
+
+## Galeria de fotos do personagem
+
+Pedido do usuário: além da foto única (avatar, `photoUrl`, inalterada), um personagem pode ter uma galeria de fotos.
+
+- **Decisão de arquitetura importante**: a galeria **não** é um campo em `Character` nem viaja com o resto da ficha. Duas razões, uma de cada lado do fluxo de dados:
+  - *Leitura*: `GET /api/bootstrap` carrega todos os personagens do usuário em toda troca de página — incluir a galeria inteira ali faria todo carregamento crescer com o total de fotos de todos os personagens, mesmo sem ninguém olhando pra galeria nenhuma. Isso era exatamente o tipo de inchaço que acabou de ser cortado (ver "GET /api/bootstrap estava mais lento do que precisava" acima).
+  - *Escrita*: o contrato de "manda a ficha inteira a cada mudança" (ver "Dados do personagem: de um blob JSONB..." acima) significa que qualquer campo dentro de `Character` viaja em TODO PATCH, mesmo pra mudar um único ponto de vida. Fotos são data URLs de centenas de KB cada — uma galeria de verdade estouraria rapidinho o teto de 2MB por requisição (`MAX_CHARACTER_JSON_LENGTH`) em qualquer edição, não só nas relacionadas a fotos.
+  - Por isso a galeria tem endpoints próprios — `GET/POST /api/characters/:id/photos` e `DELETE /api/characters/:id/photos/:photoId` — carregados só quando o diálogo da galeria é aberto, e cada foto é adicionada/removida individualmente, nunca como parte de um replace da ficha inteira. Mesma ideia de "sub-recurso com endpoint próprio" já usada para compartilhamento (`character_shares`).
+- Nova tabela `character_photos` (`id`, `character_id` FK cascade, `data_url`, `sort_order`) — não participa do `assembleCharacters`/`buildInserts`/`buildDeletes` de `characterRepo.ts` (esses continuam exatamente como antes).
+- Limites contra abuso: `MAX_PHOTO_DATA_URL_LENGTH` (2MB por foto, mesmo teto usado pra ficha inteira) e `MAX_PHOTOS_PER_CHARACTER` (60) — números generosos, não um limite realista de uso, só uma rede de segurança.
+- Fotos de galeria são redimensionadas mantendo a proporção original (`resizeImageKeepingAspect`, corta só o lado maior a 1280px), diferente do avatar único (`resizeImageToDataUrl`, sempre recorta num quadrado 256×256) — faz sentido a foto de avatar ser sempre quadrada, mas não uma foto de galeria qualquer.
+- `PhotoGalleryDialog` (nova, em `features/sheet-sharing`): grade de miniaturas + tile de "adicionar"; clicar numa miniatura abre visualização ampliada com navegação anterior/próxima e botão de remover (com confirmação). Leitura (navegar a galeria) é permitida a quem só tem a ficha compartilhada (somente leitura); adicionar/remover é só do dono — reforçado no próprio endpoint (`isOwner` vs. `canView`), não só escondendo o botão na UI.
+- Acesso pelo cabeçalho da ficha (`SheetHeader`): novo botão "Galeria de fotos" ao lado de Favoritar/Compartilhar, visível tanto pro dono quanto pra quem recebeu a ficha compartilhada.
+
+## Lista grande de pedidos pendentes — registrados em `BACKLOG.md`, alguns já resolvidos nesta leva
+
+O usuário mandou uma lista de 16 pedidos de uma vez, pedindo explicitamente pra registrar todos
+num arquivo (feito — ver `BACKLOG.md`) mesmo os que não seriam implementados na hora, e resolver
+só os que não precisassem de pergunta/decisão. Quatro eram pequenos e bem definidos o suficiente
+pra resolver na mesma leva:
+
+- **Badge "Desativada" quando XP está desligado**, e **XP sempre por último na lista de cards da
+  aba Geral** (antes vinha antes de "História do personagem"). `GeralTab.tsx`: reordenado, e
+  `SectionCardHeader` com `action={<Badge>Desativada</Badge>}` quando `!character.xpEnabled`. De
+  passagem, corrigido um bug relacionado ao trabalho anterior desta mesma leva: o card de
+  Identidade ainda montava "Tendência" como `${alignmentLaw} / ${alignmentMoral}` na unha em vez
+  de usar `alignmentFull()` — com os dois eixos podendo vir vazios agora (ver "Correções pontuais
+  na ficha" acima), isso mostraria só `" / "` em vez de ficar em branco como os outros campos
+  vazios.
+- **Alinhamento dos tiles Base/Temp./Total/Mod. no popup de atributo** (`AbilityDialog.tsx`):
+  duas causas. (1) O rótulo "Modificador" era o único dos quatro longo o suficiente pra quebrar
+  linha num grid de 4 colunas estreito, empurrando o valor daquele tile pra baixo em relação aos
+  outros três — encurtado pra "Mod." e todos os rótulos ganharam `whitespace-nowrap` como reforço.
+  (2) Em modo de edição, o tile "Base" usava um `<label>` sem o mesmo fundo/padding
+  (`rounded-lg bg-neutral-950 px-2 py-2.5`) dos outros três — visualmente destoava da linha.
+  Agora usa a mesma caixa, só com um `<input>` por dentro no lugar do texto estático.
+- **Sem snapshot de histórico ao criar um personagem novo (nível 0 → 1)**: `withLevelUpSnapshot`
+  (`entities/character/model/snapshots.ts`) disparava pra qualquer aumento de nível efetivo,
+  inclusive a primeira classe adicionada a um personagem recém-criado — virando uma snapshot
+  "Nível 1" sem sentido, já que não existe nenhum estado anterior real pra preservar (é só a
+  criação do personagem, não uma progressão). Agora pula a snapshot especificamente quando
+  `before === 0` (nível efetivo antes da mutação era zero) — a partir do nível 2 em diante volta
+  a funcionar normalmente. `snapshots.test.ts` foi reescrito: todo teste que antes começava a
+  progressão em "nível 1 já tem snapshot" passou a fazer um bump inicial 0→1 sem snapshot antes
+  da sequência real que está testando (deslocando os números de nível esperados em +1 em cada
+  teste).
+
+Os outros 12 itens ficaram só registrados em `BACKLOG.md`, organizados por tamanho/ambiguidade —
+a maioria precisa de alguma decisão de produto ou design antes de valer a pena começar (tipos de
+modificador de atributo e redesenho do popup, criptografia no banco, biblioteca totalmente
+editável/removível, etc.), e um punhado (raça/tipo/idiomas vindo da biblioteca compartilhada) é
+só volume de trabalho repetindo o padrão já usado pra Classes nesta mesma leva — próximos
+candidatos óbvios quando o usuário quiser seguir.

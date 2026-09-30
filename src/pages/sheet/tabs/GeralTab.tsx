@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useCharacter } from '@/app/providers';
-import { effectiveLevel, formatSpeed, xpProgress } from '@/entities/character/model/calculations';
+import {
+  alignmentFull,
+  effectiveLevel,
+  formatSpeed,
+  xpProgress,
+} from '@/entities/character/model/calculations';
 import {
   IdentityDialog,
   LanguagesDialog,
@@ -9,7 +14,8 @@ import {
   StoryDialog,
   XpDialog,
 } from '@/features/sheet-identity';
-import { SectionCardButton } from '@/shared/ui/molecules/SectionCard';
+import { SectionCardButton, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
+import { Badge } from '@/shared/ui/atoms/Badge';
 
 type Popup = 'identity' | 'levelUp' | 'speed' | 'languages' | 'xp' | 'story' | null;
 
@@ -40,7 +46,7 @@ export function GeralTab({ characterId }: { characterId: string }) {
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
           <Field
             label="Tendência"
-            value={`${character.alignmentLaw} / ${character.alignmentMoral}`}
+            value={alignmentFull(character.alignmentLaw, character.alignmentMoral)}
           />
           <Field label="Raça" value={character.identity.raca} />
           <Field label="Sexo" value={character.identity.sexo} />
@@ -124,10 +130,28 @@ export function GeralTab({ characterId }: { characterId: string }) {
         </div>
       </SectionCardButton>
 
-      <SectionCardButton onClick={() => setPopup('xp')}>
-        <h3 className="mb-2 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
-          Experiência
+      <SectionCardButton onClick={() => setPopup('story')}>
+        <h3 className="mb-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          História do personagem
         </h3>
+        <p className="line-clamp-3 text-sm leading-relaxed text-neutral-300">{character.story}</p>
+        {character.story.length > STORY_PREVIEW_THRESHOLD && (
+          <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
+        )}
+      </SectionCardButton>
+
+      {/* Experiência sempre por último, a pedido do usuário. */}
+      <SectionCardButton onClick={() => setPopup('xp')}>
+        <SectionCardHeader
+          title="Experiência"
+          action={
+            !character.xpEnabled && (
+              <Badge tone="neutral" size="sm">
+                Desativada
+              </Badge>
+            )
+          }
+        />
         {character.xpEnabled ? (
           <>
             <div className="mb-1.5 flex items-center justify-between text-sm">
@@ -149,16 +173,6 @@ export function GeralTab({ characterId }: { characterId: string }) {
               <div className="h-full w-0 bg-neutral-600" />
             </div>
           </div>
-        )}
-      </SectionCardButton>
-
-      <SectionCardButton onClick={() => setPopup('story')}>
-        <h3 className="mb-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
-          História do personagem
-        </h3>
-        <p className="line-clamp-3 text-sm leading-relaxed text-neutral-300">{character.story}</p>
-        {character.story.length > STORY_PREVIEW_THRESHOLD && (
-          <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
         )}
       </SectionCardButton>
 

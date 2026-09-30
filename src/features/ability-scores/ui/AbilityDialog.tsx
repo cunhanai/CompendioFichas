@@ -96,8 +96,10 @@ export function AbilityDialog({
             </p>
             <div className="mb-1 grid grid-cols-4 gap-2">
               {editing ? (
-                <label className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-neutral-500">Base</span>
+                <label className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
+                  <span className="mb-0.5 block text-[10px] whitespace-nowrap text-neutral-500">
+                    Base
+                  </span>
                   <input
                     type="number"
                     value={ability.base}
@@ -106,25 +108,25 @@ export function AbilityDialog({
                         setAbilityBase(c, abilityKey, Number(e.target.value) || 0),
                       )
                     }
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-1 py-2 text-center text-sm text-neutral-100 outline-none focus:border-amber-500"
+                    className="w-full rounded-md border border-neutral-700 bg-neutral-900 text-center text-sm font-semibold text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </label>
               ) : (
                 <div className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
-                  <p className="mb-0.5 text-[10px] text-neutral-500">Base</p>
+                  <p className="mb-0.5 text-[10px] whitespace-nowrap text-neutral-500">Base</p>
                   <p className="text-sm font-semibold text-neutral-100">{ability.base}</p>
                 </div>
               )}
               <div className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
-                <p className="mb-0.5 text-[10px] text-neutral-500">Temp.</p>
+                <p className="mb-0.5 text-[10px] whitespace-nowrap text-neutral-500">Temp.</p>
                 <p className="text-sm font-semibold text-neutral-100">{signed(computed.tempSum)}</p>
               </div>
               <div className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
-                <p className="mb-0.5 text-[10px] text-neutral-500">Total</p>
+                <p className="mb-0.5 text-[10px] whitespace-nowrap text-neutral-500">Total</p>
                 <p className="text-sm font-semibold text-neutral-100">{computed.total}</p>
               </div>
               <div className="rounded-lg bg-neutral-950 px-2 py-2.5 text-center">
-                <p className="mb-0.5 text-[10px] text-neutral-500">Modificador</p>
+                <p className="mb-0.5 text-[10px] whitespace-nowrap text-neutral-500">Mod.</p>
                 <p className="text-sm font-semibold text-neutral-100">{signed(computed.mod)}</p>
               </div>
             </div>

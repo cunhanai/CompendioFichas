@@ -6,6 +6,7 @@ export const routes = {
   library: (systemId: string) => `/sistemas/${systemId}/biblioteca`,
   profile: () => '/perfil',
   adminCreateUser: () => '/perfil/criar-usuario',
-  adminUsers: () => '/admin/usuarios',
+  adminUsers: (tab?: 'users' | 'activity') =>
+    tab ? `/admin/usuarios?tab=${tab}` : '/admin/usuarios',
   sheet: (characterId: string) => `/personagens/${characterId}`,
 };

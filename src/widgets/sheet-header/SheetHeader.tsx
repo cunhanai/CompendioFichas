@@ -5,6 +5,7 @@ import {
   Check,
   ChevronLeft,
   Eye,
+  Images,
   Pencil,
   Share2,
   Star,
@@ -18,6 +19,7 @@ import {
 } from '@/entities/character/model/calculations';
 import { joinDot } from '@/shared/lib/format';
 import {
+  PhotoGalleryDialog,
   PhotoUploadDialog,
   SharePickerDialog,
   setPhotoUrl,
@@ -35,6 +37,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
   const { mySharesByCharacterId, shareCharacter, unshareCharacter } = useAppData();
   const [shareOpen, setShareOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(character.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -58,11 +61,27 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
 
   const currentShares = mySharesByCharacterId[characterId] ?? [];
 
+  // Browsing the gallery is allowed for a read-only shared viewer too — only adding/removing
+  // photos is owner-only (enforced inside PhotoGalleryDialog via `canEdit`).
+  const galleryButton = (
+    <IconButton
+      label="Galeria de fotos"
+      variant="neutral"
+      size="sm"
+      onClick={() => setGalleryOpen(true)}
+    >
+      <Images className="h-3.5 w-3.5" strokeWidth={1.8} />
+    </IconButton>
+  );
+
   const actions = readOnly ? (
-    <Badge tone="sky" size="sm">
-      <Eye className="mr-1 inline h-3 w-3" strokeWidth={2} />
-      Somente leitura
-    </Badge>
+    <>
+      {galleryButton}
+      <Badge tone="sky" size="sm">
+        <Eye className="mr-1 inline h-3 w-3" strokeWidth={2} />
+        Somente leitura
+      </Badge>
+    </>
   ) : (
     <>
       <Switch
@@ -83,6 +102,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
           strokeWidth={1.8}
         />
       </IconButton>
+      {galleryButton}
       <IconButton
         label="Compartilhar"
         variant="neutral"
@@ -194,6 +214,13 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
           </div>
         )
       )}
+
+      <PhotoGalleryDialog
+        open={galleryOpen}
+        onOpenChange={setGalleryOpen}
+        characterId={characterId}
+        canEdit={canEdit}
+      />
 
       {!readOnly && (
         <>

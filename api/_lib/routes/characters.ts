@@ -1,11 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
-import { characters, characterShares, users } from '../../../db/schema.js';
+import { characterPhotos, characters, characterShares, users } from '../../../db/schema.js';
 import { createCharacter, loadCharacterById, updateCharacterOwned } from '../characterRepo.js';
 import { requireUserId } from '../auth.js';
 import { withErrorHandling } from '../handler.js';
-import { characterBodySchema, MAX_CHARACTER_JSON_LENGTH, shareBodySchema } from '../validation.js';
+import {
+  characterBodySchema,
+  MAX_CHARACTER_JSON_LENGTH,
+  photoBodySchema,
+  shareBodySchema,
+} from '../validation.js';
 import type { Character } from '../../../src/entities/character/model/types.js';
 
 /** POST /api/characters — creates a character owned by the caller. */
@@ -181,4 +186,142 @@ export const unshareCharacterHandler = withErrorHandling(async function handler(
     );
 
   res.status(200).json({ shares: await listShares(id) });
+});
+
+async function listPhotos(characterId: string) {
+  return db
+    .select({ id: characterPhotos.id, dataUrl: characterPhotos.dataUrl })
+    .from(characterPhotos)
+    .where(eq(characterPhotos.characterId, characterId))
+    .orderBy(asc(characterPhotos.sortOrder));
+}
+
+/** Whether `userId` may at least look at `characterId` — owns it, or it's been shared with them
+ * (always view-only for the latter, enforced by which handlers call this vs. `assertOwner`). */
+async function canView(characterId: string, userId: string): Promise<boolean> {
+  const [owned] = await db
+    .select({ id: characters.id })
+    .from(characters)
+    .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
+    .limit(1);
+  if (owned) return true;
+
+  const [shared] = await db
+    .select({ characterId: characterShares.characterId })
+    .from(characterShares)
+    .where(
+      and(
+        eq(characterShares.characterId, characterId),
+        eq(characterShares.sharedWithUserId, userId),
+      ),
+    )
+    .limit(1);
+  return !!shared;
+}
+
+async function isOwner(characterId: string, userId: string): Promise<boolean> {
+  const [owned] = await db
+    .select({ id: characters.id })
+    .from(characters)
+    .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
+    .limit(1);
+  return !!owned;
+}
+
+// Not a real-world gallery size — a generous ceiling against a runaway upload loop or abuse,
+// consistent with how MAX_CHARACTER_JSON_LENGTH/MAX_PHOTO_DATA_URL_LENGTH cap the other
+// dimensions of this same concern.
+const MAX_PHOTOS_PER_CHARACTER = 60;
+
+/** GET /api/characters/:id/photos — a character's photo gallery. Loaded lazily, only when the
+ * gallery is actually opened, specifically so it never rides along with bootstrap or an ordinary
+ * character PATCH (see the comment on CharacterPhoto in entities/character/model/types.ts).
+ * Owner or a view-only share may read it. */
+export const listCharacterPhotosHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  if (!(await canView(id, userId))) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  res.status(200).json({ photos: await listPhotos(id) });
+});
+
+/** POST /api/characters/:id/photos — adds one photo to the gallery. Owner-only. */
+export const addCharacterPhotoHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  if (!(await isOwner(id, userId))) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  const parsed = photoBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Dados inválidos.' });
+    return;
+  }
+
+  const existing = await listPhotos(id);
+  if (existing.length >= MAX_PHOTOS_PER_CHARACTER) {
+    res.status(400).json({ error: `Limite de ${MAX_PHOTOS_PER_CHARACTER} fotos por personagem.` });
+    return;
+  }
+
+  await db.insert(characterPhotos).values({
+    id: crypto.randomUUID(),
+    characterId: id,
+    dataUrl: parsed.data.dataUrl,
+    sortOrder: existing.length,
+  });
+
+  res.status(201).json({ photos: await listPhotos(id) });
+});
+
+/** DELETE /api/characters/:id/photos/:photoId — removes one photo from the gallery. Owner-only. */
+export const removeCharacterPhotoHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+  photoId: string,
+) {
+  if (req.method !== 'DELETE') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  if (!(await isOwner(id, userId))) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  await db
+    .delete(characterPhotos)
+    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)));
+
+  res.status(200).json({ photos: await listPhotos(id) });
 });

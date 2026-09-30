@@ -177,6 +177,17 @@ it.
   shared-with-me characters, and for the latter returns a no-op `update` — that's the actual
   enforcement (every editing popup receives the same `update` reference), not each popup's own
   UI gating, which doesn't yet check `readOnly` everywhere (see DESIGN_NOTES.md).
+- **Character photo gallery**: like sharing above, `character_photos` (`id`, `character_id`,
+  `data_url`, `sort_order`) is deliberately its own sub-resource with its own endpoints
+  (`GET/POST /api/characters/:id/photos`, `DELETE /api/characters/:id/photos/:photoId`) —
+  **not** a field on `Character`, and not touched by `characterRepo.ts`'s
+  assemble/replace-on-write pipeline. Two reasons, one per direction: folding it into `Character`
+  would mean `GET /api/bootstrap` (loads every one of a user's characters on every page load)
+  grows with total gallery size across every character, and the "send the whole character every
+  PATCH" contract (see the relational-schema note above) would mean any edit at all — changing
+  one HP — re-sends every photo, quickly blowing `MAX_CHARACTER_JSON_LENGTH`. Any future
+  character data that's similarly large/open-ended and not needed on every load should get the
+  same treatment: its own table, its own lazily-loaded endpoint, not a field on `Character`.
 - **Auth**: cookie-based sessions in a `sessions` table (`api/_lib/session.ts`), not JWT —
   chosen because a DB-backed session can be revoked immediately (used when deactivating a user,
   resetting a password, or a user changing their own password). Cookie is `httpOnly`, `secure`,
