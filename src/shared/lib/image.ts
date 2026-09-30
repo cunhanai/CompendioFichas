@@ -30,3 +30,38 @@ export function resizeImageToDataUrl(file: File, size = 256): Promise<string> {
     img.src = objectUrl;
   });
 }
+
+/** Resizes an image file client-side, keeping its aspect ratio (only shrinks, never crops or
+ * upscales), and returns it as a JPEG data URL — used for gallery photos, where (unlike the
+ * square avatar above) the whole image should stay visible. `maxDim` caps the longer side. */
+export function resizeImageKeepingAspect(file: File, maxDim = 1280): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const width = Math.round(img.width * scale);
+      const height = Math.round(img.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas 2D context unavailable'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+    img.src = objectUrl;
+  });
+}

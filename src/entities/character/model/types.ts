@@ -221,6 +221,18 @@ export interface SpellcastingBlock {
   circles: SpellSlot[];
 }
 
+/** A character's photo gallery item — deliberately NOT a field on `Character` below. It's loaded
+ * and saved through its own endpoints (GET/POST/DELETE /api/characters/:id/photos), not as part
+ * of the whole-character fetch/PATCH: bootstrap loads every one of a user's characters on every
+ * page load, so folding an open-ended, base64-photo gallery into that same object would make
+ * every page load grow with however many photos exist, for every character, whether or not
+ * anyone's looking at a gallery right now. See the comment on `character_photos` in
+ * db/schema.ts for the save-side half of this (same reasoning, from the payload-size angle). */
+export interface CharacterPhoto {
+  id: string;
+  dataUrl: string;
+}
+
 export interface Character {
   id: string;
   systemId: string;

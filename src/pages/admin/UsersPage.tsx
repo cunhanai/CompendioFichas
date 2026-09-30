@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { Breadcrumbs } from '@/widgets/app-shell';
@@ -11,7 +10,12 @@ type Tab = 'users' | 'activity';
 export function UsersPage() {
   const { user } = useAppData();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('users');
+  // Driven by the URL (not local state) so a link like ?tab=activity (e.g. from a notification
+  // banner) switches the tab even when this page is already mounted — a query-string-only
+  // navigation doesn't remount the component, so a useState initializer wouldn't see it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: Tab = searchParams.get('tab') === 'activity' ? 'activity' : 'users';
+  const setTab = (next: Tab) => setSearchParams(next === 'users' ? {} : { tab: next });
 
   if (!user.isAdmin) return <Navigate to={routes.profile()} replace />;
 

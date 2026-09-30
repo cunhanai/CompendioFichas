@@ -32,6 +32,14 @@ const int4 = z.number().int().min(-2147483648).max(2147483647);
 
 export const shareBodySchema = z.object({ userId: uuid });
 
+// A single resized/compressed photo comfortably fits in a few hundred KB as a data URL; this is
+// a generous ceiling against abuse, not a real-world size — same reasoning as
+// MAX_CHARACTER_JSON_LENGTH below, just scoped to one photo instead of the whole character.
+export const MAX_PHOTO_DATA_URL_LENGTH = 2_000_000;
+export const photoBodySchema = z.object({
+  dataUrl: z.string().min(1).max(MAX_PHOTO_DATA_URL_LENGTH).startsWith('data:image/'),
+});
+
 export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
 
 /**

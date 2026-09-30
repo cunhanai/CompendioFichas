@@ -255,6 +255,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const previous = data.securityAlerts;
     setData((d) => (d ? { ...d, securityAlerts: d.securityAlerts.filter((a) => a.id !== id) } : d));
     api.patch(`/admin/users/security-alerts/${id}`, { dismissed: true }).catch((err: unknown) => {
+      // A 404 here means the alert is already gone server-side (dismissed by another admin,
+      // already cleaned up, whatever) — that's not a failure from the user's point of view, so
+      // leave it removed from view instead of reverting and making it look stuck.
+      if (err instanceof ApiError && err.status === 404) return;
       console.error('Failed to dismiss security alert', err);
       setData((d) => (d ? { ...d, securityAlerts: previous } : d));
     });

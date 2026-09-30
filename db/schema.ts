@@ -517,6 +517,28 @@ export const characterArmorItems = pgTable(
 );
 
 /**
+ * A character's photo gallery — deliberately NOT part of the full-character replace that every
+ * other child table above goes through. The frontend's "send the whole character every time"
+ * contract (see characterRepo.ts) is fine for small fields, but photos are base64 data URLs that
+ * can each be hundreds of KB; folding an open-ended gallery into that same payload would make
+ * every ordinary save (changing HP, a skill rank, anything) grow with the gallery and eventually
+ * blow the 2MB request cap (MAX_CHARACTER_JSON_LENGTH) for a character with a full gallery, even
+ * when the save has nothing to do with photos. Photos get their own endpoints instead
+ * (POST/DELETE /api/characters/:id/photos, in api/_lib/routes/characters.ts) — added and removed
+ * one at a time, never replaced wholesale.
+ */
+export const characterPhotos = pgTable(
+  'character_photos',
+  {
+    id: uuid('id').primaryKey(),
+    characterId: characterId(),
+    dataUrl: text('data_url').notNull(),
+    sortOrder: sortOrder(),
+  },
+  (table) => [index('character_photos_character_id_idx').on(table.characterId, table.sortOrder)],
+);
+
+/**
  * A full point-in-time copy of the character, taken automatically on level-up or right before a
  * restore overwrites the live data — see LevelSnapshot/CharacterSnapshotData in
  * entities/character/model/types.ts. `parent_id` self-references to chain snapshots into a tree
