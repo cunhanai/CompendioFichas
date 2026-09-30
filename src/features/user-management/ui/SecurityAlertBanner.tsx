@@ -21,7 +21,8 @@ import { NotificationBanner } from '@/shared/ui/organisms/NotificationBanner';
  * live alert at a time" (enforced at the DB level by a partial unique index — see
  * db/schema.ts). If more than one somehow exists (e.g. leftover rows from before that index
  * was in place), the rest stay hidden here rather than cluttering every screen; dismissing the
- * shown one reveals the next-most-recent, if any.
+ * shown one dismisses the whole stack at once (see `dismissSecurityAlert` in
+ * AppDataProvider.tsx), so none of the others reappear afterward.
  */
 export function SecurityAlertBanner() {
   const { user, securityAlerts, dismissSecurityAlert } = useAppData();

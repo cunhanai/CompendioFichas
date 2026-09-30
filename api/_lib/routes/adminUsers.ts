@@ -176,7 +176,13 @@ export const listSecurityAlertsHandler = withErrorHandling(async function handle
 
 const dismissSchema = z.object({ dismissed: z.literal(true) });
 
-/** PATCH /api/admin/users/security-alerts/:id — dismisses one alert for good. */
+/** PATCH /api/admin/users/security-alerts/:id — dismisses one alert, and every other
+ * currently-active one along with it. There's no `kind` column yet distinguishing alert
+ * types — today the table only ever holds one kind at a time (enforced by the one-active-row
+ * unique index in db/schema.ts) — so any stack of undismissed rows (e.g. leftovers from before
+ * that index existed) is, by construction, the same notification repeated. Dismissing the one
+ * shown and then having the next stacked duplicate reappear reads as "I already dismissed this,
+ * why is it back?", so the whole stack goes at once instead. */
 export const dismissSecurityAlertHandler = withErrorHandling(async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -195,15 +201,16 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
     return;
   }
 
-  const [alert] = await db
+  const dismissedRows = await db
     .update(securityAlerts)
     .set({ dismissed: true, dismissedAt: new Date(), dismissedBy: caller.id })
-    .where(eq(securityAlerts.id, id))
+    .where(eq(securityAlerts.dismissed, false))
     .returning();
+  const alert = dismissedRows.find((row) => row.id === id);
   if (!alert) {
     res.status(404).json({ error: 'Alerta não encontrado.' });
     return;
   }
 
-  res.status(200).json({ alert });
+  res.status(200).json({ alert, dismissedIds: dismissedRows.map((row) => row.id) });
 });

@@ -253,7 +253,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const dismissSecurityAlert: AppDataContextValue['dismissSecurityAlert'] = (id) => {
     const previous = data.securityAlerts;
-    setData((d) => (d ? { ...d, securityAlerts: d.securityAlerts.filter((a) => a.id !== id) } : d));
+    // Dismissing one alert dismisses every other currently-stacked one along with it (same
+    // reasoning as the backend handler) — clear the whole list, not just this id, so a leftover
+    // duplicate doesn't immediately reappear in its place.
+    setData((d) => (d ? { ...d, securityAlerts: [] } : d));
     api.patch(`/admin/users/security-alerts/${id}`, { dismissed: true }).catch((err: unknown) => {
       // A 404 here means the alert is already gone server-side (dismissed by another admin,
       // already cleaned up, whatever) — that's not a failure from the user's point of view, so
