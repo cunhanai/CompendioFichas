@@ -45,7 +45,10 @@ export function withLevelUpSnapshot(
     const before = effectiveLevel(character.classes);
     const after = mutate(character);
     const afterLevel = effectiveLevel(after.classes);
-    if (afterLevel <= before) return after;
+    // A brand-new character going from no classes at all to its first level isn't a "level up"
+    // with meaningful prior state worth preserving — it's just character creation. Snapshots
+    // start from the character's second level onward, not the first.
+    if (afterLevel <= before || before === 0) return after;
     return appendSnapshot(after, 'level-up', `Nível ${afterLevel}`, toSnapshotData(after));
   };
 }

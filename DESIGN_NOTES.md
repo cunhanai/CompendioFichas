@@ -519,3 +519,43 @@ Pedido do usuário: além da foto única (avatar, `photoUrl`, inalterada), um pe
 - Fotos de galeria são redimensionadas mantendo a proporção original (`resizeImageKeepingAspect`, corta só o lado maior a 1280px), diferente do avatar único (`resizeImageToDataUrl`, sempre recorta num quadrado 256×256) — faz sentido a foto de avatar ser sempre quadrada, mas não uma foto de galeria qualquer.
 - `PhotoGalleryDialog` (nova, em `features/sheet-sharing`): grade de miniaturas + tile de "adicionar"; clicar numa miniatura abre visualização ampliada com navegação anterior/próxima e botão de remover (com confirmação). Leitura (navegar a galeria) é permitida a quem só tem a ficha compartilhada (somente leitura); adicionar/remover é só do dono — reforçado no próprio endpoint (`isOwner` vs. `canView`), não só escondendo o botão na UI.
 - Acesso pelo cabeçalho da ficha (`SheetHeader`): novo botão "Galeria de fotos" ao lado de Favoritar/Compartilhar, visível tanto pro dono quanto pra quem recebeu a ficha compartilhada.
+
+## Lista grande de pedidos pendentes — registrados em `BACKLOG.md`, alguns já resolvidos nesta leva
+
+O usuário mandou uma lista de 16 pedidos de uma vez, pedindo explicitamente pra registrar todos
+num arquivo (feito — ver `BACKLOG.md`) mesmo os que não seriam implementados na hora, e resolver
+só os que não precisassem de pergunta/decisão. Quatro eram pequenos e bem definidos o suficiente
+pra resolver na mesma leva:
+
+- **Badge "Desativada" quando XP está desligado**, e **XP sempre por último na lista de cards da
+  aba Geral** (antes vinha antes de "História do personagem"). `GeralTab.tsx`: reordenado, e
+  `SectionCardHeader` com `action={<Badge>Desativada</Badge>}` quando `!character.xpEnabled`. De
+  passagem, corrigido um bug relacionado ao trabalho anterior desta mesma leva: o card de
+  Identidade ainda montava "Tendência" como `${alignmentLaw} / ${alignmentMoral}` na unha em vez
+  de usar `alignmentFull()` — com os dois eixos podendo vir vazios agora (ver "Correções pontuais
+  na ficha" acima), isso mostraria só `" / "` em vez de ficar em branco como os outros campos
+  vazios.
+- **Alinhamento dos tiles Base/Temp./Total/Mod. no popup de atributo** (`AbilityDialog.tsx`):
+  duas causas. (1) O rótulo "Modificador" era o único dos quatro longo o suficiente pra quebrar
+  linha num grid de 4 colunas estreito, empurrando o valor daquele tile pra baixo em relação aos
+  outros três — encurtado pra "Mod." e todos os rótulos ganharam `whitespace-nowrap` como reforço.
+  (2) Em modo de edição, o tile "Base" usava um `<label>` sem o mesmo fundo/padding
+  (`rounded-lg bg-neutral-950 px-2 py-2.5`) dos outros três — visualmente destoava da linha.
+  Agora usa a mesma caixa, só com um `<input>` por dentro no lugar do texto estático.
+- **Sem snapshot de histórico ao criar um personagem novo (nível 0 → 1)**: `withLevelUpSnapshot`
+  (`entities/character/model/snapshots.ts`) disparava pra qualquer aumento de nível efetivo,
+  inclusive a primeira classe adicionada a um personagem recém-criado — virando uma snapshot
+  "Nível 1" sem sentido, já que não existe nenhum estado anterior real pra preservar (é só a
+  criação do personagem, não uma progressão). Agora pula a snapshot especificamente quando
+  `before === 0` (nível efetivo antes da mutação era zero) — a partir do nível 2 em diante volta
+  a funcionar normalmente. `snapshots.test.ts` foi reescrito: todo teste que antes começava a
+  progressão em "nível 1 já tem snapshot" passou a fazer um bump inicial 0→1 sem snapshot antes
+  da sequência real que está testando (deslocando os números de nível esperados em +1 em cada
+  teste).
+
+Os outros 12 itens ficaram só registrados em `BACKLOG.md`, organizados por tamanho/ambiguidade —
+a maioria precisa de alguma decisão de produto ou design antes de valer a pena começar (tipos de
+modificador de atributo e redesenho do popup, criptografia no banco, biblioteca totalmente
+editável/removível, etc.), e um punhado (raça/tipo/idiomas vindo da biblioteca compartilhada) é
+só volume de trabalho repetindo o padrão já usado pra Classes nesta mesma leva — próximos
+candidatos óbvios quando o usuário quiser seguir.
