@@ -44,6 +44,24 @@ continuam pendentes, sem data definida para início.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
+- **Cortar/posicionar a imagem ao adicionar foto de perfil (do usuário) ou de perfil do
+  personagem** — hoje `resizeImageToDataUrl` só faz um recorte automático num quadrado central
+  fixo (256×256), sem o usuário escolher a área/posição do recorte. Pedido explícito: permitir
+  cortar e posicionar manualmente a imagem antes de salvar. Precisa de um componente de crop
+  interativo (ex.: uma lib como `react-easy-crop`) substituindo o recorte automático, usado tanto
+  no upload do avatar do usuário (`ProfilePage`) quanto no avatar do personagem
+  (`PhotoUploadDialog`).
+- **Galeria de fotos do personagem vira uma aba da ficha, com seleção de foto de perfil a partir
+  dela, e compressão das imagens adicionadas** — três pedidos relacionados, sobre a mesma
+  funcionalidade de galeria implementada nesta leva:
+  - A galeria deixa de ser só um diálogo aberto por um botão no cabeçalho (`SheetHeader`) e passa
+    a ser mais uma aba da ficha, junto de Geral/Combate/Perícias/etc. (`PillTabs`/`SheetPage`).
+  - Poder escolher uma foto já existente na galeria (`character_photos`) pra virar a foto de
+    perfil do personagem (`photoUrl`) — hoje avatar e galeria são fluxos de upload totalmente
+    separados, sem nenhuma ligação entre eles.
+  - Comprimir mais as imagens ao adicionar na galeria — `resizeImageKeepingAspect` já redimensiona
+    (corta o lado maior a 1280px) mas vale revisar a qualidade de compressão usada no
+    `canvas.toDataURL`/`toBlob` pra reduzir o tamanho final do arquivo.
 - **Habilidades tipo magia (spell-like abilities)** — o modelo de dados já existe
   (`Character.spellLikeAbilities`, tabela `character_special_abilities` com `kind: 'spell-like'`),
   mas não há um fluxo de UI dedicado pra adicionar uma com os campos que o usuário descreveu:
