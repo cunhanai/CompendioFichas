@@ -130,7 +130,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
                     if (e.key === 'Enter') saveName();
                     if (e.key === 'Escape') setEditingName(false);
                   }}
-                  className="font-display min-w-0 rounded-md border border-amber-600/50 bg-neutral-950 px-2 py-0.5 text-lg text-neutral-100 outline-none sm:text-2xl"
+                  className="font-display min-w-0 rounded-md border border-amber-600/50 bg-neutral-950 px-2 py-0.5 text-base text-neutral-100 outline-none sm:text-xl"
                 />
                 <IconButton label="Salvar nome" variant="amber" size="sm" onClick={saveName}>
                   <Check className="h-3.5 w-3.5" strokeWidth={2} />

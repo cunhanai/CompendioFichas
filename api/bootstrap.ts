@@ -17,10 +17,25 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
   const userId = await requireUserId(req, res);
   if (!userId) return;
 
-  const [user, systemRows, myCharacters] = await Promise.all([
+  // Everything here only depends on userId (or nothing at all), so it all runs in one round of
+  // parallel queries instead of several sequential stages — this used to be up to 5 stages deep
+  // (user/systems/characters, then libraries, then alerts, then sharedWithMe, then myShareRows),
+  // each adding a full Neon HTTP round trip to how long a reload takes. Security alerts are
+  // fetched unconditionally here (cheap — a handful of rows at most) rather than gated on
+  // `user[0].isAdmin`, specifically so this query doesn't have to wait on that first one to even
+  // start; the response below still only exposes them to admins.
+  const [user, systemRows, myCharacters, sharedWithMeRows, allAlerts] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     db.select().from(systems),
     loadCharactersForUser(userId),
+    // Characters someone else shared with me — always view-only, never mixed into `characters`
+    // (which the whole app treats as "mine, editable").
+    loadSharedWithMe(userId),
+    db
+      .select()
+      .from(securityAlerts)
+      .where(eq(securityAlerts.dismissed, false))
+      .orderBy(desc(securityAlerts.createdAt)),
   ]);
 
   if (!user[0]) {
@@ -28,26 +43,16 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
     return;
   }
 
-  const libraries = await loadLibraries(systemRows.map((s) => s.id));
-
-  // Only admins need to know about this, and only admins are allowed to dismiss it.
-  const alerts = user[0].isAdmin
-    ? await db
-        .select()
-        .from(securityAlerts)
-        .where(eq(securityAlerts.dismissed, false))
-        .orderBy(desc(securityAlerts.createdAt))
-    : [];
-
-  // Characters someone else shared with me — always view-only, never mixed into `characters`
-  // (which the whole app treats as "mine, editable").
-  const sharedWithMeRows = await loadSharedWithMe(userId);
-
-  // Who each of MY OWN characters is shared with, so the owner's UI can show/manage it.
+  const alerts = user[0].isAdmin ? allAlerts : [];
   const myCharacterIds = myCharacters.map((c) => c.id);
-  const myShareRows =
+
+  // Both of these only depend on the results above, and not on each other, so they also run in
+  // parallel rather than one after the other.
+  const [libraries, myShareRows] = await Promise.all([
+    loadLibraries(systemRows.map((s) => s.id)),
+    // Who each of MY OWN characters is shared with, so the owner's UI can show/manage it.
     myCharacterIds.length > 0
-      ? await db
+      ? db
           .select({
             characterId: characterShares.characterId,
             userId: users.id,
@@ -57,7 +62,8 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
           .from(characterShares)
           .innerJoin(users, eq(characterShares.sharedWithUserId, users.id))
           .where(inArray(characterShares.characterId, myCharacterIds))
-      : [];
+      : Promise.resolve([]),
+  ]);
   const mySharesByCharacterId: Record<
     string,
     { userId: string; name: string; username: string }[]

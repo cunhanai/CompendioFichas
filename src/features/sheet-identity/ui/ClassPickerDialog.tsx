@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Character } from '@/entities/character/model/types';
-import { KNOWN_CLASSES } from '@/entities/character/model/constants';
+import { useAppData, useLibrary } from '@/app/providers';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { Button } from '@/shared/ui/atoms/Button';
 import { TextInput } from '@/shared/ui/atoms/TextField';
@@ -15,6 +15,9 @@ export interface ClassPickerDialogProps {
   onAdded?: (className: string) => void;
 }
 
+/** Classes offered here come from the system's shared library (like every other picker in the
+ * app — spells, feats, weapons, etc.), not a hardcoded list — typing a name not already in the
+ * library adds it there too, so it's offered to every character in this system from then on. */
 export function ClassPickerDialog({
   open,
   onOpenChange,
@@ -23,10 +26,16 @@ export function ClassPickerDialog({
   onAdded,
 }: ClassPickerDialogProps) {
   const [text, setText] = useState('');
+  const { addLibraryItem } = useAppData();
+  const library = useLibrary(character.systemId);
+  const libraryClasses = library?.classes ?? [];
   const known = character.classes.map((c) => c.name);
-  const candidates = KNOWN_CLASSES.filter((n) => !known.includes(n));
+  const candidates = libraryClasses.map((c) => c.name).filter((n) => !known.includes(n));
 
   const pick = (name: string) => {
+    if (!libraryClasses.some((c) => c.name === name)) {
+      addLibraryItem(character.systemId, 'classes', { name, desc: '' });
+    }
     update(withLevelUpSnapshot((c) => addClass(c, name)));
     onAdded?.(name);
     setText('');

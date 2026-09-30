@@ -49,8 +49,10 @@ export const SIZES: Size[] = [
   'Colossal',
 ];
 
-/** Pathfinder 1e size modifier to AC/CMB/CMD, for the sizes offered in this app. */
+/** Pathfinder 1e size modifier to AC/CMB/CMD, for the sizes offered in this app. Unset ('') is
+ * treated the same as Médio (0) — the default before the player picks a size shouldn't skew AC. */
 export const SIZE_MODIFIER: Record<Size, number> = {
+  '': 0,
   Miúdo: 8,
   Diminuto: 4,
   Pequeno: 1,
@@ -60,43 +62,33 @@ export const SIZE_MODIFIER: Record<Size, number> = {
   Colossal: -8,
 };
 
-export const ALIGNMENT_LAWS: AlignmentLaw[] = ['Ordeiro', 'Neutro', 'Caótico'];
-export const ALIGNMENT_MORALS: AlignmentMoral[] = ['Bom', 'Neutro', 'Mau'];
+export const ALIGNMENT_LAWS: Exclude<AlignmentLaw, ''>[] = ['Ordeiro', 'Neutro', 'Caótico'];
+export const ALIGNMENT_MORALS: Exclude<AlignmentMoral, ''>[] = ['Bom', 'Neutro', 'Mau'];
 
 export const ALIGNMENT_LAW_INITIAL: Record<AlignmentLaw, string> = {
+  '': '?',
   Ordeiro: 'O',
   Neutro: 'N',
   Caótico: 'C',
 };
 export const ALIGNMENT_MORAL_INITIAL: Record<AlignmentMoral, string> = {
+  '': '?',
   Bom: 'B',
   Neutro: 'N',
   Mau: 'M',
 };
 export const ALIGNMENT_LAW_LABEL_F: Record<AlignmentLaw, string> = {
+  '': '',
   Ordeiro: 'Ordeira',
   Neutro: 'Neutra',
   Caótico: 'Caótica',
 };
 export const ALIGNMENT_MORAL_LABEL_F: Record<AlignmentMoral, string> = {
+  '': '',
   Bom: 'Boa',
   Neutro: 'Neutra',
   Mau: 'Má',
 };
-
-export const KNOWN_CLASSES = [
-  'Guerreira',
-  'Ladina',
-  'Paladina',
-  'Bárbara',
-  'Druida',
-  'Monge',
-  'Bardo',
-  'Caçadora',
-  'Mago',
-  'Feiticeira',
-  'Clériga',
-];
 
 export const WEAPON_DAMAGE_TYPES = ['Cortante', 'Perfurante', 'Concussão', 'Cortante/Perfurante'];
 

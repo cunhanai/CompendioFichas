@@ -24,14 +24,17 @@ import type {
 
 export { signed };
 
-/** e.g. "CB" for Caótico/Bom, or just "N" when both axes are Neutro. */
+/** e.g. "CB" for Caótico/Bom, or just "N" when both axes are Neutro — '' (not chosen yet, on
+ * either axis) if either is unset, so it drops out of joinDot() instead of showing "?". */
 export function alignmentAbbrev(law: AlignmentLaw, moral: AlignmentMoral): string {
+  if (!law || !moral) return '';
   if (law === 'Neutro' && moral === 'Neutro') return 'N';
   return ALIGNMENT_LAW_INITIAL[law] + ALIGNMENT_MORAL_INITIAL[moral];
 }
 
-/** e.g. "Caótica Boa", or "Neutra" when both axes are Neutro. */
+/** e.g. "Caótica Boa", or "Neutra" when both axes are Neutro — '' if either axis is unset. */
 export function alignmentFull(law: AlignmentLaw, moral: AlignmentMoral): string {
+  if (!law || !moral) return '';
   if (law === 'Neutro' && moral === 'Neutro') return 'Neutra';
   return `${ALIGNMENT_LAW_LABEL_F[law]} ${ALIGNMENT_MORAL_LABEL_F[moral]}`;
 }

@@ -3,6 +3,7 @@ import { db } from './client.js';
 import type { SharedLibrary } from '../src/entities/library-item/model/types.js';
 import type { LibraryCategory } from '../src/entities/library-item/model/types.js';
 import {
+  libraryClasses,
   libraryCreatures,
   libraryFeats,
   libraryLanguages,
@@ -21,6 +22,7 @@ export const LIBRARY_TABLES = {
   pericias: librarySkills,
   idiomas: libraryLanguages,
   criaturas: libraryCreatures,
+  classes: libraryClasses,
 } satisfies Record<LibraryCategory, unknown>;
 
 export function isLibraryCategory(value: string): value is LibraryCategory {
@@ -37,27 +39,30 @@ function emptyLibrary(systemId: string): SharedLibrary {
     armas: [],
     idiomas: [],
     criaturas: [],
+    classes: [],
   };
 }
 
-/** Assembles one SharedLibrary per system id from the 7 category tables. */
+/** Assembles one SharedLibrary per system id from the 8 category tables. */
 export async function loadLibraries(systemIds: string[]): Promise<Record<string, SharedLibrary>> {
   const libraries: Record<string, SharedLibrary> = {};
   for (const systemId of systemIds) libraries[systemId] = emptyLibrary(systemId);
   if (systemIds.length === 0) return libraries;
 
-  const [spells, weapons, specials, feats, skills, languages, creatures] = await Promise.all([
-    db.select().from(librarySpells).where(inArray(librarySpells.systemId, systemIds)),
-    db.select().from(libraryWeapons).where(inArray(libraryWeapons.systemId, systemIds)),
-    db
-      .select()
-      .from(librarySpecialAbilities)
-      .where(inArray(librarySpecialAbilities.systemId, systemIds)),
-    db.select().from(libraryFeats).where(inArray(libraryFeats.systemId, systemIds)),
-    db.select().from(librarySkills).where(inArray(librarySkills.systemId, systemIds)),
-    db.select().from(libraryLanguages).where(inArray(libraryLanguages.systemId, systemIds)),
-    db.select().from(libraryCreatures).where(inArray(libraryCreatures.systemId, systemIds)),
-  ]);
+  const [spells, weapons, specials, feats, skills, languages, creatures, classes] =
+    await Promise.all([
+      db.select().from(librarySpells).where(inArray(librarySpells.systemId, systemIds)),
+      db.select().from(libraryWeapons).where(inArray(libraryWeapons.systemId, systemIds)),
+      db
+        .select()
+        .from(librarySpecialAbilities)
+        .where(inArray(librarySpecialAbilities.systemId, systemIds)),
+      db.select().from(libraryFeats).where(inArray(libraryFeats.systemId, systemIds)),
+      db.select().from(librarySkills).where(inArray(librarySkills.systemId, systemIds)),
+      db.select().from(libraryLanguages).where(inArray(libraryLanguages.systemId, systemIds)),
+      db.select().from(libraryCreatures).where(inArray(libraryCreatures.systemId, systemIds)),
+      db.select().from(libraryClasses).where(inArray(libraryClasses.systemId, systemIds)),
+    ]);
 
   for (const { systemId, ...item } of spells) libraries[systemId]?.magias.push(item);
   for (const { systemId, ...item } of weapons) libraries[systemId]?.armas.push(item);
@@ -66,6 +71,7 @@ export async function loadLibraries(systemIds: string[]): Promise<Record<string,
   for (const { systemId, ...item } of skills) libraries[systemId]?.pericias.push(item);
   for (const { systemId, ...item } of languages) libraries[systemId]?.idiomas.push(item);
   for (const { systemId, ...item } of creatures) libraries[systemId]?.criaturas.push(item);
+  for (const { systemId, ...item } of classes) libraries[systemId]?.classes.push(item);
 
   return libraries;
 }

@@ -122,7 +122,7 @@ export const characters = pgTable('characters', {
 
   // Identity
   raca: text('raca').notNull().default(''),
-  tamanho: text('tamanho').notNull().default('Médio'),
+  tamanho: text('tamanho').notNull().default(''),
   sexo: text('sexo').notNull().default(''),
   idadeNum: integer('idade_num').notNull().default(0),
   alturaNum: real('altura_num').notNull().default(0),
@@ -131,8 +131,8 @@ export const characters = pgTable('characters', {
   olhos: text('olhos').notNull().default(''),
   divindade: text('divindade').notNull().default(''),
   terraNatal: text('terra_natal').notNull().default(''),
-  alignmentLaw: text('alignment_law').notNull().default('Neutro'),
-  alignmentMoral: text('alignment_moral').notNull().default('Neutro'),
+  alignmentLaw: text('alignment_law').notNull().default(''),
+  alignmentMoral: text('alignment_moral').notNull().default(''),
   story: text('story').notNull().default(''),
 
   xpEnabled: boolean('xp_enabled').notNull().default(true),
@@ -656,6 +656,14 @@ export const libraryLanguages = pgTable('library_languages', {
 });
 
 export const libraryCreatures = pgTable('library_creatures', {
+  id: uuid('id').primaryKey(),
+  systemId: librarySystemId(),
+  name: text('name').notNull(),
+  desc: text('desc').notNull(),
+  tag: text('tag').notNull(),
+});
+
+export const libraryClasses = pgTable('library_classes', {
   id: uuid('id').primaryKey(),
   systemId: librarySystemId(),
   name: text('name').notNull(),

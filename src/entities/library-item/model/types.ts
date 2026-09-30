@@ -1,5 +1,12 @@
 export type LibraryCategory =
-  'magias' | 'talentos' | 'pericias' | 'habilidades' | 'armas' | 'idiomas' | 'criaturas';
+  | 'magias'
+  | 'talentos'
+  | 'pericias'
+  | 'habilidades'
+  | 'armas'
+  | 'idiomas'
+  | 'criaturas'
+  | 'classes';
 
 export interface LibraryItem {
   id: string;
@@ -50,4 +57,5 @@ export interface SharedLibrary {
   armas: WeaponLibraryItem[];
   idiomas: LibraryItem[];
   criaturas: LibraryItem[];
+  classes: LibraryItem[];
 }

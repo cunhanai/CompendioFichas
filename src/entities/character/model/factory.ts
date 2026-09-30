@@ -21,7 +21,7 @@ export function createBlankCharacter(systemId: string, name: string): Character 
 
     identity: {
       raca: '',
-      tamanho: 'Médio',
+      tamanho: '',
       sexo: '',
       idadeNum: 0,
       alturaNum: 0,
@@ -31,8 +31,8 @@ export function createBlankCharacter(systemId: string, name: string): Character 
       divindade: '',
       terraNatal: '',
     },
-    alignmentLaw: 'Neutro',
-    alignmentMoral: 'Neutro',
+    alignmentLaw: '',
+    alignmentMoral: '',
     classes: [],
     speed: { base: 0, armor: 0, fly: 0, flyManeuverability: '', swim: 0, climb: 0, dig: 0 },
     languages: [],
