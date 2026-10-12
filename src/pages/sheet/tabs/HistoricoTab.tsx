@@ -1,11 +1,20 @@
 import { useState } from 'react';
-import { History, TrendingUp } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useCharacter } from '@/app/providers';
 import { SectionCard } from '@/shared/ui/molecules/SectionCard';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
+import { Button } from '@/shared/ui/atoms/Button';
 import type { LevelSnapshot } from '@/entities/character/model/types';
-import { activeLineage, otherBranches } from '@/entities/character/model/snapshots';
+import {
+  activeLineage,
+  otherBranches,
+  takeManualSnapshot,
+} from '@/entities/character/model/snapshots';
 import { SnapshotDetailDialog } from '@/features/level-snapshots';
+import {
+  SNAPSHOT_KIND_COLOR,
+  SNAPSHOT_KIND_ICON,
+} from '@/features/level-snapshots/model/snapshotDisplay';
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -21,6 +30,7 @@ function SnapshotRow({
   isCurrent: boolean;
   onOpen: () => void;
 }) {
+  const Icon = SNAPSHOT_KIND_ICON[snapshot.kind];
   return (
     <button
       type="button"
@@ -36,11 +46,10 @@ function SnapshotRow({
         <span
           className={`flex items-center gap-1.5 text-sm ${isCurrent ? 'text-neutral-200' : 'text-neutral-300'}`}
         >
-          {snapshot.kind === 'restore-point' ? (
-            <History className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} />
-          ) : (
-            <TrendingUp className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2} />
-          )}
+          <Icon
+            className={`h-3.5 w-3.5 shrink-0 ${SNAPSHOT_KIND_COLOR[snapshot.kind]}`}
+            strokeWidth={2}
+          />
           <span className="truncate">{snapshot.label}</span>
         </span>
       </span>
@@ -71,17 +80,29 @@ export function HistoricoTab({ characterId }: { characterId: string }) {
           <h3 className="text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             Snapshots por nível
           </h3>
-          <PillTabs
-            value={tab}
-            onValueChange={setTab}
-            options={[
-              { value: 'atual', label: 'Linha do tempo atual' },
-              {
-                value: 'ramos',
-                label: `Outros ramos${branches.length > 0 ? ` (${branches.length})` : ''}`,
-              },
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {character.active && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => update((c) => takeManualSnapshot(c))}
+              >
+                <Camera className="h-4 w-4" strokeWidth={1.8} />
+                Tirar snapshot agora
+              </Button>
+            )}
+            <PillTabs
+              value={tab}
+              onValueChange={setTab}
+              options={[
+                { value: 'atual', label: 'Linha do tempo atual' },
+                {
+                  value: 'ramos',
+                  label: `Outros ramos${branches.length > 0 ? ` (${branches.length})` : ''}`,
+                },
+              ]}
+            />
+          </div>
         </div>
 
         {tab === 'atual' ? (

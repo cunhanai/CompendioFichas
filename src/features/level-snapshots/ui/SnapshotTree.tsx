@@ -1,6 +1,6 @@
-import { History, TrendingUp } from 'lucide-react';
 import type { LevelSnapshot } from '@/entities/character/model/types';
 import { cn } from '@/shared/lib/cn';
+import { SNAPSHOT_KIND_COLOR, SNAPSHOT_KIND_ICON } from '../model/snapshotDisplay';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
@@ -24,6 +24,7 @@ function Node({
   const kids = childrenByParent.get(snapshot.id) ?? [];
   const isCurrent = snapshot.id === currentSnapshotId;
   const isViewing = snapshot.id === viewingId;
+  const Icon = SNAPSHOT_KIND_ICON[snapshot.kind];
 
   return (
     <div>
@@ -36,11 +37,10 @@ function Node({
           isViewing ? 'bg-amber-950/30 text-amber-300' : 'text-neutral-300 hover:bg-neutral-800/60',
         )}
       >
-        {snapshot.kind === 'restore-point' ? (
-          <History className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} />
-        ) : (
-          <TrendingUp className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2} />
-        )}
+        <Icon
+          className={cn('h-3.5 w-3.5 shrink-0', SNAPSHOT_KIND_COLOR[snapshot.kind])}
+          strokeWidth={2}
+        />
         <span className="min-w-0 flex-1 truncate">{snapshot.label}</span>
         {isCurrent && (
           <span className="shrink-0 rounded-full bg-emerald-900/50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">

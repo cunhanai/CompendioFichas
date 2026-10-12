@@ -39,6 +39,36 @@ export function levelUpClass(character: Character, className: string): Character
   };
 }
 
+/** Free class editing (ClassesEditor) — add/rename/relevel/remove a class to anything, at any
+ * time, never wrapped in withLevelUpSnapshot. This is what lets a paper character already
+ * leveled up be entered as-is (e.g. straight to level 12), and what lets a class be swapped
+ * entirely (e.g. respeccing Mago -> Guerreiro) without it reading as fictitious level-up
+ * history — see DESIGN_NOTES.md. */
+export function addClassAtLevel(character: Character, name: string, level: number): Character {
+  return {
+    ...character,
+    classes: [...character.classes, { id: crypto.randomUUID(), name, level }],
+  };
+}
+
+export function setClassLevel(character: Character, classId: string, level: number): Character {
+  return {
+    ...character,
+    classes: character.classes.map((c) => (c.id === classId ? { ...c, level } : c)),
+  };
+}
+
+export function renameClass(character: Character, classId: string, name: string): Character {
+  return {
+    ...character,
+    classes: character.classes.map((c) => (c.id === classId ? { ...c, name } : c)),
+  };
+}
+
+export function removeClassById(character: Character, classId: string): Character {
+  return { ...character, classes: character.classes.filter((c) => c.id !== classId) };
+}
+
 export function setSpeed(character: Character, patch: Partial<Speed>): Character {
   return { ...character, speed: { ...character.speed, ...patch } };
 }

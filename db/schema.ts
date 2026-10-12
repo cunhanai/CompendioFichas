@@ -557,7 +557,7 @@ export const characterSnapshots = pgTable(
       onDelete: 'set null',
     }),
     level: integer('level').notNull().default(1),
-    kind: text('kind').notNull(), // 'level-up' | 'restore-point'
+    kind: text('kind').notNull(), // 'level-up' | 'restore-point' | 'start' | 'manual'
     label: text('label').notNull(),
     date: text('date').notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

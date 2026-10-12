@@ -196,7 +196,11 @@ export interface LevelSnapshot {
   id: string;
   parentId: string | null;
   level: number;
-  kind: 'level-up' | 'restore-point';
+  /** 'start' marks a character's documented beginning — auto-inserted right before its first
+   * real level-up (see withLevelUpSnapshot), whether that beginning was the ordinary level 1 or
+   * a paper character imported already at a higher level via free class editing. 'manual' is a
+   * player-triggered checkpoint of the current state, independent of any level change. */
+  kind: 'level-up' | 'restore-point' | 'start' | 'manual';
   label: string;
   date: string;
   deletedAt: string | null;
