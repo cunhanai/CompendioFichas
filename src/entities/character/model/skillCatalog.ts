@@ -44,7 +44,7 @@ export const SKILL_CATALOG: SkillTemplate[] = [
   { key: 'conhec-religiao', name: 'Conhecimento (religião)', ability: 'int', trainedOnly: true },
   { key: 'cura', name: 'Cura', ability: 'wis', trainedOnly: false },
   { key: 'diplomacia', name: 'Diplomacia', ability: 'cha', trainedOnly: false },
-  { key: 'disfarce', name: 'Disfarce', ability: 'cha', trainedOnly: false },
+  { key: 'disfarce', name: 'Disfarce', ability: 'dex', trainedOnly: false },
   { key: 'escalar', name: 'Escalar', ability: 'str', trainedOnly: false },
   { key: 'furtividade', name: 'Furtividade', ability: 'dex', trainedOnly: false },
   { key: 'intimidacao', name: 'Intimidação', ability: 'cha', trainedOnly: false },
@@ -128,16 +128,20 @@ function extractSpecialization(name: string): string {
  */
 export function reconcileSkills(skills: Skill[]): Skill[] {
   const presentKeys = new Set(skills.map((s) => s.key));
+  const catalogByKey = new Map(SKILL_CATALOG.map((tpl) => [tpl.key, tpl]));
   const needsFix =
     skills.some(
       (s) =>
         LEGACY_KEY_RENAMES[s.key] ||
         LEGACY_KEY_TO_MULTI_CATEGORY[s.key] ||
-        LEGACY_KEY_MERGE_TARGET[s.key],
+        LEGACY_KEY_MERGE_TARGET[s.key] ||
+        (() => {
+          const tpl = catalogByKey.get(s.key);
+          return tpl ? tpl.ability !== s.ability || tpl.trainedOnly !== s.trainedOnly : false;
+        })(),
     ) || SKILL_CATALOG.some((tpl) => !presentKeys.has(tpl.key));
   if (!needsFix) return skills;
 
-  const catalogByKey = new Map(SKILL_CATALOG.map((tpl) => [tpl.key, tpl]));
   const categoryByKey = new Map(MULTI_SKILL_CATEGORIES.map((c) => [c.categoryKey, c]));
   const result: Skill[] = [];
   let mergeIntoBlefar: Skill | null = null;
@@ -169,6 +173,11 @@ export function reconcileSkills(skills: Skill[]): Skill[] {
     }
     if (LEGACY_KEY_MERGE_TARGET[skill.key]) {
       mergeIntoBlefar = skill;
+      continue;
+    }
+    const tpl = catalogByKey.get(skill.key);
+    if (tpl && (tpl.ability !== skill.ability || tpl.trainedOnly !== skill.trainedOnly)) {
+      result.push({ ...skill, ability: tpl.ability, trainedOnly: tpl.trainedOnly });
       continue;
     }
     result.push(skill);

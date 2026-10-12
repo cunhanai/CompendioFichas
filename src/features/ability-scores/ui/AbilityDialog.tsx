@@ -11,6 +11,7 @@ import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { VariedModRowEdit, VariedModRowView } from '@/shared/ui/molecules/VariedModRow';
 import { Badge } from '@/shared/ui/atoms/Badge';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import {
   addAbilityMod,
   applyAbilityDamage,
@@ -103,11 +104,12 @@ export function AbilityDialog({
                   <input
                     type="number"
                     value={ability.base}
-                    onChange={(e) =>
-                      trackedUpdate((c) =>
-                        setAbilityBase(c, abilityKey, Number(e.target.value) || 0),
-                      )
-                    }
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) {
+                        trackedUpdate((c) => setAbilityBase(c, abilityKey, value));
+                      }
+                    }}
                     className="w-full rounded-md border border-neutral-700 bg-neutral-900 text-center text-sm font-semibold text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </label>
@@ -214,7 +216,10 @@ export function AbilityDialog({
                     <input
                       type="number"
                       value={dmgAmount}
-                      onChange={(e) => setDmgAmount(Number(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = parseNumberInput(e.target.value);
+                        if (value !== null) setDmgAmount(value);
+                      }}
                       className="w-16 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-2 text-center text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                     <input
@@ -256,7 +261,10 @@ export function AbilityDialog({
                     <input
                       type="number"
                       value={drainAmount}
-                      onChange={(e) => setDrainAmount(Number(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = parseNumberInput(e.target.value);
+                        if (value !== null) setDrainAmount(value);
+                      }}
                       className="w-16 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-2 text-center text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                     <input

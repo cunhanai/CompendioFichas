@@ -8,6 +8,7 @@ import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Badge } from '@/shared/ui/atoms/Badge';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import {
   addDrItem,
   addTempHp,
@@ -99,9 +100,10 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                     <input
                       type="number"
                       value={character.hpCurrent}
-                      onChange={(e) =>
-                        trackedUpdate((c) => setHpCurrent(c, Number(e.target.value) || 0))
-                      }
+                      onChange={(e) => {
+                        const value = parseNumberInput(e.target.value);
+                        if (value !== null) trackedUpdate((c) => setHpCurrent(c, value));
+                      }}
                       className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                   </label>
@@ -110,9 +112,10 @@ export function HpDialog({ open, onOpenChange, character, update }: HpDialogProp
                     <input
                       type="number"
                       value={character.hpMax}
-                      onChange={(e) =>
-                        trackedUpdate((c) => setHpMax(c, Number(e.target.value) || 1))
-                      }
+                      onChange={(e) => {
+                        const value = parseNumberInput(e.target.value);
+                        if (value !== null) trackedUpdate((c) => setHpMax(c, value));
+                      }}
                       className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                     />
                   </label>

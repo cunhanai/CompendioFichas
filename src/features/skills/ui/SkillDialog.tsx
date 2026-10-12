@@ -12,6 +12,7 @@ import { Switch } from '@/shared/ui/atoms/Switch';
 import { VariedModRowEdit, VariedModRowView } from '@/shared/ui/molecules/VariedModRow';
 import { Button } from '@/shared/ui/atoms/Button';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import {
   addSkillMod,
   removeSkill,
@@ -90,9 +91,10 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
               <input
                 type="number"
                 value={skill.ranks}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSkillRanks(c, skillKey, Number(e.target.value) || 0))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null) trackedUpdate((c) => setSkillRanks(c, skillKey, value));
+                }}
                 className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
               />
             </div>

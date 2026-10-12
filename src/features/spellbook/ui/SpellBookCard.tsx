@@ -4,6 +4,7 @@ import type { SpellcastingBlock } from '@/entities/character/model/types';
 import { SectionCard } from '@/shared/ui/molecules/SectionCard';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 
 const KIND_DESC: Record<SpellcastingBlock['kind'], string> = {
   espontânea: 'Conhece magias fixas por nível e gasta de um pool de espaços por nível.',
@@ -101,7 +102,10 @@ export function SpellBookCard({
                     type="number"
                     min={0}
                     value={circle.max}
-                    onChange={(e) => onSetCircleMax(circleIndex, Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) onSetCircleMax(circleIndex, Math.max(0, value));
+                    }}
                     className="w-10 rounded border border-neutral-700 bg-neutral-950 px-1 py-0.5 text-center text-xs text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </span>

@@ -5,6 +5,7 @@ import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setXp } from '../model/mutations';
 
 export interface XpDialogProps {
@@ -83,9 +84,10 @@ export function XpDialog({ open, onOpenChange, character, update }: XpDialogProp
                   <input
                     type="number"
                     value={character.xpCurrent}
-                    onChange={(e) =>
-                      trackedUpdate((c) => setXp(c, { xpCurrent: Number(e.target.value) || 0 }))
-                    }
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) trackedUpdate((c) => setXp(c, { xpCurrent: value }));
+                    }}
                     className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </label>
@@ -96,9 +98,10 @@ export function XpDialog({ open, onOpenChange, character, update }: XpDialogProp
                   <input
                     type="number"
                     value={character.xpMax}
-                    onChange={(e) =>
-                      trackedUpdate((c) => setXp(c, { xpMax: Number(e.target.value) || 1 }))
-                    }
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) trackedUpdate((c) => setXp(c, { xpMax: value }));
+                    }}
                     className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </label>

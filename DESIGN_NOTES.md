@@ -808,3 +808,44 @@ avulsa criada na hora).
     `updateSpecial`/`removeSpecial` novos.
 - Os dois já nascem com `whitespace-pre-wrap` na descrição (mesmo ajuste feito no `InfoDialog`
   nesta leva), já que são telas novas pro mesmo tipo de conteúdo multi-linha.
+
+## Fix: impossível digitar "-" em praticamente todo campo numérico do app
+
+Pedido do usuário: "setinha de aumentar ou diminuir numero dos campos não funciona em alguns, e em
+outros ele funciona, mas eu não consigo digitar um '-' para digitar um número". A reclamação de
+seta tratava-se, na leitura do código, de campos com piso (`Math.max(0, ...)`) travando no limite
+inferior — intencional (dinheiro, carga, ranks de perícia não vão negativo) — já o "não consigo
+digitar '-'" era um bug real e generalizado: todo `<input type="number">` controlado do app usava
+`onChange={(e) => setX(Number(e.target.value) || 0)}`, e `Number('-')` é `NaN`, então
+`NaN || 0` colapsa o campo pra `"0"` no primeiro caractere — impossível chegar a digitar `-5` do
+zero (o próximo caractere digitado vira o do começo de "0", não o que viria depois do "-").
+
+- **`shared/lib/parseNumberInput.ts`** (novo): helper único — recebe o texto bruto do input e
+  devolve `number | null`, `null` pra um estado "ainda digitando, não é um número válido de
+  verdade" (um `"-"` sozinho, ou campo vazio). O chamador só comete a mudança quando não é
+  `null`, deixando o buffer nativo do input mostrar exatamente o que foi digitado até virar um
+  número de verdade — é isso que permite digitar o "-" sem o campo colapsar no meio do caminho.
+  6 testes cobrindo `"-"` solto, vazio, negativo/positivo/zero/decimal.
+- Todo `onChange` de `type="number"` do app (cerca de 20 arquivos, ~37 ocorrências, em
+  `combat-stats`, `ability-scores`, `hp-tracker`, `skills`, `weapons`, `inventory`,
+  `sheet-identity`, `spellbook`) trocou o fallback `Number(...) || 0` por esse gate. Onde o campo
+  já tinha um piso explícito (nível de classe, deslocamento, círculo de magia), o piso continua
+  sendo aplicado no commit (`Math.max(0, value)`), só que agora depois de validar que o texto já é
+  um número de verdade — não mais escondendo o "-" no processo.
+- `VariedModRow.tsx` (onde esse fix já tinha sido feito isoladamente, antes deste pedido mais
+  amplo) foi refatorado pra usar o mesmo helper compartilhado em vez da lógica duplicada.
+- `XpDialog.tsx`/`HpDialog.tsx` tinham fallback `|| 1`/clamps redundantes com o que a mutation já
+  fazia internamente (`setHpCurrent`/`setHpMax` já clampam) — removidos sem mudar comportamento.
+
+## Fix: Disfarce estava com a habilidade errada (Carisma em vez de Destreza)
+
+Pedido do usuário, com print mostrando "Disfarce · Carisma · -2". `SKILL_CATALOG` corrigido
+(`ability: 'cha'` → `'dex'`). Como `ability` é guardado por perícia na própria ficha (não
+recalculado toda hora a partir do catalog), uma correção na catalog sozinha não alcançava fichas
+já existentes com Disfarce salvo com `cha` — o mesmo problema de fundo já visto na reescrita da
+catalog de perícias (ver seção acima). `reconcileSkills` ganhou um terceiro gatilho de correção,
+além de rename/merge/multi-categoria: pra qualquer chave já presente e já "atual" (não é legada),
+se `ability`/`trainedOnly` da ficha divergirem do que está no catalog agora, a perícia é
+atualizada pra bater com o catalog, preservando `ranks`/`classSkill`/`mods` — corrige Disfarce em
+fichas antigas automaticamente na próxima abertura, e cobre o mesmo tipo de divergência se
+acontecer de novo no futuro. 1 teste novo cobrindo esse caminho.

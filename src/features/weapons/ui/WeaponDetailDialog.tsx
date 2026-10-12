@@ -8,6 +8,7 @@ import { Switch } from '@/shared/ui/atoms/Switch';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { cn } from '@/shared/lib/cn';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import {
   adjustAmmo,
   patchWeapon,
@@ -151,13 +152,19 @@ export function WeaponDetailDialog({
                     label="Munição atual"
                     type="number"
                     value={weapon.ammoCurrent}
-                    onChange={(e) => set({ ammoCurrent: Number(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) set({ ammoCurrent: value });
+                    }}
                   />
                   <TextField
                     label="Munição máxima"
                     type="number"
                     value={weapon.ammoMax}
-                    onChange={(e) => set({ ammoMax: Number(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) set({ ammoMax: value });
+                    }}
                   />
                 </div>
               )}

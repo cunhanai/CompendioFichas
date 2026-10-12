@@ -11,6 +11,7 @@ import { TextField } from '@/shared/ui/atoms/TextField';
 import { UnitInput } from '@/shared/ui/atoms/UnitInput';
 import { cn } from '@/shared/lib/cn';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setAlignmentLaw, setAlignmentMoral, updateIdentity } from '../model/mutations';
 import { ClassesEditor } from './ClassesEditor';
 
@@ -186,28 +187,29 @@ export function IdentityDialog({
                 label="Idade"
                 unit="anos"
                 value={identity.idadeNum}
-                onChange={(e) =>
-                  trackedUpdate((c) => updateIdentity(c, { idadeNum: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null) trackedUpdate((c) => updateIdentity(c, { idadeNum: value }));
+                }}
               />
               <UnitInput
                 label="Altura"
                 unit="m"
                 step={0.01}
                 value={identity.alturaNum}
-                onChange={(e) =>
-                  trackedUpdate((c) =>
-                    updateIdentity(c, { alturaNum: Number(e.target.value) || 0 }),
-                  )
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null) trackedUpdate((c) => updateIdentity(c, { alturaNum: value }));
+                }}
               />
               <UnitInput
                 label="Peso"
                 unit="kg"
                 value={identity.pesoNum}
-                onChange={(e) =>
-                  trackedUpdate((c) => updateIdentity(c, { pesoNum: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null) trackedUpdate((c) => updateIdentity(c, { pesoNum: value }));
+                }}
               />
               <TextField
                 label="Cabelo"

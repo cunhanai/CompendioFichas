@@ -8,6 +8,7 @@ import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { VariedDot } from '@/shared/ui/atoms/VariedDot';
 import { VariedModRowEdit } from '@/shared/ui/molecules/VariedModRow';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import {
   addAcVariedMod,
   removeAcVariedMod,
@@ -104,9 +105,10 @@ export function AcDialog({
                 <input
                   type="number"
                   value={character[field]}
-                  onChange={(e) =>
-                    trackedUpdate((c) => setAcField(c, field, Number(e.target.value) || 0))
-                  }
+                  onChange={(e) => {
+                    const value = parseNumberInput(e.target.value);
+                    if (value !== null) trackedUpdate((c) => setAcField(c, field, value));
+                  }}
                   className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
                 />
               </div>

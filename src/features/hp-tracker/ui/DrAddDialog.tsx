@@ -3,6 +3,7 @@ import { Popup } from '@/shared/ui/organisms/Popup';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { Button } from '@/shared/ui/atoms/Button';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 
 export interface DrAddDialogProps {
   open: boolean;
@@ -46,7 +47,10 @@ export function DrAddDialog({ open, onOpenChange, onSubmit }: DrAddDialogProps) 
               <input
                 type="number"
                 value={amount}
-                onChange={(e) => setAmount(Number(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null) setAmount(value);
+                }}
                 className="h-[38px] rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
               />
             </label>

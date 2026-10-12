@@ -10,6 +10,7 @@ import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setBbaValue } from '../model/mutations';
 
 export interface ManobrasDialogProps {
@@ -86,9 +87,10 @@ export function ManobrasDialog({
                 <input
                   type="number"
                   value={character.bbaValue}
-                  onChange={(e) =>
-                    trackedUpdate((c) => setBbaValue(c, Number(e.target.value) || 0))
-                  }
+                  onChange={(e) => {
+                    const value = parseNumberInput(e.target.value);
+                    if (value !== null) trackedUpdate((c) => setBbaValue(c, value));
+                  }}
                   className="w-20 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-right text-neutral-100 outline-none focus:border-amber-500"
                 />
               </div>

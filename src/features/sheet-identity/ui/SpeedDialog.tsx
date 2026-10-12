@@ -6,6 +6,7 @@ import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { UnitInput } from '@/shared/ui/atoms/UnitInput';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setSpeed } from '../model/mutations';
 
 export interface SpeedDialogProps {
@@ -97,54 +98,66 @@ export function SpeedDialog({ open, onOpenChange, character, update }: SpeedDial
                 unit="m"
                 step={0.5}
                 value={speed.base}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { base: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { base: Math.max(0, value) }));
+                }}
               />
               <UnitInput
                 label="Com armadura"
                 unit="m"
                 step={0.5}
                 value={speed.armor}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { armor: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { armor: Math.max(0, value) }));
+                }}
               />
               <UnitInput
                 label="Voar"
                 unit="m"
                 step={0.5}
                 value={speed.fly}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { fly: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { fly: Math.max(0, value) }));
+                }}
               />
               <UnitInput
                 label="Nadar"
                 unit="m"
                 step={0.5}
                 value={speed.swim}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { swim: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { swim: Math.max(0, value) }));
+                }}
               />
               <UnitInput
                 label="Escalar"
                 unit="m"
                 step={0.5}
                 value={speed.climb}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { climb: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { climb: Math.max(0, value) }));
+                }}
               />
               <UnitInput
                 label="Cavar"
                 unit="m"
                 step={0.5}
                 value={speed.dig}
-                onChange={(e) =>
-                  trackedUpdate((c) => setSpeed(c, { dig: Number(e.target.value) || 0 }))
-                }
+                onChange={(e) => {
+                  const value = parseNumberInput(e.target.value);
+                  if (value !== null)
+                    trackedUpdate((c) => setSpeed(c, { dig: Math.max(0, value) }));
+                }}
               />
             </div>
             <TextField

@@ -5,6 +5,7 @@ import { UnitInput } from '@/shared/ui/atoms/UnitInput';
 import { Button } from '@/shared/ui/atoms/Button';
 import { ABILITY_SHORT } from '@/entities/character/model/constants';
 import { cn } from '@/shared/lib/cn';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import type { SpellcastingBlock } from '@/entities/character/model/types';
 import type { NewSpellbookInput } from '../model/mutations';
 
@@ -125,7 +126,10 @@ export function SpellBookCreateDialog({
           min={1}
           max={9}
           value={circleCount}
-          onChange={(e) => setCircleCount(Math.min(9, Math.max(1, Number(e.target.value) || 1)))}
+          onChange={(e) => {
+            const value = parseNumberInput(e.target.value);
+            if (value !== null) setCircleCount(Math.min(9, Math.max(1, value)));
+          }}
         />
         <p className="-mt-2 text-[11px] text-neutral-600">
           Quantos círculos essa classe conjura (a maioria vai até o 9º). Dá pra ajustar o número de
