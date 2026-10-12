@@ -649,3 +649,42 @@ negócio, era puramente de UX no campo de valor.
 - Novo `VariedModRow.test.tsx` cobre o cenário que estava quebrado (digitar `-` sem commitar 0,
   depois completar pra `-5` e commitar -5), o caminho feliz de um valor positivo, e o caso de
   limpar o campo sem ele ser forçado de volta pra 0.
+
+## Lista de perícias reescrita (lista oficial completa) + Apresentação/Ofícios/Profissão com múltiplas especializações
+
+Pedido do usuário: substituir a lista de perícias inteira por uma lista nova (fornecida por ele,
+cobrindo a lista oficial completa de Pathfinder 1ª Edição — os 10 subtipos de Conhecimento, e
+perícias que faltavam antes como Voo, Sentir Motivação, Usar Instrumento Mágico, Operar
+Mecanismos, Linguística, Artes Mágicas, Prestidigitação), em ordem alfabética, com Apresentação/
+Profissão/Ofícios suportando múltiplas instâncias nomeadas (cada uma com botão próprio de
+adicionar).
+
+- **`SKILL_CATALOG`** (`entities/character/model/skillCatalog.ts`) reescrito do zero com os 32
+  itens fixos da lista, em ordem alfabética pelo nome de exibição (inclusive os subtipos de
+  Conhecimento, alfabetizados pelo próprio qualificador — "arcano" antes de "engenharia" antes de
+  "exploração" etc.). Como só existia uma caixa de ganchos pra perícia (`character.skills`, sem
+  nenhum campo "tipo"/"categoria" no banco), e trocar a catalog só afeta a seed de personagens
+  **novos** (`createBlankCharacter`) — fichas já salvas guardam suas próprias linhas em
+  `character_skills`, independentes da catalog — essa troca não precisou de migration nem afeta
+  nenhum personagem existente.
+- **Apresentação/Ofícios/Profissão não são linhas fixas da catalog** — viraram
+  `MULTI_SKILL_CATEGORIES` (mesmo arquivo): cada uma define só `label`/`ability`/`trainedOnly`, e
+  o jogador adiciona quantas instâncias nomeadas a ficha realmente tiver (ex.: "Ofícios
+  (Ferreiro)"), via um `AddMultiSkillRow` com campo de texto + botão "+" — um por categoria, do
+  jeito que o usuário pediu. Nenhuma das três veio marcada "apenas treinada" na lista que o
+  usuário passou (ainda que Profissão seja treinada-apenas nas regras oficiais) — seguimos a lista
+  dele à risca em vez de "corrigir" silenciosamente por conta própria.
+- **`addMultiSkill`** (`features/skills/model/mutations.ts`) monta o nome como
+  `"{label} ({especialização})"` e insere a nova linha na posição alfabeticamente correta dentro
+  de `character.skills` (comparando com `localeCompare('pt-BR')`) — a lista inteira se mantém
+  ordenada conforme o usuário pediu ("deixe tudo em ordem alfabética"), mesmo pra instâncias
+  adicionadas depois, sem precisar reordenar tudo a cada render.
+- **`removeSkill`** + botão "Remover perícia" no `SkillDialog` (modo de edição) — só aparece pra
+  perícias que **não** estão na `SKILL_CATALOG` fixa (checado por `key`), já que as fixas não têm
+  (e não devem ter) ponto de remoção na UI; só as instâncias que o próprio jogador criou.
+- `entities/character/model/seed.ts` (dados de demonstração/fixture de teste, não usado em
+  produção — só consumido por `calculations.test.ts`) tinha overrides pelas chaves antigas
+  (`enganacao`, `oficio`, `atuacao`) que sumiram/mudaram de nome na reescrita; `skillsFrom()`
+  ganhou um segundo parâmetro opcional (`extra: Skill[]`) pra representar instâncias
+  multi-especialização nos personagens de exemplo, já que elas não têm mais uma entrada fixa na
+  catalog pra receber overrides por chave.
