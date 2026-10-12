@@ -19,6 +19,17 @@ export function addEquipment(character: Character, item: Omit<EquipmentItem, 'id
   };
 }
 
+export function updateEquipment(
+  character: Character,
+  id: string,
+  patch: Partial<Omit<EquipmentItem, 'id'>>,
+): Character {
+  return {
+    ...character,
+    equipment: character.equipment.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+  };
+}
+
 export function removeEquipment(character: Character, id: string): Character {
   return { ...character, equipment: character.equipment.filter((e) => e.id !== id) };
 }

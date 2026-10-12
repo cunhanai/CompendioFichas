@@ -627,3 +627,87 @@ Guerreiro nível 4) sem isso contar como progressão.
   (encadeamento, independência de mudança de nível). Os testes existentes de linhagem/restore
   foram ajustados pra contar o `'start'` como mais um nó na `activeLineage` (ex.: a sequência que
   antes esperava `[2, 3, 4]` agora espera `[1, 2, 3, 4]`).
+
+## Não dava pra digitar modificador variado negativo de perícia
+
+Pedido do usuário: poder colocar modificadores variados negativos em perícias. O modelo de dados
+já suportava isso de ponta a ponta — `int4` na validação aceita negativos, `sumMods` soma sem
+filtrar por sinal, `updateSkillMod` não faz clamping — então o problema não era de regra de
+negócio, era puramente de UX no campo de valor.
+
+- **Causa raiz**: `VariedModRowEdit` (`shared/ui/molecules/VariedModRow.tsx`) — componente
+  compartilhado por Perícias, Atributos, CA e Iniciativa pra editar "modificadores variados" —
+  usava `onChange={(e) => onValueChange(Number(e.target.value) || 0)}`. Digitar só o `-` (primeiro
+  caractere de um número negativo) faz `Number('-')` virar `NaN`, e `NaN || 0` vira `0` — o campo
+  colapsava de volta pra "0" a cada tecla, antes mesmo de conseguir digitar o resto do número.
+  Impossível digitar um negativo do zero (só funcionava colando o valor já pronto).
+- **Correção**: o `onChange` agora só chama `onValueChange` quando o texto digitado já é um número
+  completo e válido (`raw !== '' && !Number.isNaN(Number(raw))`) — um "-" ou campo vazio em estado
+  intermediário é deixado em paz (o navegador mantém o que foi digitado) até virar um número de
+  verdade. Como é um componente único reaproveitado em 4 diálogos, a correção vale pra todos eles
+  de uma vez, não só perícias.
+- Novo `VariedModRow.test.tsx` cobre o cenário que estava quebrado (digitar `-` sem commitar 0,
+  depois completar pra `-5` e commitar -5), o caminho feliz de um valor positivo, e o caso de
+  limpar o campo sem ele ser forçado de volta pra 0.
+
+## Lista de perícias reescrita (lista oficial completa) + Apresentação/Ofícios/Profissão com múltiplas especializações
+
+Pedido do usuário: substituir a lista de perícias inteira por uma lista nova (fornecida por ele,
+cobrindo a lista oficial completa de Pathfinder 1ª Edição — os 10 subtipos de Conhecimento, e
+perícias que faltavam antes como Voo, Sentir Motivação, Usar Instrumento Mágico, Operar
+Mecanismos, Linguística, Artes Mágicas, Prestidigitação), em ordem alfabética, com Apresentação/
+Profissão/Ofícios suportando múltiplas instâncias nomeadas (cada uma com botão próprio de
+adicionar).
+
+- **`SKILL_CATALOG`** (`entities/character/model/skillCatalog.ts`) reescrito do zero com os 32
+  itens fixos da lista, em ordem alfabética pelo nome de exibição (inclusive os subtipos de
+  Conhecimento, alfabetizados pelo próprio qualificador — "arcano" antes de "engenharia" antes de
+  "exploração" etc.). Como só existia uma caixa de ganchos pra perícia (`character.skills`, sem
+  nenhum campo "tipo"/"categoria" no banco), e trocar a catalog só afeta a seed de personagens
+  **novos** (`createBlankCharacter`) — fichas já salvas guardam suas próprias linhas em
+  `character_skills`, independentes da catalog — essa troca não precisou de migration nem afeta
+  nenhum personagem existente.
+- **Apresentação/Ofícios/Profissão não são linhas fixas da catalog** — viraram
+  `MULTI_SKILL_CATEGORIES` (mesmo arquivo): cada uma define só `label`/`ability`/`trainedOnly`, e
+  o jogador adiciona quantas instâncias nomeadas a ficha realmente tiver (ex.: "Ofícios
+  (Ferreiro)"), via um `AddMultiSkillRow` com campo de texto + botão "+" — um por categoria, do
+  jeito que o usuário pediu. Nenhuma das três veio marcada "apenas treinada" na lista que o
+  usuário passou (ainda que Profissão seja treinada-apenas nas regras oficiais) — seguimos a lista
+  dele à risca em vez de "corrigir" silenciosamente por conta própria.
+- **`addMultiSkill`** (`features/skills/model/mutations.ts`) monta o nome como
+  `"{label} ({especialização})"` e insere a nova linha na posição alfabeticamente correta dentro
+  de `character.skills` (comparando com `localeCompare('pt-BR')`) — a lista inteira se mantém
+  ordenada conforme o usuário pediu ("deixe tudo em ordem alfabética"), mesmo pra instâncias
+  adicionadas depois, sem precisar reordenar tudo a cada render.
+- **`removeSkill`** + botão "Remover perícia" no `SkillDialog` (modo de edição) — só aparece pra
+  perícias que **não** estão na `SKILL_CATALOG` fixa (checado por `key`), já que as fixas não têm
+  (e não devem ter) ponto de remoção na UI; só as instâncias que o próprio jogador criou.
+- `entities/character/model/seed.ts` (dados de demonstração/fixture de teste, não usado em
+  produção — só consumido por `calculations.test.ts`) tinha overrides pelas chaves antigas
+  (`enganacao`, `oficio`, `atuacao`) que sumiram/mudaram de nome na reescrita; `skillsFrom()`
+  ganhou um segundo parâmetro opcional (`extra: Skill[]`) pra representar instâncias
+  multi-especialização nos personagens de exemplo, já que elas não têm mais uma entrada fixa na
+  catalog pra receber overrides por chave.
+
+## Equipamento agora é editável, não só adicionar/remover
+
+Pedido do usuário: poder editar um item de equipamento sem precisar excluir e recriar. Antes,
+`InventarioTab`'s seção "Equipamentos" só tinha `AddEquipmentDialog` (criar) e um X inline
+(remover) — nenhum jeito de corrigir nome/quantidade/peso de um item já existente.
+
+- **`updateEquipment`** (`features/inventory/model/mutations.ts`): patch simples por `id`, mesmo
+  padrão de `updateSkillMod`/`setClassLevel` etc.
+- **`EditEquipmentDialog`** (novo, irmão de `AddEquipmentDialog` em vez de um único diálogo com
+  modo add/edit): só é montado enquanto um item específico está sendo editado
+  (`{editEquipmentItem && <EditEquipmentDialog .../>}`, mesmo padrão já usado em
+  `SnapshotDetailDialog`/`SkillDialog`), então o estado local pode partir direto dos valores do
+  item sem precisar resincronizar a cada reabertura.
+- A linha de cada equipamento agora é clicável (abre o diálogo de edição pré-preenchido) além do
+  botão de remover inline, que continua funcionando igual — com `e.stopPropagation()` pra não
+  disparar os dois ao mesmo tempo, mesmo padrão já usado em `SystemCard.tsx` (favoritar vs. abrir
+  o sistema). A linha clicável ganhou `role="button"`/`tabIndex`/`onKeyDown` (Enter/Espaço) pra
+  não falhar o lint de acessibilidade (`jsx-a11y`), espelhando como `SystemCard.tsx` já resolve
+  isso pro mesmo tipo de div clicável.
+- Escopo deliberadamente limitado a "Equipamentos" (`character.equipment`) — o usuário disse
+  "meu equipamento", e "Itens de CA" (`character.armorItems`) é uma seção separada que não foi
+  pedida; fica pro backlog se um dia for necessário.

@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useCharacter } from '@/app/providers';
 import { computeAllAbilities, computeSkills } from '@/entities/character/model/calculations';
-import { SkillRow, SkillDialog, ConditionalModsDialog } from '@/features/skills';
+import { MULTI_SKILL_CATEGORIES } from '@/entities/character/model/skillCatalog';
+import { SkillRow, SkillDialog, ConditionalModsDialog, AddMultiSkillRow } from '@/features/skills';
+import { addMultiSkill } from '@/features/skills/model/mutations';
 import {
   SectionCard,
   SectionCardButton,
@@ -34,6 +36,23 @@ export function PericiasTab({ characterId }: { characterId: string }) {
             <SkillRow key={skill.key} skill={skill} onOpen={() => setSkillKey(skill.key)} />
           ))}
         </div>
+
+        {character.active && (
+          <div className="mt-4 flex flex-col gap-2 border-t border-neutral-800/70 pt-4">
+            <span className="text-[11px] tracking-wider text-neutral-500 uppercase">
+              Adicionar especialização
+            </span>
+            {MULTI_SKILL_CATEGORIES.map((category) => (
+              <AddMultiSkillRow
+                key={category.categoryKey}
+                category={category}
+                onAdd={(specialization) =>
+                  update((c) => addMultiSkill(c, category, specialization))
+                }
+              />
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCardButton onClick={() => setCondOpen(true)}>

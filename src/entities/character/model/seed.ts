@@ -5,17 +5,22 @@ import type { Character, Skill } from './types';
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString();
 const daysAgo = (d: number) => new Date(Date.now() - d * 24 * 3600 * 1000).toISOString();
 
-function skillsFrom(overrides: Record<string, Partial<Skill>>): Skill[] {
-  return SKILL_CATALOG.map((tpl) => ({
-    key: tpl.key,
-    name: tpl.name,
-    ability: tpl.ability,
-    trainedOnly: tpl.trainedOnly,
-    classSkill: false,
-    ranks: 0,
-    mods: [],
-    ...overrides[tpl.key],
-  }));
+/** `extra` holds any player-added specialization (Apresentação/Ofícios/Profissão) this demo
+ * character has — those aren't fixed SKILL_CATALOG rows, so they can't go through `overrides`. */
+function skillsFrom(overrides: Record<string, Partial<Skill>>, extra: Skill[] = []): Skill[] {
+  return [
+    ...SKILL_CATALOG.map((tpl) => ({
+      key: tpl.key,
+      name: tpl.name,
+      ability: tpl.ability,
+      trainedOnly: tpl.trainedOnly,
+      classSkill: false,
+      ranks: 0,
+      mods: [],
+      ...overrides[tpl.key],
+    })),
+    ...extra,
+  ];
 }
 
 const ELYNDRA: Character = {
@@ -137,24 +142,40 @@ const ELYNDRA: Character = {
     },
   ],
 
-  skills: skillsFrom({
-    acrobacia: { classSkill: true, ranks: 2 },
-    artefuga: { ranks: 0 },
-    conhecarcano: { classSkill: true, ranks: 3 },
-    conhecreligiao: { classSkill: true, ranks: 2 },
-    cura: { classSkill: true, ranks: 1 },
-    diplomacia: { classSkill: true, ranks: 3 },
-    enganacao: { classSkill: true, ranks: 2 },
-    furtividade: { ranks: 0, conditional: 'Com armadura pesada −5' },
-    intimidacao: { classSkill: true, ranks: 0 },
-    percepcao: { ranks: 2 },
-    oficio: { name: 'Ofício (alquimia)', ranks: 1 },
-    atuacao: {
-      name: 'Atuação (canto)',
-      ranks: 2,
-      mods: [{ id: 'sk-mod-1', label: 'Instrumento superior', value: 2 }],
+  skills: skillsFrom(
+    {
+      acrobacia: { classSkill: true, ranks: 2 },
+      'arte-da-fuga': { ranks: 0 },
+      'conhec-arcano': { classSkill: true, ranks: 3 },
+      'conhec-religiao': { classSkill: true, ranks: 2 },
+      cura: { classSkill: true, ranks: 1 },
+      diplomacia: { classSkill: true, ranks: 3 },
+      blefar: { classSkill: true, ranks: 2 },
+      furtividade: { ranks: 0, conditional: 'Com armadura pesada −5' },
+      intimidacao: { classSkill: true, ranks: 0 },
+      percepcao: { ranks: 2 },
     },
-  }),
+    [
+      {
+        key: 'sk-oficio-alquimia',
+        name: 'Ofícios (alquimia)',
+        ability: 'int',
+        trainedOnly: false,
+        classSkill: false,
+        ranks: 1,
+        mods: [],
+      },
+      {
+        key: 'sk-apresentacao-canto',
+        name: 'Apresentação (canto)',
+        ability: 'cha',
+        trainedOnly: false,
+        classSkill: false,
+        ranks: 2,
+        mods: [{ id: 'sk-mod-1', label: 'Instrumento superior', value: 2 }],
+      },
+    ],
+  ),
   conditionalMods: [{ id: 'cond-1', text: 'Furtividade com armadura pesada −5' }],
 
   weapons: [
@@ -477,10 +498,10 @@ const SABLE: Character = {
 
   skills: skillsFrom({
     acrobacia: { classSkill: true, ranks: 4 },
-    artefuga: { classSkill: true, ranks: 4 },
+    'arte-da-fuga': { classSkill: true, ranks: 4 },
     furtividade: { classSkill: true, ranks: 4 },
     percepcao: { classSkill: true, ranks: 3 },
-    enganacao: { classSkill: true, ranks: 2 },
+    blefar: { classSkill: true, ranks: 2 },
     disfarce: { classSkill: true, ranks: 1 },
   }),
   conditionalMods: [],
@@ -621,8 +642,8 @@ const KAELEN: Character = {
   spellLikeAbilities: [],
 
   skills: skillsFrom({
-    conhecarcano: { classSkill: true, ranks: 2 },
-    conhecreligiao: { classSkill: true, ranks: 1 },
+    'conhec-arcano': { classSkill: true, ranks: 2 },
+    'conhec-religiao': { classSkill: true, ranks: 1 },
     percepcao: { ranks: 1 },
   }),
   conditionalMods: [],

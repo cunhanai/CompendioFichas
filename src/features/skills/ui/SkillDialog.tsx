@@ -1,19 +1,27 @@
+import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { Character } from '@/entities/character/model/types';
 import { computeAllAbilities, computeSkill, signed } from '@/entities/character/model/calculations';
 import { ABILITY_LONG } from '@/entities/character/model/constants';
+import { SKILL_CATALOG } from '@/entities/character/model/skillCatalog';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
+import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { VariedModRowEdit, VariedModRowView } from '@/shared/ui/molecules/VariedModRow';
+import { Button } from '@/shared/ui/atoms/Button';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import {
   addSkillMod,
+  removeSkill,
   removeSkillMod,
   setSkillRanks,
   toggleSkillClass,
   updateSkillMod,
 } from '../model/mutations';
+
+const CATALOG_KEYS = new Set(SKILL_CATALOG.map((tpl) => tpl.key));
 
 export interface SkillDialogProps {
   open: boolean;
@@ -36,11 +44,15 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
     cancelClose,
     update: trackedUpdate,
   } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const abilities = computeAllAbilities(character.abilities);
   const skill = character.skills.find((s) => s.key === skillKey);
   if (!skill) return null;
   const computed = computeSkill(skill, abilities);
   const trainedWarning = skill.trainedOnly && skill.ranks === 0;
+  // Only a player-added specialization (Apresentação/Ofícios/Profissão) can be removed — the
+  // fixed catalog rows have no removal entry point anywhere in the UI.
+  const isRemovable = !CATALOG_KEYS.has(skillKey);
 
   return (
     <>
@@ -150,12 +162,35 @@ export function SkillDialog({ open, onOpenChange, skillKey, character, update }:
             </div>
           )}
         </div>
+
+        {editing && isRemovable && (
+          <Button
+            variant="secondary"
+            className="mt-4 w-full"
+            onClick={() => setConfirmRemove(true)}
+          >
+            <Trash2 className="h-4 w-4 text-rose-400" strokeWidth={1.8} />
+            Remover perícia
+          </Button>
+        )}
       </Popup>
       <UnsavedChangesDialog
         open={confirmingClose}
         onOpenChange={(o) => !o && cancelClose()}
         onSave={keepChanges}
         onDiscard={discardChanges}
+      />
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remover esta perícia?"
+        message={`"${skill.name}" sai da ficha, junto com a graduação e os modificadores variados dela.`}
+        confirmLabel="Remover"
+        onConfirm={() => {
+          update((c) => removeSkill(c, skillKey));
+          setConfirmRemove(false);
+          onOpenChange(false);
+        }}
       />
     </>
   );

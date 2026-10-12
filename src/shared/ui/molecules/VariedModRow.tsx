@@ -50,7 +50,16 @@ export function VariedModRowEdit({
       <input
         type="number"
         value={value}
-        onChange={(e) => onValueChange(Number(e.target.value) || 0)}
+        onChange={(e) => {
+          // Typing a negative value starts with a lone "-", which Number() parses as NaN — a
+          // naive `Number(x) || 0` fallback would collapse the field back to "0" on that very
+          // first keystroke, making it impossible to ever type a negative number. Only commit
+          // when the input is a complete, valid number; an in-progress "-" or "" is left alone
+          // (the browser keeps showing it) until it resolves into one.
+          const raw = e.target.value;
+          const parsed = Number(raw);
+          if (raw !== '' && !Number.isNaN(parsed)) onValueChange(parsed);
+        }}
         placeholder="+0"
         className="w-16 shrink-0 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-2 text-right text-sm text-neutral-200 outline-none focus:border-amber-500"
       />
