@@ -5,12 +5,14 @@ import { computeCarriedWeight, loadState } from '@/entities/character/model/calc
 import {
   AddArmorItemDialog,
   AddEquipmentDialog,
+  EditEquipmentDialog,
   LoadDialog,
   MoneyDialog,
   addArmorItem,
   addEquipment,
   removeArmorItem,
   removeEquipment,
+  updateEquipment,
 } from '@/features/inventory';
 import {
   SectionCard,
@@ -24,6 +26,8 @@ export function InventarioTab({ characterId }: { characterId: string }) {
   const { character, update } = useCharacter(characterId);
   const [popup, setPopup] = useState<Popup>(null);
   const close = () => setPopup(null);
+  const [editEquipmentId, setEditEquipmentId] = useState<string | null>(null);
+  const editEquipmentItem = character.equipment.find((e) => e.id === editEquipmentId) ?? null;
 
   const carried = computeCarriedWeight(character);
 
@@ -84,7 +88,19 @@ export function InventarioTab({ characterId }: { characterId: string }) {
         />
         <div className="flex flex-col divide-y divide-neutral-800/70">
           {character.equipment.map((item) => (
-            <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
+            <div
+              key={item.id}
+              role={character.active ? 'button' : undefined}
+              tabIndex={character.active ? 0 : undefined}
+              onClick={() => character.active && setEditEquipmentId(item.id)}
+              onKeyDown={(e) => {
+                if (character.active && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  setEditEquipmentId(item.id);
+                }
+              }}
+              className={`flex items-center justify-between py-2.5 text-sm ${character.active ? 'cursor-pointer hover:text-neutral-100' : ''}`}
+            >
               <span className="text-neutral-200">{item.name}</span>
               <span className="flex items-center gap-2 text-neutral-500">
                 {item.qty} × {item.unitWeight} kg ={' '}
@@ -92,7 +108,10 @@ export function InventarioTab({ characterId }: { characterId: string }) {
                 {character.active && (
                   <button
                     title="Remover"
-                    onClick={() => update((c) => removeEquipment(c, item.id))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      update((c) => removeEquipment(c, item.id));
+                    }}
                     className="text-neutral-600 hover:text-rose-400"
                   >
                     <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -165,6 +184,17 @@ export function InventarioTab({ characterId }: { characterId: string }) {
           close();
         }}
       />
+      {editEquipmentItem && (
+        <EditEquipmentDialog
+          open
+          onOpenChange={(o) => !o && setEditEquipmentId(null)}
+          item={editEquipmentItem}
+          onSubmit={(patch) => {
+            update((c) => updateEquipment(c, editEquipmentItem.id, patch));
+            setEditEquipmentId(null);
+          }}
+        />
+      )}
       <AddArmorItemDialog
         open={popup === 'addArmor'}
         onOpenChange={(o) => !o && close()}

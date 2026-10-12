@@ -688,3 +688,26 @@ adicionar).
   ganhou um segundo parâmetro opcional (`extra: Skill[]`) pra representar instâncias
   multi-especialização nos personagens de exemplo, já que elas não têm mais uma entrada fixa na
   catalog pra receber overrides por chave.
+
+## Equipamento agora é editável, não só adicionar/remover
+
+Pedido do usuário: poder editar um item de equipamento sem precisar excluir e recriar. Antes,
+`InventarioTab`'s seção "Equipamentos" só tinha `AddEquipmentDialog` (criar) e um X inline
+(remover) — nenhum jeito de corrigir nome/quantidade/peso de um item já existente.
+
+- **`updateEquipment`** (`features/inventory/model/mutations.ts`): patch simples por `id`, mesmo
+  padrão de `updateSkillMod`/`setClassLevel` etc.
+- **`EditEquipmentDialog`** (novo, irmão de `AddEquipmentDialog` em vez de um único diálogo com
+  modo add/edit): só é montado enquanto um item específico está sendo editado
+  (`{editEquipmentItem && <EditEquipmentDialog .../>}`, mesmo padrão já usado em
+  `SnapshotDetailDialog`/`SkillDialog`), então o estado local pode partir direto dos valores do
+  item sem precisar resincronizar a cada reabertura.
+- A linha de cada equipamento agora é clicável (abre o diálogo de edição pré-preenchido) além do
+  botão de remover inline, que continua funcionando igual — com `e.stopPropagation()` pra não
+  disparar os dois ao mesmo tempo, mesmo padrão já usado em `SystemCard.tsx` (favoritar vs. abrir
+  o sistema). A linha clicável ganhou `role="button"`/`tabIndex`/`onKeyDown` (Enter/Espaço) pra
+  não falhar o lint de acessibilidade (`jsx-a11y`), espelhando como `SystemCard.tsx` já resolve
+  isso pro mesmo tipo de div clicável.
+- Escopo deliberadamente limitado a "Equipamentos" (`character.equipment`) — o usuário disse
+  "meu equipamento", e "Itens de CA" (`character.armorItems`) é uma seção separada que não foi
+  pedida; fica pro backlog se um dia for necessário.
