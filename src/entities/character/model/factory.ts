@@ -1,4 +1,4 @@
-import { SKILL_CATALOG } from './skillCatalog';
+import { reconcileSkills, SKILL_CATALOG } from './skillCatalog';
 import type { Character } from './types';
 
 function blankAbility() {
@@ -108,19 +108,25 @@ export function createBlankCharacter(systemId: string, name: string): Character 
 }
 
 /**
- * Fills in defaults for fields that didn't exist yet when a character's JSONB blob was written —
+ * Fills in defaults for fields that didn't exist yet when a character was first saved —
  * `levelSnapshots`/`currentSnapshotId` were added after real characters were already in the DB,
- * so a stored blob predating this feature simply doesn't have them. Every character coming in
- * from the API goes through this before the rest of the app (snapshot logic in particular) ever
- * touches it, so nothing downstream needs to treat those fields as possibly absent.
+ * so a character predating this feature simply doesn't have them — and brings `skills` in line
+ * with the current SKILL_CATALOG (see reconcileSkills), since a character saved before a catalog
+ * rewrite keeps whatever keys/names it had at the time forever otherwise. Every character coming
+ * in from the API goes through this before the rest of the app ever touches it, so nothing
+ * downstream needs to treat either as possibly out of date.
  */
 export function normalizeCharacter(character: Character): Character {
-  if (Array.isArray(character.levelSnapshots) && character.currentSnapshotId !== undefined) {
+  const skills = reconcileSkills(character.skills);
+  const hasSnapshotFields =
+    Array.isArray(character.levelSnapshots) && character.currentSnapshotId !== undefined;
+  if (hasSnapshotFields && skills === character.skills) {
     return character;
   }
   return {
     ...character,
     levelSnapshots: character.levelSnapshots ?? [],
     currentSnapshotId: character.currentSnapshotId ?? null,
+    skills,
   };
 }

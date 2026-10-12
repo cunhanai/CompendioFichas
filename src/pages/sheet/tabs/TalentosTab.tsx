@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
-import type { Character } from '@/entities/character/model/types';
 import {
+  FeatDetailDialog,
   FeatPickDialog,
+  SpecialDetailDialog,
   SpecialPickDialog,
   addCustomSpecial,
   addFeatFromLibrary,
@@ -11,12 +12,6 @@ import {
 } from '@/features/feats-and-abilities';
 import { AddLibraryItemDialog } from '@/features/shared-library';
 import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
-import { InfoDialog } from '@/shared/ui/organisms/InfoDialog';
-
-type Detail = {
-  kind: 'feat' | 'special';
-  item: Character['feats'][number] | Character['specials'][number];
-} | null;
 
 export function TalentosTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
@@ -25,7 +20,8 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
   const [featPickOpen, setFeatPickOpen] = useState(false);
   const [specialPickOpen, setSpecialPickOpen] = useState(false);
   const [newFeatOpen, setNewFeatOpen] = useState(false);
-  const [detail, setDetail] = useState<Detail>(null);
+  const [featDetailId, setFeatDetailId] = useState<string | null>(null);
+  const [specialDetailId, setSpecialDetailId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,7 +44,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
             <button
               key={feat.id}
               type="button"
-              onClick={() => setDetail({ kind: 'feat', item: feat })}
+              onClick={() => setFeatDetailId(feat.id)}
               className="rounded-lg bg-neutral-950 px-4 py-3 text-left transition hover:bg-neutral-900"
             >
               <div className="flex items-center justify-between gap-2">
@@ -82,7 +78,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
             <button
               key={sp.id}
               type="button"
-              onClick={() => setDetail({ kind: 'special', item: sp })}
+              onClick={() => setSpecialDetailId(sp.id)}
               className="flex items-center justify-between rounded-lg bg-neutral-950 px-4 py-3 text-left transition hover:bg-neutral-900"
             >
               <div>
@@ -131,17 +127,24 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         }}
       />
 
-      <InfoDialog
-        open={detail != null}
-        onOpenChange={(o) => !o && setDetail(null)}
-        title={detail?.item.name ?? ''}
-        subtitle={
-          detail?.kind === 'feat'
-            ? (detail.item as Character['feats'][number]).tag
-            : (detail?.item as Character['specials'][number] | undefined)?.subtitle
-        }
-        description={detail?.item.desc}
-      />
+      {featDetailId && (
+        <FeatDetailDialog
+          open
+          onOpenChange={(o) => !o && setFeatDetailId(null)}
+          featId={featDetailId}
+          character={character}
+          update={update}
+        />
+      )}
+      {specialDetailId && (
+        <SpecialDetailDialog
+          open
+          onOpenChange={(o) => !o && setSpecialDetailId(null)}
+          specialId={specialDetailId}
+          character={character}
+          update={update}
+        />
+      )}
     </div>
   );
 }

@@ -38,7 +38,11 @@ export function InfoDialog({
           ))}
         </div>
       )}
-      {description && <p className="text-sm leading-relaxed text-neutral-300">{description}</p>}
+      {description && (
+        <p className="text-sm leading-relaxed whitespace-pre-wrap text-neutral-300">
+          {description}
+        </p>
+      )}
       {children}
     </Popup>
   );

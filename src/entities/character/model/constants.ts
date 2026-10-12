@@ -1,4 +1,5 @@
 import type { AbilityKey, AlignmentLaw, AlignmentMoral, Size } from './types';
+import type { LoadState } from './calculations';
 
 export const ABILITY_KEYS: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
@@ -37,6 +38,15 @@ export const ABILITY_COLOR_CLASS: Record<AbilityKey, string> = {
   int: 'text-sky-400',
   wis: 'text-violet-400',
   cha: 'text-pink-400',
+};
+
+/** Tailwind background class for the load bar fill, per carried-weight state — green while
+ * under medium, orange at medium, red at heavy or beyond. */
+export const LOAD_STATE_BAR_COLOR: Record<LoadState, string> = {
+  leve: 'bg-emerald-500',
+  média: 'bg-orange-500',
+  pesada: 'bg-rose-500',
+  sobrecarregado: 'bg-rose-500',
 };
 
 export const SIZES: Size[] = [
