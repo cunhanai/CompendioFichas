@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Button } from '@/shared/ui/atoms/Button';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 
 export function AddArmorItemDialog({
   open,
@@ -43,26 +44,38 @@ export function AddArmorItemDialog({
             label="Bônus de CA"
             type="number"
             value={form.bonus}
-            onChange={(e) => set('bonus', Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) set('bonus', value);
+            }}
           />
           <TextField
             label="Penalidade"
             type="number"
             value={form.checkPenalty}
-            onChange={(e) => set('checkPenalty', Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) set('checkPenalty', value);
+            }}
           />
           <TextField
             label="Falha arcana (%)"
             type="number"
             value={form.arcaneFailure}
-            onChange={(e) => set('arcaneFailure', Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) set('arcaneFailure', value);
+            }}
           />
           <TextField
             label="Peso (kg)"
             type="number"
             step={0.1}
             value={form.weight}
-            onChange={(e) => set('weight', Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) set('weight', value);
+            }}
           />
         </div>
         <Button onClick={submit}>Adicionar</Button>

@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { Check, Plus, Search } from 'lucide-react';
-import type { LibraryItem } from '@/entities/library-item/model/types';
+import type { FeatLibraryItem } from '@/entities/library-item/model/types';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { cn } from '@/shared/lib/cn';
 
 export interface FeatPickDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  feats: LibraryItem[];
+  feats: FeatLibraryItem[];
   addedNames: string[];
-  onPick: (feat: LibraryItem) => void;
+  onPick: (feat: FeatLibraryItem) => void;
   onCreateNew: () => void;
 }
 

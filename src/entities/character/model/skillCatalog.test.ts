@@ -127,6 +127,18 @@ describe('reconcileSkills', () => {
     expect(names).toEqual(sorted);
   });
 
+  it('syncs ability/trainedOnly for an already-current key when the catalog definition changes, keeping ranks/classSkill/mods', () => {
+    const skills = baseSkills().map((s) =>
+      s.key === 'disfarce' ? { ...s, ability: 'cha' as const, classSkill: true, ranks: 2 } : s,
+    );
+    const result = reconcileSkills(skills);
+    const disfarce = result.find((s) => s.key === 'disfarce');
+    expect(disfarce).toBeDefined();
+    expect(disfarce!.ability).toBe('dex');
+    expect(disfarce!.classSkill).toBe(true);
+    expect(disfarce!.ranks).toBe(2);
+  });
+
   it('covers every multi-specialization category with a legacy conversion', () => {
     // Sanity check against drift: if a category is ever added/removed, this test forces the
     // legacy-conversion test cases above to be reconsidered.

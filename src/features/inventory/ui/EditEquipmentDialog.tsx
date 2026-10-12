@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Button } from '@/shared/ui/atoms/Button';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 
 export interface EditEquipmentDialogProps {
   open: boolean;
@@ -38,14 +39,20 @@ export function EditEquipmentDialog({
             label="Quantidade"
             type="number"
             value={qty}
-            onChange={(e) => setQty(Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) setQty(value);
+            }}
           />
           <TextField
             label="Peso unitário (kg)"
             type="number"
             step={0.01}
             value={unitWeight}
-            onChange={(e) => setUnitWeight(Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) setUnitWeight(value);
+            }}
           />
         </div>
         <Button onClick={submit}>Salvar</Button>

@@ -4,6 +4,7 @@ import type { Character } from '@/entities/character/model/types';
 import { useAppData, useLibrary } from '@/app/providers';
 import { TextInput } from '@/shared/ui/atoms/TextField';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { addClassAtLevel, removeClassById, renameClass, setClassLevel } from '../model/mutations';
 
 export interface ClassesEditorProps {
@@ -47,7 +48,10 @@ export function ClassesEditor({ character, update }: ClassesEditorProps) {
             type="number"
             min={0}
             value={cls.level}
-            onChange={(e) => update((c) => setClassLevel(c, cls.id, Number(e.target.value) || 0))}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) update((c) => setClassLevel(c, cls.id, Math.max(0, value)));
+            }}
             className="w-16 shrink-0"
           />
           <IconButton
@@ -70,7 +74,10 @@ export function ClassesEditor({ character, update }: ClassesEditorProps) {
           type="number"
           min={0}
           value={newLevel}
-          onChange={(e) => setNewLevel(Number(e.target.value) || 0)}
+          onChange={(e) => {
+            const value = parseNumberInput(e.target.value);
+            if (value !== null) setNewLevel(Math.max(0, value));
+          }}
           className="w-16 shrink-0"
         />
         <IconButton label="Adicionar classe" variant="amber" onClick={addNew}>

@@ -808,3 +808,96 @@ avulsa criada na hora).
     `updateSpecial`/`removeSpecial` novos.
 - Os dois já nascem com `whitespace-pre-wrap` na descrição (mesmo ajuste feito no `InfoDialog`
   nesta leva), já que são telas novas pro mesmo tipo de conteúdo multi-linha.
+
+## Fix: impossível digitar "-" em praticamente todo campo numérico do app
+
+Pedido do usuário: "setinha de aumentar ou diminuir numero dos campos não funciona em alguns, e em
+outros ele funciona, mas eu não consigo digitar um '-' para digitar um número". A reclamação de
+seta tratava-se, na leitura do código, de campos com piso (`Math.max(0, ...)`) travando no limite
+inferior — intencional (dinheiro, carga, ranks de perícia não vão negativo) — já o "não consigo
+digitar '-'" era um bug real e generalizado: todo `<input type="number">` controlado do app usava
+`onChange={(e) => setX(Number(e.target.value) || 0)}`, e `Number('-')` é `NaN`, então
+`NaN || 0` colapsa o campo pra `"0"` no primeiro caractere — impossível chegar a digitar `-5` do
+zero (o próximo caractere digitado vira o do começo de "0", não o que viria depois do "-").
+
+- **`shared/lib/parseNumberInput.ts`** (novo): helper único — recebe o texto bruto do input e
+  devolve `number | null`, `null` pra um estado "ainda digitando, não é um número válido de
+  verdade" (um `"-"` sozinho, ou campo vazio). O chamador só comete a mudança quando não é
+  `null`, deixando o buffer nativo do input mostrar exatamente o que foi digitado até virar um
+  número de verdade — é isso que permite digitar o "-" sem o campo colapsar no meio do caminho.
+  6 testes cobrindo `"-"` solto, vazio, negativo/positivo/zero/decimal.
+- Todo `onChange` de `type="number"` do app (cerca de 20 arquivos, ~37 ocorrências, em
+  `combat-stats`, `ability-scores`, `hp-tracker`, `skills`, `weapons`, `inventory`,
+  `sheet-identity`, `spellbook`) trocou o fallback `Number(...) || 0` por esse gate. Onde o campo
+  já tinha um piso explícito (nível de classe, deslocamento, círculo de magia), o piso continua
+  sendo aplicado no commit (`Math.max(0, value)`), só que agora depois de validar que o texto já é
+  um número de verdade — não mais escondendo o "-" no processo.
+- `VariedModRow.tsx` (onde esse fix já tinha sido feito isoladamente, antes deste pedido mais
+  amplo) foi refatorado pra usar o mesmo helper compartilhado em vez da lógica duplicada.
+- `XpDialog.tsx`/`HpDialog.tsx` tinham fallback `|| 1`/clamps redundantes com o que a mutation já
+  fazia internamente (`setHpCurrent`/`setHpMax` já clampam) — removidos sem mudar comportamento.
+
+## Fix: Disfarce estava com a habilidade errada (Carisma em vez de Destreza)
+
+Pedido do usuário, com print mostrando "Disfarce · Carisma · -2". `SKILL_CATALOG` corrigido
+(`ability: 'cha'` → `'dex'`). Como `ability` é guardado por perícia na própria ficha (não
+recalculado toda hora a partir do catalog), uma correção na catalog sozinha não alcançava fichas
+já existentes com Disfarce salvo com `cha` — o mesmo problema de fundo já visto na reescrita da
+catalog de perícias (ver seção acima). `reconcileSkills` ganhou um terceiro gatilho de correção,
+além de rename/merge/multi-categoria: pra qualquer chave já presente e já "atual" (não é legada),
+se `ability`/`trainedOnly` da ficha divergirem do que está no catalog agora, a perícia é
+atualizada pra bater com o catalog, preservando `ranks`/`classSkill`/`mods` — corrige Disfarce em
+fichas antigas automaticamente na próxima abertura, e cobre o mesmo tipo de divergência se
+acontecer de novo no futuro. 1 teste novo cobrindo esse caminho.
+
+## Fix: prévia de habilidade especial não mostrava a descrição
+
+Pedido do usuário, com print da lista de "Habilidades especiais" mostrando só nome e "Avulsa" —
+sem indicação nenhuma do que a habilidade faz até clicar pra abrir o detalhe. A lista de Talentos
+logo acima já mostrava uma prévia da descrição (`feat.desc`) embaixo da tag; a de Habilidades
+especiais (`TalentosTab.tsx`) só mostrava `sp.subtitle`. Adicionada a mesma prévia de descrição
+(`sp.desc`, quando não vazia) embaixo do subtítulo, com `min-w-0` no container de texto pra não
+quebrar o layout quando a descrição é longa e a linha também tem o badge de `uses` à direita.
+
+## Talentos ganham Pré-requisito/Benefício, e a descrição agora suporta Markdown
+
+Pedido do usuário: "nos talentos, preciso poder colocar campos para pre-requisito, para
+descrição e benefício. Na descrição também posso adicionar tabelas e colocar negrito (vamos
+fazer isso usando markdown)".
+
+- **`Feat`** (`entities/character/model/types.ts`) e **`FeatLibraryItem`** (novo tipo em
+  `entities/library-item/model/types.ts`, substituindo o `LibraryItem` genérico que `talentos`
+  usava antes) ganham `prerequisite: string` e `benefit: string` — texto livre, sempre presentes
+  (vazio quando o talento não tem), mesmo padrão dos outros campos de texto da ficha (não
+  opcionais, com default `''`).
+- **Banco**: `character_feats` e `library_feats` ganham as duas colunas (`text` not null default
+  `''`) — migration `0017_tearful_sheva_callister.sql`, puro ADD COLUMN, sem ambiguidade. Schema
+  (`characterFeatSchema`/novo `featItemSchema` em `api/_lib/validation.ts`) e a montagem/persistência
+  em `api/_lib/characterRepo.ts` atualizados pra carregar os dois campos — sem isso, mandar
+  `prerequisite`/`benefit` pro backend seria silenciosamente descartado pelo zod (`safeParse`
+  ignora chaves que o schema não declara).
+- **`talentos` ganha seu próprio endpoint de validação** (`featItemSchema`) em vez do
+  `genericLibraryItemSchema` compartilhado com perícias/idiomas/criaturas/classes — ele não tem
+  `prerequisite`/`benefit`, só `talentos` precisa.
+- **`FeatDetailDialog`**: modo edição ganha dois campos novos (`TextField` simples, texto livre,
+  sem markdown — só a descrição suporta markdown); modo visualização mostra os dois (quando
+  preenchidos) via `FieldView`, e a descrição passa a renderizar com o componente `Markdown` novo
+  em vez do `<p whitespace-pre-wrap>` de antes.
+- **`FeatLibraryAddDialog`** (novo, substitui o `AddLibraryItemDialog` genérico que `TalentosTab`
+  usava pro fluxo "não achei — cadastrar novo talento"): formulário dedicado com
+  nome/tag/pré-requisito/benefício/descrição, mesmo padrão já estabelecido por
+  `WeaponLibraryAddDialog` pra armas. `addFeatToLibrary` novo em `AppDataProvider`
+  (`postLibraryItem(systemId, 'talentos', feat)`), espelhando `addWeaponToLibrary`/
+  `addSpecialToLibrary` — o `addLibraryItem` genérico (usado por perícias/idiomas/criaturas/
+  classes) perde o case `'talentos'`, que não faz mais sentido nele.
+- **`shared/ui/atoms/Markdown.tsx`** (novo): `react-markdown` + `remark-gfm` (negrito, tabelas,
+  e o resto do GFM) + `remark-breaks` (sem esse plugin, uma única quebra de linha `\n` vira só um
+  espaço em branco no Markdown/CommonMark padrão — precisaria de uma linha em branco pra virar
+  parágrafo novo — o que quebraria toda descrição de talento já escrita antes deste componente
+  existir, que sempre contou com `whitespace-pre-wrap` tratando `\n` como quebra visível).
+  Overrides de `components` só no que o reset do Tailwind tira (bordas de tabela, marcador de
+  lista); todo o resto herda a cor/tamanho de texto do container. 3 testes novos
+  (`Markdown.test.tsx`) cobrindo negrito, tabela GFM e a quebra de linha única.
+- Escopo deliberadamente restrito à descrição dos talentos (não estendido a perícias, magias,
+  habilidades especiais, etc.) — é o que foi pedido; o componente `Markdown` fica em `shared/ui`
+  justamente pra poder ser reaproveitado se/quando isso for pedido noutro lugar.

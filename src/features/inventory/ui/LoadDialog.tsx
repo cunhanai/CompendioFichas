@@ -5,6 +5,7 @@ import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setLoadField } from '../model/mutations';
 
 const FIELDS: { key: keyof Character['load']; label: string }[] = [
@@ -91,9 +92,10 @@ export function LoadDialog({
                   <input
                     type="number"
                     value={character.load[f.key]}
-                    onChange={(e) =>
-                      trackedUpdate((c) => setLoadField(c, f.key, Number(e.target.value) || 0))
-                    }
+                    onChange={(e) => {
+                      const value = parseNumberInput(e.target.value);
+                      if (value !== null) trackedUpdate((c) => setLoadField(c, f.key, value));
+                    }}
                     className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                   />
                 </label>

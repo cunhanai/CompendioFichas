@@ -375,6 +375,8 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
         id: f.id,
         name: f.name,
         tag: f.tag,
+        prerequisite: f.prerequisite,
+        benefit: f.benefit,
         desc: f.desc,
       })),
       specials: specialsForCharacter
@@ -746,6 +748,8 @@ function buildInserts(character: Character): BatchQuery[] {
           characterId: id,
           name: f.name,
           tag: f.tag,
+          prerequisite: f.prerequisite,
+          benefit: f.benefit,
           desc: f.desc,
           sortOrder: i,
         })),

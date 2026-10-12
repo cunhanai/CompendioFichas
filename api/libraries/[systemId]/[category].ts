@@ -14,6 +14,7 @@ import { isLibraryCategory } from '../../../db/library.js';
 import { requireUserId } from '../../_lib/auth.js';
 import { withErrorHandling } from '../../_lib/handler.js';
 import {
+  featItemSchema,
   genericLibraryItemSchema,
   spellItemSchema,
   specialItemSchema,
@@ -78,7 +79,7 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
       return;
     }
     case 'talentos': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
+      const parsed = featItemSchema.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({ error: 'Dados inválidos.' });
         return;

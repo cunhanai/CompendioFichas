@@ -6,6 +6,7 @@ import { TextField } from '@/shared/ui/atoms/TextField';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { Button } from '@/shared/ui/atoms/Button';
 import { cn } from '@/shared/lib/cn';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 
 export interface WeaponLibraryAddDialogProps {
   open: boolean;
@@ -121,7 +122,10 @@ export function WeaponLibraryAddDialog({
             label="Munição máxima"
             type="number"
             value={form.ammoMax}
-            onChange={(e) => set('ammoMax', Number(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseNumberInput(e.target.value);
+              if (value !== null) set('ammoMax', value);
+            }}
           />
         )}
         <label className="flex flex-col gap-1.5">

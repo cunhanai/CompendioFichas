@@ -7,6 +7,8 @@ import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Button } from '@/shared/ui/atoms/Button';
+import { Markdown } from '@/shared/ui/atoms/Markdown';
+import { FieldView } from '@/shared/ui/molecules/FieldView';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { removeFeat, updateFeat } from '../model/mutations';
 
@@ -57,9 +59,15 @@ export function FeatDetailDialog({
         }
       >
         {!editing ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap text-neutral-300">
-            {feat.desc}
-          </p>
+          <div className="flex flex-col gap-3">
+            {(feat.prerequisite || feat.benefit) && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {feat.prerequisite && <FieldView label="Pré-requisito" value={feat.prerequisite} />}
+                {feat.benefit && <FieldView label="Benefício" value={feat.benefit} />}
+              </div>
+            )}
+            <Markdown>{feat.desc}</Markdown>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
             <TextField
@@ -74,8 +82,25 @@ export function FeatDetailDialog({
               value={feat.tag}
               onChange={(e) => trackedUpdate((c) => updateFeat(c, featId, { tag: e.target.value }))}
             />
+            <TextField
+              label="Pré-requisito"
+              value={feat.prerequisite}
+              onChange={(e) =>
+                trackedUpdate((c) => updateFeat(c, featId, { prerequisite: e.target.value }))
+              }
+            />
+            <TextField
+              label="Benefício"
+              value={feat.benefit}
+              onChange={(e) =>
+                trackedUpdate((c) => updateFeat(c, featId, { benefit: e.target.value }))
+              }
+            />
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-neutral-400">Descrição</span>
+              <span className="text-xs font-medium text-neutral-400">
+                Descrição{' '}
+                <span className="text-neutral-600">(suporta markdown: **negrito** e tabelas)</span>
+              </span>
               <textarea
                 rows={5}
                 value={feat.desc}

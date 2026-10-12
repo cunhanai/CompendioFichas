@@ -4,6 +4,7 @@ import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
+import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setMoneyField } from '../model/mutations';
 
 const COINS = [
@@ -79,9 +80,10 @@ export function MoneyDialog({
                 <input
                   type="number"
                   value={character.money[coin.key]}
-                  onChange={(e) =>
-                    trackedUpdate((c) => setMoneyField(c, coin.key, Number(e.target.value) || 0))
-                  }
+                  onChange={(e) => {
+                    const value = parseNumberInput(e.target.value);
+                    if (value !== null) trackedUpdate((c) => setMoneyField(c, coin.key, value));
+                  }}
                   className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-500"
                 />
               </label>
