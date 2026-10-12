@@ -627,3 +627,25 @@ Guerreiro nível 4) sem isso contar como progressão.
   (encadeamento, independência de mudança de nível). Os testes existentes de linhagem/restore
   foram ajustados pra contar o `'start'` como mais um nó na `activeLineage` (ex.: a sequência que
   antes esperava `[2, 3, 4]` agora espera `[1, 2, 3, 4]`).
+
+## Não dava pra digitar modificador variado negativo de perícia
+
+Pedido do usuário: poder colocar modificadores variados negativos em perícias. O modelo de dados
+já suportava isso de ponta a ponta — `int4` na validação aceita negativos, `sumMods` soma sem
+filtrar por sinal, `updateSkillMod` não faz clamping — então o problema não era de regra de
+negócio, era puramente de UX no campo de valor.
+
+- **Causa raiz**: `VariedModRowEdit` (`shared/ui/molecules/VariedModRow.tsx`) — componente
+  compartilhado por Perícias, Atributos, CA e Iniciativa pra editar "modificadores variados" —
+  usava `onChange={(e) => onValueChange(Number(e.target.value) || 0)}`. Digitar só o `-` (primeiro
+  caractere de um número negativo) faz `Number('-')` virar `NaN`, e `NaN || 0` vira `0` — o campo
+  colapsava de volta pra "0" a cada tecla, antes mesmo de conseguir digitar o resto do número.
+  Impossível digitar um negativo do zero (só funcionava colando o valor já pronto).
+- **Correção**: o `onChange` agora só chama `onValueChange` quando o texto digitado já é um número
+  completo e válido (`raw !== '' && !Number.isNaN(Number(raw))`) — um "-" ou campo vazio em estado
+  intermediário é deixado em paz (o navegador mantém o que foi digitado) até virar um número de
+  verdade. Como é um componente único reaproveitado em 4 diálogos, a correção vale pra todos eles
+  de uma vez, não só perícias.
+- Novo `VariedModRow.test.tsx` cobre o cenário que estava quebrado (digitar `-` sem commitar 0,
+  depois completar pra `-5` e commitar -5), o caminho feliz de um valor positivo, e o caso de
+  limpar o campo sem ele ser forçado de volta pra 0.
