@@ -40,3 +40,33 @@ export function addCustomSpecial(character: Character): Character {
     ],
   };
 }
+
+export function updateFeat(
+  character: Character,
+  id: string,
+  patch: Partial<Omit<Character['feats'][number], 'id'>>,
+): Character {
+  return {
+    ...character,
+    feats: character.feats.map((f) => (f.id === id ? { ...f, ...patch } : f)),
+  };
+}
+
+export function removeFeat(character: Character, id: string): Character {
+  return { ...character, feats: character.feats.filter((f) => f.id !== id) };
+}
+
+export function updateSpecial(
+  character: Character,
+  id: string,
+  patch: Partial<Omit<Character['specials'][number], 'id'>>,
+): Character {
+  return {
+    ...character,
+    specials: character.specials.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+  };
+}
+
+export function removeSpecial(character: Character, id: string): Character {
+  return { ...character, specials: character.specials.filter((s) => s.id !== id) };
+}

@@ -786,3 +786,25 @@ pediu.
   normalmente).
 - 9 testes novos (`skillCatalog.test.ts`) cobrem cada caso de migração isoladamente, mais o caso
   "já está tudo certo, não mexe" e a ordenação alfabética do resultado.
+
+## Talentos e habilidades especiais agora são editáveis (e removíveis)
+
+Pedido do usuário: poder editar um talento, e poder editar habilidades especiais (a função de
+"adicionar da biblioteca" pra habilidades já existia via `SpecialPickDialog`/
+`addSpecialFromLibrary` — faltava só editar, tanto pra uma puxada da biblioteca quanto pra uma
+avulsa criada na hora).
+
+- `TalentosTab.tsx` usava o `InfoDialog` genérico (compartilhado com magias e habilidades tipo
+  magia) pra mostrar o detalhe de um talento/habilidade clicado — só leitura, sem jeito de editar
+  ou remover. Como `InfoDialog` também atende magias/habilidades tipo magia (que não foram
+  pedidas aqui), não fazia sentido torná-lo editável — isso afetaria categorias com formato de
+  dado bem diferente (círculos/espaços de magia).
+- Dois diálogos novos e dedicados, mesmo padrão do `EditEquipmentDialog` desta mesma leva —
+  montados só enquanto um item específico está sendo editado, view/edit com
+  `useEditableSection`, botão de remover com confirmação:
+  - **`FeatDetailDialog`** (`features/feats-and-abilities/ui/`): edita nome/tag/descrição de um
+    talento; `updateFeat`/`removeFeat` novos em `mutations.ts`.
+  - **`SpecialDetailDialog`**: edita nome/subtítulo/usos/descrição de uma habilidade especial;
+    `updateSpecial`/`removeSpecial` novos.
+- Os dois já nascem com `whitespace-pre-wrap` na descrição (mesmo ajuste feito no `InfoDialog`
+  nesta leva), já que são telas novas pro mesmo tipo de conteúdo multi-linha.
