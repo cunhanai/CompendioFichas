@@ -2,6 +2,7 @@ import { createContext } from 'react';
 import type { Character } from '@/entities/character/model/types';
 import type { RpgSystem } from '@/entities/system/model/types';
 import type {
+  FeatLibraryItem,
   LibraryCategory,
   SharedLibrary,
   SpecialLibraryItem,
@@ -43,6 +44,7 @@ export interface AppDataContextValue {
   ) => void;
   addWeaponToLibrary: (systemId: string, weapon: WeaponLibraryItem) => void;
   addSpecialToLibrary: (systemId: string, special: SpecialLibraryItem) => void;
+  addFeatToLibrary: (systemId: string, feat: FeatLibraryItem) => void;
   toggleSystemFavorite: (systemId: string) => void;
 }
 

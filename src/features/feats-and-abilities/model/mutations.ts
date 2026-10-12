@@ -1,13 +1,20 @@
 import type { Character } from '@/entities/character/model/types';
-import type { LibraryItem, SpecialLibraryItem } from '@/entities/library-item/model/types';
+import type { FeatLibraryItem, SpecialLibraryItem } from '@/entities/library-item/model/types';
 
-export function addFeatFromLibrary(character: Character, feat: LibraryItem): Character {
+export function addFeatFromLibrary(character: Character, feat: FeatLibraryItem): Character {
   if (character.feats.some((f) => f.name === feat.name)) return character;
   return {
     ...character,
     feats: [
       ...character.feats,
-      { id: crypto.randomUUID(), name: feat.name, tag: feat.tag || 'Talento', desc: feat.desc },
+      {
+        id: crypto.randomUUID(),
+        name: feat.name,
+        tag: feat.tag || 'Talento',
+        prerequisite: feat.prerequisite,
+        benefit: feat.benefit,
+        desc: feat.desc,
+      },
     ],
   };
 }

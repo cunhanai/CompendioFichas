@@ -461,6 +461,8 @@ export const characterFeats = pgTable(
     characterId: characterId(),
     name: text('name').notNull(),
     tag: text('tag').notNull().default(''),
+    prerequisite: text('prerequisite').notNull().default(''),
+    benefit: text('benefit').notNull().default(''),
     desc: text('desc').notNull().default(''),
     sortOrder: sortOrder(),
   },
@@ -659,6 +661,8 @@ export const libraryFeats = pgTable('library_feats', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  prerequisite: text('prerequisite').notNull().default(''),
+  benefit: text('benefit').notNull().default(''),
 });
 
 export const librarySkills = pgTable('library_skills', {

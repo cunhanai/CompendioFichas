@@ -147,6 +147,8 @@ const characterFeatSchema = z.object({
   id: uuid,
   name: z.string(),
   tag: z.string(),
+  prerequisite: z.string(),
+  benefit: z.string(),
   desc: z.string(),
 });
 const characterSpecialAbilitySchema = z.object({
@@ -312,4 +314,13 @@ export const genericLibraryItemSchema = z.object({
   name: z.string().min(1),
   desc: z.string(),
   tag: z.string(),
+});
+
+export const featItemSchema = z.object({
+  id: uuid,
+  name: z.string().min(1),
+  tag: z.string(),
+  prerequisite: z.string(),
+  benefit: z.string(),
+  desc: z.string(),
 });

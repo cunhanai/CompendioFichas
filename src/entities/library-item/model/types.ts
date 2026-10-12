@@ -48,10 +48,19 @@ export interface SpecialLibraryItem {
   desc: string;
 }
 
+export interface FeatLibraryItem {
+  id: string;
+  name: string;
+  tag: string;
+  prerequisite: string;
+  benefit: string;
+  desc: string;
+}
+
 export interface SharedLibrary {
   systemId: string;
   magias: SpellLibraryItem[];
-  talentos: LibraryItem[];
+  talentos: FeatLibraryItem[];
   pericias: LibraryItem[];
   habilidades: SpecialLibraryItem[];
   armas: WeaponLibraryItem[];

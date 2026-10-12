@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
 import {
   FeatDetailDialog,
+  FeatLibraryAddDialog,
   FeatPickDialog,
   SpecialDetailDialog,
   SpecialPickDialog,
@@ -10,12 +11,11 @@ import {
   addFeatFromLibrary,
   addSpecialFromLibrary,
 } from '@/features/feats-and-abilities';
-import { AddLibraryItemDialog } from '@/features/shared-library';
 import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
 
 export function TalentosTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
-  const { addLibraryItem } = useAppData();
+  const { addFeatToLibrary } = useAppData();
   const library = useLibrary(systemId);
   const [featPickOpen, setFeatPickOpen] = useState(false);
   const [specialPickOpen, setSpecialPickOpen] = useState(false);
@@ -103,14 +103,13 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           setNewFeatOpen(true);
         }}
       />
-      <AddLibraryItemDialog
+      <FeatLibraryAddDialog
         open={newFeatOpen}
         onOpenChange={setNewFeatOpen}
-        onSubmit={(values) => {
-          addLibraryItem(systemId, 'talentos', values);
-          update((c) =>
-            addFeatFromLibrary(c, { ...values, id: crypto.randomUUID(), tag: 'Talento' }),
-          );
+        onSubmit={(feat) => {
+          const id = crypto.randomUUID();
+          addFeatToLibrary(systemId, { ...feat, id });
+          update((c) => addFeatFromLibrary(c, { ...feat, id }));
           setNewFeatOpen(false);
         }}
       />

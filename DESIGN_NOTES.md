@@ -858,3 +858,46 @@ logo acima já mostrava uma prévia da descrição (`feat.desc`) embaixo da tag;
 especiais (`TalentosTab.tsx`) só mostrava `sp.subtitle`. Adicionada a mesma prévia de descrição
 (`sp.desc`, quando não vazia) embaixo do subtítulo, com `min-w-0` no container de texto pra não
 quebrar o layout quando a descrição é longa e a linha também tem o badge de `uses` à direita.
+
+## Talentos ganham Pré-requisito/Benefício, e a descrição agora suporta Markdown
+
+Pedido do usuário: "nos talentos, preciso poder colocar campos para pre-requisito, para
+descrição e benefício. Na descrição também posso adicionar tabelas e colocar negrito (vamos
+fazer isso usando markdown)".
+
+- **`Feat`** (`entities/character/model/types.ts`) e **`FeatLibraryItem`** (novo tipo em
+  `entities/library-item/model/types.ts`, substituindo o `LibraryItem` genérico que `talentos`
+  usava antes) ganham `prerequisite: string` e `benefit: string` — texto livre, sempre presentes
+  (vazio quando o talento não tem), mesmo padrão dos outros campos de texto da ficha (não
+  opcionais, com default `''`).
+- **Banco**: `character_feats` e `library_feats` ganham as duas colunas (`text` not null default
+  `''`) — migration `0017_tearful_sheva_callister.sql`, puro ADD COLUMN, sem ambiguidade. Schema
+  (`characterFeatSchema`/novo `featItemSchema` em `api/_lib/validation.ts`) e a montagem/persistência
+  em `api/_lib/characterRepo.ts` atualizados pra carregar os dois campos — sem isso, mandar
+  `prerequisite`/`benefit` pro backend seria silenciosamente descartado pelo zod (`safeParse`
+  ignora chaves que o schema não declara).
+- **`talentos` ganha seu próprio endpoint de validação** (`featItemSchema`) em vez do
+  `genericLibraryItemSchema` compartilhado com perícias/idiomas/criaturas/classes — ele não tem
+  `prerequisite`/`benefit`, só `talentos` precisa.
+- **`FeatDetailDialog`**: modo edição ganha dois campos novos (`TextField` simples, texto livre,
+  sem markdown — só a descrição suporta markdown); modo visualização mostra os dois (quando
+  preenchidos) via `FieldView`, e a descrição passa a renderizar com o componente `Markdown` novo
+  em vez do `<p whitespace-pre-wrap>` de antes.
+- **`FeatLibraryAddDialog`** (novo, substitui o `AddLibraryItemDialog` genérico que `TalentosTab`
+  usava pro fluxo "não achei — cadastrar novo talento"): formulário dedicado com
+  nome/tag/pré-requisito/benefício/descrição, mesmo padrão já estabelecido por
+  `WeaponLibraryAddDialog` pra armas. `addFeatToLibrary` novo em `AppDataProvider`
+  (`postLibraryItem(systemId, 'talentos', feat)`), espelhando `addWeaponToLibrary`/
+  `addSpecialToLibrary` — o `addLibraryItem` genérico (usado por perícias/idiomas/criaturas/
+  classes) perde o case `'talentos'`, que não faz mais sentido nele.
+- **`shared/ui/atoms/Markdown.tsx`** (novo): `react-markdown` + `remark-gfm` (negrito, tabelas,
+  e o resto do GFM) + `remark-breaks` (sem esse plugin, uma única quebra de linha `\n` vira só um
+  espaço em branco no Markdown/CommonMark padrão — precisaria de uma linha em branco pra virar
+  parágrafo novo — o que quebraria toda descrição de talento já escrita antes deste componente
+  existir, que sempre contou com `whitespace-pre-wrap` tratando `\n` como quebra visível).
+  Overrides de `components` só no que o reset do Tailwind tira (bordas de tabela, marcador de
+  lista); todo o resto herda a cor/tamanho de texto do container. 3 testes novos
+  (`Markdown.test.tsx`) cobrindo negrito, tabela GFM e a quebra de linha única.
+- Escopo deliberadamente restrito à descrição dos talentos (não estendido a perícias, magias,
+  habilidades especiais, etc.) — é o que foi pedido; o componente `Markdown` fica em `shared/ui`
+  justamente pra poder ser reaproveitado se/quando isso for pedido noutro lugar.

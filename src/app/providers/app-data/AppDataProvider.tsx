@@ -187,7 +187,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   ) => {
     const id = crypto.randomUUID();
     switch (category) {
-      case 'talentos':
       case 'pericias':
       case 'idiomas':
       case 'criaturas':
@@ -234,6 +233,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addSpecialToLibrary: AppDataContextValue['addSpecialToLibrary'] = (systemId, special) =>
     postLibraryItem(systemId, 'habilidades', special);
+
+  const addFeatToLibrary: AppDataContextValue['addFeatToLibrary'] = (systemId, feat) =>
+    postLibraryItem(systemId, 'talentos', feat);
 
   const toggleSystemFavorite: AppDataContextValue['toggleSystemFavorite'] = (systemId) => {
     setData((d) => {
@@ -285,6 +287,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     addLibraryItem,
     addWeaponToLibrary,
     addSpecialToLibrary,
+    addFeatToLibrary,
     toggleSystemFavorite,
   };
 

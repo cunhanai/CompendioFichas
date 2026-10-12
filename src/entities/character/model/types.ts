@@ -108,6 +108,11 @@ export interface Feat {
   id: string;
   name: string;
   tag: string;
+  /** Free text — "Nível de personagem 3", "Força 13", etc. Empty when the feat has none. */
+  prerequisite: string;
+  /** Free text, separate from `desc` (which can hold anything else about the feat). */
+  benefit: string;
+  /** Supports Markdown: bold and tables (see `shared/ui/atoms/Markdown.tsx`). */
   desc: string;
 }
 
