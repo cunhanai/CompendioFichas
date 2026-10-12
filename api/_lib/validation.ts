@@ -256,7 +256,7 @@ const levelSnapshotSchema = z.object({
   id: uuid,
   parentId: uuid.nullable(),
   level: int4,
-  kind: z.enum(['level-up', 'restore-point']),
+  kind: z.enum(['level-up', 'restore-point', 'start', 'manual']),
   label: z.string(),
   date: z.string(),
   deletedAt: z.string().nullable(),

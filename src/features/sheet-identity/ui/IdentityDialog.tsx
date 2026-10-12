@@ -12,6 +12,7 @@ import { UnitInput } from '@/shared/ui/atoms/UnitInput';
 import { cn } from '@/shared/lib/cn';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { setAlignmentLaw, setAlignmentMoral, updateIdentity } from '../model/mutations';
+import { ClassesEditor } from './ClassesEditor';
 
 export interface IdentityDialogProps {
   open: boolean;
@@ -236,6 +237,13 @@ export function IdentityDialog({
                   }
                 />
               </div>
+            </div>
+
+            <div className="border-t border-neutral-800/70 pt-4">
+              <span className="mb-2 block text-xs font-medium text-neutral-400">
+                Classes e níveis
+              </span>
+              <ClassesEditor character={character} update={trackedUpdate} />
             </div>
           </div>
         )}

@@ -576,3 +576,54 @@ modificador de atributo e redesenho do popup, criptografia no banco, biblioteca 
 editável/removível, etc.), e um punhado (raça/tipo/idiomas vindo da biblioteca compartilhada) é
 só volume de trabalho repetindo o padrão já usado pra Classes nesta mesma leva — próximos
 candidatos óbvios quando o usuário quiser seguir.
+
+## Importar personagem já upado (ficha de papel) + edição livre de classes + snapshot manual
+
+Pedido do usuário: algumas fichas de papel já estão upadas num nível alto (2, 5, 12...) quando
+entram no sistema, e ele não quer ter que "fingir" subir de nível 1 até lá só pra registrar isso
+— quer inserir a ficha como ela já está e só começar a tirar snapshot por nível dali pra frente.
+
+**Por que não dava pra resolver só com um campo de "nível inicial"**: antes desta leva, as duas
+únicas formas de mexer em classe/nível (`ClassPickerDialog`, sempre nível 1; `LevelUpDialog`,
+exatamente +1 nível efetivo por clique) passavam por `withLevelUpSnapshot`. Simular um nível 12
+pelo fluxo normal geraria 10 snapshots falsos — "subidas" que nunca aconteceram de verdade. Na
+conversa com o usuário, surgiu um requisito mais amplo ainda: a ficha precisa ser **livremente
+editável a qualquer momento**, inclusive trocar uma classe inteira (ex.: Mago nível 4 vira
+Guerreiro nível 4) sem isso contar como progressão.
+
+- **`ClassesEditor` (nova, `features/sheet-identity/ui/ClassesEditor.tsx`)**: edição livre de
+  classes — adicionar (em qualquer nível, não só 1), renomear, mudar o nível pra cima ou pra
+  baixo, remover — **nunca** passa por `withLevelUpSnapshot`. Fica dentro do modo de edição do
+  `IdentityDialog`, ao lado dos outros campos de identidade. Resolve os dois casos de uma vez:
+  importar uma ficha já upada (monta a classe/nível direto no valor final, zero snapshots não
+  importa quantos ajustes) e respec a qualquer momento (trocar de classe livremente depois).
+  `LevelUpDialog`/`ClassPickerDialog` continuam exatamente como antes — "+1 nível efetivo" segue
+  sendo a única ação que representa progressão real de jogo.
+- **Marco inicial padronizado (`LevelSnapshot.kind: 'start'`)**: o usuário queria um marco
+  marcando onde a ficha começou, mas rejeitou a ideia de isso valer só pra quem entra num nível
+  alto — segundo ele, um personagem nível 1 "teoricamente ainda está em construção" até a primeira
+  subida de verdade, então não faz sentido ele ter um marco antes disso; só faz sentido se **todo**
+  personagem seguir a mesma regra. Isso elimina a necessidade de um "modo de importação" ou botão
+  de "finalizar criação" separado: `withLevelUpSnapshot` agora insere automaticamente um snapshot
+  `'start'` (rotulado "Nível X — início") logo antes do **primeiro** snapshot de verdade de
+  qualquer personagem — detectado por `currentSnapshotId == null` (nada foi snapshotado ainda) no
+  momento da primeira subida real. Funciona idêntico pra quem começou no nível 1 (o marco guarda
+  "Nível 1 — início") e pra quem foi montado direto no nível 12 via `ClassesEditor` (o marco guarda
+  "Nível 12 — início") — mesma regra, sem caso especial.
+- **Snapshot manual (`takeManualSnapshot`, `entities/character/model/snapshots.ts`)**: pedido à
+  parte do usuário — poder tirar uma snapshot do estado atual a qualquer momento, independente de
+  ter subido de nível. Sempre cria uma snapshot `kind: 'manual'`, encadeada normalmente
+  (`parentId` = `currentSnapshotId` atual) e vira a nova `currentSnapshotId` — mesmo mecanismo de
+  qualquer outra snapshot, só sem o gate de "nível precisa ter subido". Botão "Tirar snapshot
+  agora" na aba Histórico (`HistoricoTab.tsx`), ao lado das abas "Linha do tempo atual"/"Outros
+  ramos".
+- Os dois kinds novos (`'start'`, `'manual'`) precisaram de ícone/cor próprios nos dois lugares
+  que já desenhavam `'level-up'`/`'restore-point'` com um ternário embutido (`HistoricoTab.tsx`,
+  `SnapshotTree.tsx`) — extraído pra um mapeamento compartilhado
+  (`features/level-snapshots/model/snapshotDisplay.ts`), já que um terceiro ponto de duplicação
+  não valia mais a pena manter como ternário.
+- `snapshots.test.ts` ganhou cobertura pra: o marco `'start'` sendo inserido tanto no caso nível
+  1→2 quanto no caso "montado direto no nível 12, depois +1 nível real"; e `takeManualSnapshot`
+  (encadeamento, independência de mudança de nível). Os testes existentes de linhagem/restore
+  foram ajustados pra contar o `'start'` como mais um nó na `activeLineage` (ex.: a sequência que
+  antes esperava `[2, 3, 4]` agora espera `[1, 2, 3, 4]`).

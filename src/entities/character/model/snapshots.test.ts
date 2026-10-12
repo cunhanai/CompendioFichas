@@ -7,6 +7,7 @@ import {
   isSnapshotProtected,
   otherBranches,
   restoreSnapshot,
+  takeManualSnapshot,
   withLevelUpSnapshot,
 } from './snapshots';
 
@@ -38,33 +39,80 @@ describe('level snapshots', () => {
     let character = createBlankCharacter('pathfinder-1e', 'Teste');
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
     const next = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
-    expect(next.levelSnapshots).toHaveLength(1);
-    expect(next.currentSnapshotId).toBe(next.levelSnapshots[0].id);
-    expect(next.levelSnapshots[0].kind).toBe('level-up');
-    expect(next.levelSnapshots[0].parentId).toBeNull();
-    expect(next.levelSnapshots[0].level).toBe(2);
+    expect(next.currentSnapshotId).toBe(next.levelSnapshots[1].id);
+    expect(next.levelSnapshots[1].kind).toBe('level-up');
+    expect(next.levelSnapshots[1].parentId).toBe(next.levelSnapshots[0].id);
+    expect(next.levelSnapshots[1].level).toBe(2);
   });
 
-  it('builds a linear active lineage across multiple level-ups', () => {
+  it("the character's first-ever level-up also auto-inserts a 'start' baseline of the state right before it, so every character's history has a documented beginning", () => {
     let character = createBlankCharacter('pathfinder-1e', 'Teste');
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
-    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
+    const next = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
+
+    expect(next.levelSnapshots).toHaveLength(2);
+    const [start, levelUp] = next.levelSnapshots;
+    expect(start.kind).toBe('start');
+    expect(start.parentId).toBeNull();
+    expect(start.level).toBe(1);
+    expect(levelUp.parentId).toBe(start.id);
+  });
+
+  it("standardizes the same 'start' baseline for a character that was free-edited straight to a higher level (a paper character imported already leveled up), not just the ordinary level-1 case", () => {
+    // Simulates importing a level 12 paper character via free class editing (ClassesEditor),
+    // which never snapshots on its own — only the first deliberate level-up does.
+    let character = createBlankCharacter('pathfinder-1e', 'Teste');
+    character = { ...character, classes: [{ id: 'cls-1', name: 'Guerreiro', level: 12 }] };
+    expect(character.levelSnapshots).toHaveLength(0);
+
+    const next = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 13
+
+    expect(next.levelSnapshots).toHaveLength(2);
+    const [start, levelUp] = next.levelSnapshots;
+    expect(start.kind).toBe('start');
+    expect(start.level).toBe(12);
+    expect(levelUp.level).toBe(13);
+    expect(levelUp.parentId).toBe(start.id);
+  });
+
+  it('builds a linear active lineage across multiple level-ups, including the auto-inserted start baseline', () => {
+    let character = createBlankCharacter('pathfinder-1e', 'Teste');
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // start(1) + level-up(2)
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 3
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 4
 
     const lineage = activeLineage(character);
-    expect(lineage.map((s) => s.level)).toEqual([2, 3, 4]);
+    expect(lineage.map((s) => s.level)).toEqual([1, 2, 3, 4]);
+    expect(lineage[0].kind).toBe('start');
     expect(otherBranches(character)).toHaveLength(0);
     for (const snap of lineage) {
       expect(isSnapshotProtected(character, snap.id)).toBe(true);
     }
   });
 
+  it('takeManualSnapshot checkpoints the current state on demand, with no level requirement', () => {
+    let character = createBlankCharacter('pathfinder-1e', 'Teste');
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
+
+    const next = takeManualSnapshot(character);
+    expect(next.levelSnapshots).toHaveLength(1);
+    expect(next.levelSnapshots[0].kind).toBe('manual');
+    expect(next.levelSnapshots[0].level).toBe(1);
+    expect(next.currentSnapshotId).toBe(next.levelSnapshots[0].id);
+
+    // Taking a second one right after (no level change at all) still works and chains onto it.
+    const again = takeManualSnapshot(next, 'Antes da sessão de hoje');
+    expect(again.levelSnapshots).toHaveLength(2);
+    expect(again.levelSnapshots[1].label).toBe('Antes da sessão de hoje');
+    expect(again.levelSnapshots[1].parentId).toBe(next.currentSnapshotId);
+  });
+
   it('refuses to delete a snapshot on the active lineage', () => {
     let character = createBlankCharacter('pathfinder-1e', 'Teste');
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
-    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
-    const snapshotId = character.levelSnapshots[0].id;
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // start(1) + level-up(2)
+    const snapshotId = character.levelSnapshots[0].id; // the 'start' baseline — still active lineage
 
     const afterDelete = deleteSnapshot(character, snapshotId);
     expect(afterDelete.levelSnapshots[0].deletedAt).toBeNull();
@@ -73,7 +121,7 @@ describe('level snapshots', () => {
   it('restore forks the timeline: old branch preserved, new branch continues from the target', () => {
     let character = createBlankCharacter('pathfinder-1e', 'Teste');
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
-    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // start(1) + level-up(2)
     const level2Id = character.currentSnapshotId!;
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 3
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 4
@@ -90,9 +138,9 @@ describe('level snapshots', () => {
     expect(restorePoint!.level).toBe(4);
     expect(restorePoint!.data.classes[0].level).toBe(4);
 
-    // The active lineage is now just [level 2] — levels 3/4 and the restore-point are all on an
-    // abandoned branch.
-    expect(activeLineage(character).map((s) => s.level)).toEqual([2]);
+    // The active lineage is now [start(1), level 2] — levels 3/4 and the restore-point are all
+    // on an abandoned branch.
+    expect(activeLineage(character).map((s) => s.level)).toEqual([1, 2]);
     expect(isSnapshotProtected(character, level2Id)).toBe(true);
 
     const branchLevels = otherBranches(character)
@@ -110,7 +158,7 @@ describe('level snapshots', () => {
   it('leveling up again after a restore continues the new branch, not the old one', () => {
     let character = createBlankCharacter('pathfinder-1e', 'Teste');
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 1, no snapshot
-    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 2
+    character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // start(1) + level-up(2)
     const level2Id = character.currentSnapshotId!;
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 3
 
@@ -118,10 +166,10 @@ describe('level snapshots', () => {
     character = withLevelUpSnapshot((c) => bumpLevel(c, 1))(character); // level 3 again, new branch
 
     const lineage = activeLineage(character);
-    expect(lineage.map((s) => s.level)).toEqual([2, 3]);
+    expect(lineage.map((s) => s.level)).toEqual([1, 2, 3]);
     // The new level-3 snapshot's parent is the restored level-2 node, not the old level-3 or the
     // restore-point.
-    expect(lineage[1].parentId).toBe(level2Id);
+    expect(lineage[2].parentId).toBe(level2Id);
   });
 
   it('a deleted snapshot is excluded from otherBranches but its row is only soft-deleted', () => {

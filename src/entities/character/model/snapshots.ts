@@ -36,7 +36,7 @@ function appendSnapshot(
  * Wraps a mutator so that, if it actually raises the character's effective level (leveling up a
  * class, or adding a new one), a snapshot of the resulting state is taken automatically —
  * snapshots are never a separate step the player has to remember. A mutator that doesn't change
- * the level (most of them) is a no-op here.
+ * the level (most of them, including every free class edit — see ClassesEditor) is a no-op here.
  */
 export function withLevelUpSnapshot(
   mutate: (c: Character) => Character,
@@ -49,8 +49,34 @@ export function withLevelUpSnapshot(
     // with meaningful prior state worth preserving — it's just character creation. Snapshots
     // start from the character's second level onward, not the first.
     if (afterLevel <= before || before === 0) return after;
-    return appendSnapshot(after, 'level-up', `Nível ${afterLevel}`, toSnapshotData(after));
+
+    // The character's very first real level-up (currentSnapshotId still null — nothing has ever
+    // been snapshotted) also records a 'start' baseline of what it looked like right before this
+    // level-up, so every character's history has a documented beginning — standardized the same
+    // way whether that beginning was the ordinary level 1, or a paper character imported already
+    // at a higher level via free class editing (ClassesEditor never snapshots on its own, so an
+    // import like that would otherwise leave no record of where it started).
+    const base =
+      after.currentSnapshotId == null
+        ? appendSnapshot(after, 'start', `Nível ${before} — início`, toSnapshotData(character))
+        : after;
+    return appendSnapshot(base, 'level-up', `Nível ${afterLevel}`, toSnapshotData(after));
   };
+}
+
+/**
+ * Lets the player checkpoint the character's current state on demand — e.g. before a risky
+ * session — independent of any level change. Always takes a snapshot, even if the effective
+ * level hasn't moved since the last one.
+ */
+export function takeManualSnapshot(character: Character, label?: string): Character {
+  const level = effectiveLevel(character.classes);
+  return appendSnapshot(
+    character,
+    'manual',
+    label?.trim() || `Nível ${level} — ponto manual`,
+    toSnapshotData(character),
+  );
 }
 
 /** Snapshots older than this feature, or otherwise corrupted, may be missing `data` (or the
