@@ -849,3 +849,12 @@ se `ability`/`trainedOnly` da ficha divergirem do que está no catalog agora, a 
 atualizada pra bater com o catalog, preservando `ranks`/`classSkill`/`mods` — corrige Disfarce em
 fichas antigas automaticamente na próxima abertura, e cobre o mesmo tipo de divergência se
 acontecer de novo no futuro. 1 teste novo cobrindo esse caminho.
+
+## Fix: prévia de habilidade especial não mostrava a descrição
+
+Pedido do usuário, com print da lista de "Habilidades especiais" mostrando só nome e "Avulsa" —
+sem indicação nenhuma do que a habilidade faz até clicar pra abrir o detalhe. A lista de Talentos
+logo acima já mostrava uma prévia da descrição (`feat.desc`) embaixo da tag; a de Habilidades
+especiais (`TalentosTab.tsx`) só mostrava `sp.subtitle`. Adicionada a mesma prévia de descrição
+(`sp.desc`, quando não vazia) embaixo do subtítulo, com `min-w-0` no container de texto pra não
+quebrar o layout quando a descrição é longa e a linha também tem o badge de `uses` à direita.

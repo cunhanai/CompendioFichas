@@ -79,11 +79,12 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
               key={sp.id}
               type="button"
               onClick={() => setSpecialDetailId(sp.id)}
-              className="flex items-center justify-between rounded-lg bg-neutral-950 px-4 py-3 text-left transition hover:bg-neutral-900"
+              className="flex items-start justify-between gap-2 rounded-lg bg-neutral-950 px-4 py-3 text-left transition hover:bg-neutral-900"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-neutral-200">{sp.name}</p>
                 <p className="text-[11px] text-neutral-500">{sp.subtitle}</p>
+                {sp.desc && <p className="mt-1 text-xs text-neutral-500">{sp.desc}</p>}
               </div>
               {sp.uses && <span className="shrink-0 text-xs text-neutral-400">{sp.uses}</span>}
             </button>
