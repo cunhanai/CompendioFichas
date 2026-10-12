@@ -1,5 +1,6 @@
 import type { Character } from '@/entities/character/model/types';
 import { computeCarriedWeight, loadState } from '@/entities/character/model/calculations';
+import { LOAD_STATE_BAR_COLOR } from '@/entities/character/model/constants';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
@@ -65,7 +66,7 @@ export function LoadDialog({
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
-            <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+            <div className={`h-full ${LOAD_STATE_BAR_COLOR[state]}`} style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-[11px] text-neutral-500">
             Soma do peso dos equipamentos · carga {state}

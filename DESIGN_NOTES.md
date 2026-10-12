@@ -711,3 +711,78 @@ Pedido do usuário: poder editar um item de equipamento sem precisar excluir e r
 - Escopo deliberadamente limitado a "Equipamentos" (`character.equipment`) — o usuário disse
   "meu equipamento", e "Itens de CA" (`character.armorItems`) é uma seção separada que não foi
   pedida; fica pro backlog se um dia for necessário.
+
+## Quebra de linha na descrição de talentos não ficava visível
+
+Pedido do usuário: poder quebrar linha no texto de um talento e essa quebra "se manter" (não
+sumir). O textarea de criação (`AddLibraryItemDialog`, reaproveitado por toda a biblioteca
+compartilhada) já salvava `\n` normalmente — o bug era só na exibição: `InfoDialog`
+(`shared/ui/organisms/InfoDialog.tsx`, o popup de detalhe genérico usado por talentos,
+habilidades especiais, magias e habilidades tipo magia) renderizava a descrição num `<p>` sem
+`whitespace-pre-wrap` — HTML colapsa quebra de linha por padrão, então o texto salvo
+corretamente aparecia tudo numa linha só ao reabrir. `StoryDialog.tsx` já tinha resolvido
+exatamente esse mesmo problema pro campo de história do personagem; apliquei a mesma classe
+aqui. Por ser um componente compartilhado, a correção vale de graça pras quatro categorias que
+usam `InfoDialog`, não só talentos — `WeaponDetailDialog.tsx` tem o mesmo bug de forma
+independente (não usa `InfoDialog`), mas fica de fora por ora já que não foi o que foi pedido.
+
+## Barra de carga muda de cor por estado + dot indicando perícia de classe
+
+Dois pedidos pequenos do usuário na mesma mensagem:
+
+- **Barra de carga colorida por estado**: antes era sempre verde (`bg-emerald-500`), em qualquer
+  nível de carga. Nova constante `LOAD_STATE_BAR_COLOR` (`entities/character/model/constants.ts`,
+  ao lado de `ABILITY_COLOR_CLASS` — mesmo padrão de mapa kind/estado → classe Tailwind já usado
+  no projeto) mapeia `LoadState` pra cor: leve = verde (como já era), média = laranja, pesada e
+  sobrecarregado = vermelho (`bg-rose-500`, o tom "vermelho" já padrão no app — ver botões
+  `danger`, barra de PV). Existiam **duas** barras de carga duplicando a mesma lógica
+  (`InventarioTab.tsx`'s preview do card, e `LoadDialog.tsx`'s versão dentro do diálogo de
+  detalhe) — as duas foram corrigidas, já que tinham o mesmo bug.
+- **Dot indicando perícia de classe**: o cabeçalho da aba Perícias já tinha a legenda "●
+  perícia de classe · 🔒 exige treinamento" prometendo um indicador, mas `SkillRow.tsx` nunca
+  chegou a renderizar esse "●" — só o cadeado de `trainedOnly` existia de verdade. Adicionado um
+  dot verde (`bg-emerald-500`, com tooltip "Perícia de classe") antes do nome, visível só quando
+  `skill.classSkill` é verdadeiro — a legenda do cabeçalho finalmente corresponde ao que a linha
+  mostra.
+
+## Fichas já existentes não ganhavam a lista de perícias nova — e isso fazia o botão de remover aparecer onde não devia
+
+Bug real reportado pelo usuário com print: numa ficha já existente, "Arte da Fuga" (uma perícia
+fixa) mostrava o botão "Remover perícia", que só deveria aparecer pra instâncias de
+Apresentação/Ofícios/Profissão. Causa raiz: a reescrita da `SKILL_CATALOG` trocou várias chaves
+(`artefuga` → `arte-da-fuga`, `conhecarcano` → `conhec-arcano`, `conhecreligiao` →
+`conhec-religiao`, `conhecnatureza` → `conhec-natureza`, `nadar` → `natacao`) — mas isso só afeta
+a *seed* de personagens novos (`createBlankCharacter`). Uma ficha salva antes da reescrita
+continua com a chave antiga pra sempre, porque nada reconciliava isso. Duas consequências: (1)
+`SkillDialog`'s `isRemovable = !CATALOG_KEYS.has(skillKey)` dava falso positivo pra toda perícia
+renomeada, já que a chave antiga nunca bate com a catalog nova; (2) a ficha nunca ganhava as
+perícias genuinamente novas (Voo, Sentir Motivação, Usar Instrumento Mágico, Operar Mecanismos,
+Linguística, Artes Mágicas, Prestidigitação, os 7 novos subtipos de Conhecimento), e ainda
+mantinha "Atuação"/"Ofício"/"Enganação" — que "não são mais permitidas" pela lista que o usuário
+pediu.
+
+- **`reconcileSkills`** (`entities/character/model/skillCatalog.ts`) resolve isso de forma
+  determinística — o catálogo antigo tinha exatamente 20 entradas conhecidas, então todo caso de
+  migração é mapeável sem ambiguidade, sem arriscar perder dado real do jogador:
+  - Chave renomeada (`LEGACY_KEY_RENAMES`) → atualiza `key`/`name`/`ability`/`trainedOnly` pra
+    bater com a catalog nova, preservando `ranks`/`classSkill`/`mods` como estavam.
+  - Perícia fixa aposentada com substituto multi-especialização (`LEGACY_KEY_TO_MULTI_CATEGORY`:
+    `oficio` → Ofícios, `atuacao` → Apresentação) → vira uma instância nomeada daquela categoria,
+    extraindo a especialização que o jogador já tinha escrito entre parênteses (ou "Geral" se não
+    tinha nenhuma), preservando `ranks`/`classSkill`/`mods`.
+  - `enganacao` (sem equivalente 1:1 de chave, mas com substituto direto) funde seus dados em
+    `blefar` (`LEGACY_KEY_MERGE_TARGET`).
+  - Qualquer entrada da catalog nova que a ficha simplesmente não tem ainda (as 15 perícias
+    adicionadas na reescrita) é adicionada no padrão (`ranks: 0`, não é de classe).
+  - Tudo que já está correto (chave fixa já atual, ou instância multi-especialização já existente
+    do jogador) passa direto, sem alteração.
+  - Resultado final sempre reordenado alfabeticamente, e a função retorna a mesma referência de
+    array quando nada precisava de conserto (permite o "já normalizado, não mexe" de
+    `normalizeCharacter` continuar funcionando depois do primeiro conserto+salvamento).
+- Chamada de dentro de **`normalizeCharacter`** (`factory.ts`), que já roda pra todo personagem
+  vindo da API (`AppDataProvider.tsx`) — corrige a ficha sozinha, na hora, assim que é aberta, sem
+  precisar de nenhuma migration de banco (os dados do personagem ficam só na memória do cliente
+  até a próxima vez que algo nela for editado e salvo via PATCH, quando a correção persiste
+  normalmente).
+- 9 testes novos (`skillCatalog.test.ts`) cobrem cada caso de migração isoladamente, mais o caso
+  "já está tudo certo, não mexe" e a ordenação alfabética do resultado.

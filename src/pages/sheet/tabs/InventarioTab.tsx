@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Coins, Plus, X } from 'lucide-react';
 import { useCharacter } from '@/app/providers';
 import { computeCarriedWeight, loadState } from '@/entities/character/model/calculations';
+import { LOAD_STATE_BAR_COLOR } from '@/entities/character/model/constants';
 import {
   AddArmorItemDialog,
   AddEquipmentDialog,
@@ -53,7 +54,7 @@ export function InventarioTab({ characterId }: { characterId: string }) {
         <div className="mb-3 flex items-center gap-3">
           <div className="h-3 flex-1 overflow-hidden rounded-full bg-neutral-800">
             <div
-              className="h-full bg-emerald-500"
+              className={`h-full ${LOAD_STATE_BAR_COLOR[loadState(carried, character.load)]}`}
               style={{
                 width: `${character.load.heavy ? Math.min(100, Math.round((carried / character.load.heavy) * 100)) : 0}%`,
               }}

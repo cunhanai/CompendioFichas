@@ -14,6 +14,11 @@ export function SkillRow({ skill, onOpen }: { skill: ComputedSkill; onOpen: () =
       className="flex items-center justify-between gap-3 py-2.5 text-left"
     >
       <span className="flex min-w-0 items-center gap-1.5 truncate text-sm text-neutral-200">
+        {skill.classSkill && (
+          <Tooltip content="Perícia de classe">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+          </Tooltip>
+        )}
         <span className="truncate">{skill.name}</span>
         <Badge size="sm" className={cn('shrink-0 gap-1', ABILITY_COLOR_CLASS[skill.ability])}>
           {ABILITY_SHORT[skill.ability]}
