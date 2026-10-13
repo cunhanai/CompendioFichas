@@ -3,6 +3,7 @@ import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { Button } from '@/shared/ui/atoms/Button';
+import { Markdown } from '@/shared/ui/atoms/Markdown';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { setStory } from '../model/mutations';
 
@@ -52,16 +53,19 @@ export function StoryDialog({ open, onOpenChange, character, update }: StoryDial
         }
       >
         {!editing ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap text-neutral-300">
-            {character.story}
-          </p>
+          <Markdown>{character.story}</Markdown>
         ) : (
-          <textarea
-            rows={8}
-            value={character.story}
-            onChange={(e) => trackedUpdate((c) => setStory(c, e.target.value))}
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3.5 py-3 text-sm text-neutral-200 outline-none focus:border-amber-500"
-          />
+          <>
+            <p className="mb-1.5 text-xs text-neutral-600">
+              Suporta markdown: **negrito**, *itálico* e tabelas.
+            </p>
+            <textarea
+              rows={8}
+              value={character.story}
+              onChange={(e) => trackedUpdate((c) => setStory(c, e.target.value))}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3.5 py-3 text-sm text-neutral-200 outline-none focus:border-amber-500"
+            />
+          </>
         )}
       </Popup>
       <UnsavedChangesDialog

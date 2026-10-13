@@ -1,4 +1,8 @@
-import type { Character, SpellcastingBlock } from '@/entities/character/model/types';
+import type {
+  Character,
+  SpellcastingBlock,
+  SpellLikeAbility,
+} from '@/entities/character/model/types';
 import type { SpellLibraryItem } from '@/entities/library-item/model/types';
 
 export interface NewSpellbookInput {
@@ -76,5 +80,37 @@ export function addSpellToBook(
         }),
       };
     }),
+  };
+}
+
+export function addSpellLikeAbility(character: Character): Character {
+  const ability: SpellLikeAbility = {
+    id: crypto.randomUUID(),
+    name: 'Nova habilidade similar a magia',
+    spells: '',
+    usesPerDay: '',
+    casterLevel: '',
+    desc: '',
+  };
+  return { ...character, spellLikeAbilities: [...character.spellLikeAbilities, ability] };
+}
+
+export function updateSpellLikeAbility(
+  character: Character,
+  id: string,
+  patch: Partial<Omit<SpellLikeAbility, 'id'>>,
+): Character {
+  return {
+    ...character,
+    spellLikeAbilities: character.spellLikeAbilities.map((s) =>
+      s.id === id ? { ...s, ...patch } : s,
+    ),
+  };
+}
+
+export function removeSpellLikeAbility(character: Character, id: string): Character {
+  return {
+    ...character,
+    spellLikeAbilities: character.spellLikeAbilities.filter((s) => s.id !== id),
   };
 }

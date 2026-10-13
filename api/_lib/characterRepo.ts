@@ -337,7 +337,14 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
       })),
       spellLikeAbilities: specialsForCharacter
         .filter((s) => s.kind === 'spell-like')
-        .map((s) => ({ id: s.id, name: s.name, subtitle: s.subtitle, uses: s.uses, desc: s.desc })),
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          spells: s.spells,
+          usesPerDay: s.uses,
+          casterLevel: s.casterLevel,
+          desc: s.desc,
+        })),
 
       skills: (skillsByCharacter.get(id) ?? []).map((s) => ({
         key: s.key,
@@ -765,8 +772,10 @@ function buildInserts(character: Character): BatchQuery[] {
       characterId: id,
       kind: 'spell-like',
       name: s.name,
-      subtitle: s.subtitle,
-      uses: s.uses,
+      subtitle: '',
+      uses: s.usesPerDay,
+      spells: s.spells,
+      casterLevel: s.casterLevel,
       desc: s.desc,
       sortOrder: i,
     })),

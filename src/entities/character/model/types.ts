@@ -128,6 +128,18 @@ export interface SpecialAbility {
   desc: string;
 }
 
+export interface SpellLikeAbility {
+  id: string;
+  name: string;
+  /** Free text list of source spells (e.g. "Enfeitiçar Pessoa, Voar"). */
+  spells: string;
+  /** Free text, e.g. "3/dia", "à vontade". */
+  usesPerDay: string;
+  /** Free text — usually the effective level, but can be overridden by hand. */
+  casterLevel: string;
+  desc: string;
+}
+
 export interface ConditionalMod {
   id: string;
   text: string;
@@ -288,7 +300,7 @@ export interface Character {
   favoredSchool: string;
   opposedSchools: string[];
   spellbooks: SpellcastingBlock[];
-  spellLikeAbilities: SpecialAbility[];
+  spellLikeAbilities: SpellLikeAbility[];
 
   skills: Skill[];
   conditionalMods: ConditionalMod[];

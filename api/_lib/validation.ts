@@ -160,6 +160,14 @@ const characterSpecialAbilitySchema = z.object({
   uses: z.string(),
   desc: z.string(),
 });
+const characterSpellLikeAbilitySchema = z.object({
+  id: uuid,
+  name: z.string(),
+  spells: z.string(),
+  usesPerDay: z.string(),
+  casterLevel: z.string(),
+  desc: z.string(),
+});
 const conditionalModSchema = z.object({ id: uuid, text: z.string() });
 const moneySchema = z.object({ pc: int4, pp: int4, po: int4, pl: int4 });
 const loadSchema = z.object({
@@ -242,7 +250,7 @@ const characterSnapshotDataSchema = z.object({
   favoredSchool: z.string(),
   opposedSchools: z.array(z.string()),
   spellbooks: z.array(spellcastingBlockSchema),
-  spellLikeAbilities: z.array(characterSpecialAbilitySchema),
+  spellLikeAbilities: z.array(characterSpellLikeAbilitySchema),
   skills: z.array(skillSchema),
   conditionalMods: z.array(conditionalModSchema),
   weapons: z.array(characterWeaponSchema),

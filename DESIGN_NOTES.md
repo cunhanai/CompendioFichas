@@ -959,3 +959,37 @@ biblioteca compartilhada.
   ganhar a lista de candidatos da biblioteca ao lado). Antes disso, `idiomas` existia como
   categoria da biblioteca desde a criação do backend normalizado, mas nada na ficha de fato lia ou
   gravava lá — confirmado e corrigido nesta leva (ver `BACKLOG.md`).
+
+## Markdown na história do personagem; habilidades similares a magia ganham fluxo de UI de verdade
+
+Dois pedidos da mesma leva maior.
+
+- **História**: `StoryDialog.tsx` trocou o `<p whitespace-pre-wrap>` de leitura pelo componente
+  `Markdown` já existente (mesmo usado em talentos) — suporta negrito/itálico/tabelas e continua
+  tratando quebra de linha simples como quebra visível. O `<textarea>` de edição ganhou uma nota
+  avisando do suporte a markdown.
+- **Habilidades similares a magia**: até esta leva, **não existia nenhuma forma de adicionar
+  uma** — `character.spellLikeAbilities` só aparecia se já viesse populado (ex.: dados de
+  exemplo); não havia botão de "+" em lugar nenhum, só um `InfoDialog` somente-leitura pras que já
+  existiam. Pedido do usuário: campos específicos — lista de magias de origem, usos por dia, nível
+  de conjurador (normalmente igual ao nível efetivo, mas pode ser digitado à mão).
+  - Novo tipo **`SpellLikeAbility`** (`entities/character/model/types.ts`), separado de
+    `SpecialAbility` (que `specials`/habilidades especiais continuam usando): `{id, name, spells,
+    usesPerDay, casterLevel, desc}` — sem `subtitle`, que era usado de forma ad-hoc pra guardar
+    "NC 5" dentro de texto livre; `casterLevel` é um campo próprio agora.
+    `character_special_abilities` (tabela compartilhada com `specials` via a coluna `kind`) ganhou
+    duas colunas novas (`spells`, `caster_level`, migration `0019`) — só populadas quando
+    `kind = 'spell-like'`; ficam `''` por padrão nas linhas de `specials`, sem afetar aquele fluxo.
+  - **`SpellLikeDetailDialog`** (novo, `features/spellbook/ui/`): mesmo padrão de dialog
+    dedicado view/edit/remover já usado em `FeatDetailDialog`/`SpecialDetailDialog`, com a
+    descrição renderizada via `Markdown`. Diferente de talentos/habilidades especiais, não existe
+    "puxar da biblioteca" aqui — são sempre específicas daquele personagem (ligadas a
+    linhagem/raça), então não faz sentido uma categoria de biblioteca pra isso.
+  - Botão "+ Nova habilidade" no cabeçalho da seção (`MagiasTab.tsx`, mesmo padrão de
+    `SectionCardHeader` + `action` já usado em Talentos) cria a entrada em branco **e já abre o
+    dialog direto em modo de edição** (`startEditing`, via `isEmpty` do `useEditableSection`) —
+    evita o problema já visto em "habilidades especiais avulsas", onde criar uma deixava um card
+    "Nova habilidade" sem indicação nenhuma de que precisava ser editado.
+  - A seção agora aparece mesmo vazia (enquanto a ficha está ativa), só pelo botão de adicionar —
+    antes só aparecia depois de já ter pelo menos uma habilidade, escondendo a única forma de
+    começar.

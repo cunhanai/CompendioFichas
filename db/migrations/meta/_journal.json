@@ -134,6 +134,13 @@
       "when": 1791912972791,
       "tag": "0018_far_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791913335757,
+      "tag": "0019_keen_mauler",
+      "breakpoints": true
     }
   ]
 }

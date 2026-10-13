@@ -112,19 +112,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   - Comprimir mais as imagens ao adicionar na galeria — `resizeImageKeepingAspect` já redimensiona
     (corta o lado maior a 1280px) mas vale revisar a qualidade de compressão usada no
     `canvas.toDataURL`/`toBlob` pra reduzir o tamanho final do arquivo.
-- **Habilidades tipo magia (spell-like abilities)** — o modelo de dados já existe
-  (`Character.spellLikeAbilities`, tabela `character_special_abilities` com `kind: 'spell-like'`),
-  mas não há um fluxo de UI dedicado pra adicionar uma com os campos que o usuário descreveu:
-  lista de magias de origem, usos por dia, nível de conjurador (normalmente igual ao nível efetivo
-  ou ao total de dados de vida do personagem, mas pode ser diferente e digitado à mão). Precisa de
-  um novo diálogo (provavelmente em `features/feats-and-abilities`) com esses campos — hoje
-  provavelmente reaproveita o fluxo genérico de "nova habilidade especial" sem os campos
-  específicos.
-- **Bold/itálico no campo de história do personagem** — hoje é um `<textarea>` de texto puro.
-  Precisa de um editor de texto rico (ou pelo menos um subconjunto markdown com `**negrito**` e
-  `*itálico*` + uma barrinha de formatação) e mudar a exibição (`GeralTab`) pra renderizar a
-  formatação em vez de mostrar o texto cru. Vale a pena decidir se é markdown-lite (mais simples)
-  ou um editor WYSIWYG de verdade antes de implementar.
 - **Talentos: campos novos — resumo (prévia no card) e Fonte (livro ou link clicável)** (pedido em
   2026-10-13) — o tipo `Feat`/`FeatLibraryItem` (`entities/character/model/types.ts`,
   `entities/library-item/model/types.ts`) hoje tem os campos `id`, `name`, `tag`, `prerequisite`,
@@ -168,5 +155,8 @@ resolvidos" abaixo)
 - **[feito]** Tipo de criatura vindo da biblioteca compartilhada (categoria `tipos`); subtipo como
   texto livre.
 - **[feito]** Idiomas agora podem ser escolhidos da biblioteca compartilhada, além de digitados.
+- **[feito]** Markdown (negrito/itálico/tabelas) na história do personagem.
+- **[feito]** Habilidades similares a magia ganharam fluxo de UI de verdade — antes não existia
+  nenhuma forma de adicionar uma.
 - **[feito]** Snapshot espúria ao subir um personagem novo pro nível 1 (a primeira classe
   adicionada não deveria gerar histórico).

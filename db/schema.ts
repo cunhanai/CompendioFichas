@@ -482,6 +482,9 @@ export const characterSpecialAbilities = pgTable(
     name: text('name').notNull(),
     subtitle: text('subtitle').notNull().default(''),
     uses: text('uses').notNull().default(''),
+    // Only populated for kind: 'spell-like' — source spells and caster level.
+    spells: text('spells').notNull().default(''),
+    casterLevel: text('caster_level').notNull().default(''),
     desc: text('desc').notNull().default(''),
     sortOrder: sortOrder(),
   },

@@ -138,8 +138,9 @@ const ELYNDRA: Character = {
     {
       id: 'sla-1',
       name: 'Sangue Feérico: Enfeitiçar Pessoa',
-      subtitle: 'Habilidade similar a magia · NC 5',
-      uses: '0/1 usado',
+      spells: 'Enfeitiçar Pessoa',
+      usesPerDay: '1/dia',
+      casterLevel: '5',
       desc: 'Concedida pela linhagem feérica de Elyndra. Funciona como a magia Enfeitiçar Pessoa, exceto pela quantidade limitada de usos diários.',
     },
   ],
