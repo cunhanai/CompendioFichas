@@ -1090,3 +1090,32 @@ Três pedidos do usuário na mesma leva.
   `title`/`aria-label` pra acessibilidade); `SheetPage.tsx` ganhou um `<h2>` com o nome da seção
   ativa, posicionado entre a barra de abas e o conteúdo — é também onde o `FeatureTag` de
   Criaturas/Plano é anexado.
+
+## Fix: alerta de segurança reaparecia idêntico mesmo depois de dispensado
+
+Pedido do usuário, com print mostrando o alerta "11 tentativas... última hora" marcado como "há 18
+dias" — dois sintomas relatados: dispensar o alerta e fazer login de novo faz ele voltar
+"exatamente igual"; e uma tentativa de login de um usuário real no dia anterior não aparecia
+refletida nele.
+
+- **Causa raiz, confirmada lendo o código** (não a mesma dos bugs anteriores sobre essa tabela —
+  ver "Dispensar um alerta de segurança dispensa a pilha inteira do mesmo tipo", já corrigido):
+  `maybeRaiseSecurityAlert` sempre recalculava a janela como "a última hora corrida" a partir de
+  `Date.now()`. Dispensar um alerta não apaga as tentativas de login falhas do `audit_log` — elas
+  continuam lá. Então, se o número de tentativas na última hora já tinha cruzado o limite (8) uma
+  vez, a primeira tentativa falha/bloqueada seguinte (mesmo uma só) recalculava a mesma janela,
+  via de regra encontrava a mesma contagem (ou bem parecida), e inseria um alerta novo com a
+  descrição praticamente idêntica — lido pelo usuário como "o mesmo alerta voltou", mesmo sendo
+  tecnicamente uma linha nova.
+- **Fix**: a janela agora é limitada pela última vez que um alerta foi dispensado —
+  `since = max(agora - 1h, últimoDismissedAt)` — em vez de sempre `agora - 1h`. Só uma consulta a
+  mais em `maybeRaiseSecurityAlert` (pega o `dismissedAt` mais recente entre os alertas já
+  dispensados). Na prática: dispensar um alerta zera o contador na hora; só tentativas de login
+  genuinamente **novas**, depois daquele dismiss, conseguem cruzar o limite de novo — resolve o
+  "dispensei e voltou igual" sem precisar de uma coluna nova nem migration.
+- **Sobre "a tentativa de ontem não aparece"**: esse alerta é um detector de força bruta de janela
+  curta (1 hora), não um histórico — uma tentativa isolada e distante no tempo nunca deveria gerar
+  (nem atualizar) um alerta sozinha, e isso continua correto depois do fix. Toda tentativa de
+  login, bem-sucedida ou não, sempre fica registrada permanentemente em `audit_log` (visível em
+  Gestão de usuários → Atividade) — o alerta de segurança é só o aviso de "muita coisa acontecendo
+  rápido", não um substituto pro log de auditoria.
