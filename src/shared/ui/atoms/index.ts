@@ -1,5 +1,6 @@
 export * from './Avatar';
 export * from './Badge';
+export * from './FeatureTag';
 export * from './Button';
 export * from './IconButton';
 export * from './Markdown';
