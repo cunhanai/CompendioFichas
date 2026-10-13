@@ -1052,8 +1052,12 @@ perguntas de esclarecimento (local das tags, versionamento, origem do texto).
 - **Tags "Em desenvolvimento"/"Novo"** (`shared/ui/atoms/FeatureTag.tsx`, variantes do `Badge` já
   existente) — pedido: aparecem tanto no ponto de entrada da funcionalidade quanto dentro da
   própria tela/diálogo; uma tag "em desenvolvimento" é substituída por "novo" quando a
-  funcionalidade for considerada completa. **Aplicação ainda pendente**: a lista de quais
-  funcionalidades contam como "em desenvolvimento" hoje foi proposta ao usuário (compartilhamento
-  de ficha — lacuna visual de `readOnly` nos popups de edição — e galeria de fotos — falta recorte
-  de imagem, virar aba, compressão) para aprovação antes de aplicar; só o componente e o sistema de
-  versionamento foram implementados nesta leva.
+  funcionalidade for considerada completa.
+- **Lista aprovada e aplicada**: compartilhamento de ficha e galeria de fotos (as duas lacunas já
+  documentadas — ver "Pendentes" em `BACKLOG.md`). No ponto de entrada (`SheetHeader.tsx`), como os
+  botões de Galeria/Compartilhar são ícones pequenos sem espaço pra um badge de texto inteiro, a
+  marcação é um ponto âmbar no canto do botão (mesma cor do tom `amber` usado pelo `FeatureTag`) +
+  o rótulo do `Tooltip` ganha "(em desenvolvimento)"; dentro de cada diálogo
+  (`PhotoGalleryDialog`/`SharePickerDialog`), o `FeatureTag` completo aparece como `headerActions`
+  do `Popup`, ao lado do título — mesmo slot já usado por `EditToggleButton` nos diálogos de
+  talentos/habilidades.

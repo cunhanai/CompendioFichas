@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, UserMinus, UserPlus } from 'lucide-react';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
+import { FeatureTag } from '@/shared/ui/atoms/FeatureTag';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppToast } from '@/shared/ui/organisms';
 import type { RosterUser } from '@/entities/user/model/types';
@@ -57,7 +58,13 @@ export function SharePickerDialog({
   );
 
   return (
-    <Popup open={open} onOpenChange={onOpenChange} title="Compartilhar ficha" size="sm">
+    <Popup
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Compartilhar ficha"
+      size="sm"
+      headerActions={<FeatureTag status="em-desenvolvimento" />}
+    >
       <div className="flex flex-col gap-4">
         {currentShares.length > 0 && (
           <div>

@@ -64,14 +64,17 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
   // Browsing the gallery is allowed for a read-only shared viewer too — only adding/removing
   // photos is owner-only (enforced inside PhotoGalleryDialog via `canEdit`).
   const galleryButton = (
-    <IconButton
-      label="Galeria de fotos"
-      variant="neutral"
-      size="sm"
-      onClick={() => setGalleryOpen(true)}
-    >
-      <Images className="h-3.5 w-3.5" strokeWidth={1.8} />
-    </IconButton>
+    <div className="relative">
+      <IconButton
+        label="Galeria de fotos (em desenvolvimento)"
+        variant="neutral"
+        size="sm"
+        onClick={() => setGalleryOpen(true)}
+      >
+        <Images className="h-3.5 w-3.5" strokeWidth={1.8} />
+      </IconButton>
+      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500" />
+    </div>
   );
 
   const actions = readOnly ? (
@@ -103,14 +106,17 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         />
       </IconButton>
       {galleryButton}
-      <IconButton
-        label="Compartilhar"
-        variant="neutral"
-        size="sm"
-        onClick={() => setShareOpen(true)}
-      >
-        <Share2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-      </IconButton>
+      <div className="relative">
+        <IconButton
+          label="Compartilhar (em desenvolvimento)"
+          variant="neutral"
+          size="sm"
+          onClick={() => setShareOpen(true)}
+        >
+          <Share2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+        </IconButton>
+        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500" />
+      </div>
     </>
   );
 
