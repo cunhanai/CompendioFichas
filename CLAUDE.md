@@ -9,8 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 placeholders in navigation/seed data. See `DESIGN_NOTES.md` for the full product spec and a
 running log of every design decision made in this project (see "Process rule" below).
 
-The README is stale — it still describes a `localStorage`-only mockup. The app has a real
-backend (see Architecture); don't trust the README's "Estado do projeto" section.
+**Doc map**: `ONBOARDING.md` is the human-facing overview (high-level product + low-level
+architecture + workflow + deploy + done/planned/missing) — read it first if you're new here. This
+file (`CLAUDE.md`) is the denser architecture/convention reference for anyone (human or Claude)
+about to touch the code. `DESIGN_NOTES.md` is the full chronological decision log.
+`BACKLOG.md` tracks pending requests.
 
 ## Commands
 
@@ -81,7 +84,7 @@ import from itself or a layer below. `shared/ui` is further organized Atomic-Des
   of what was live (so nothing is lost), then moves `currentSnapshotId` to the target — whatever
   came after the old `currentSnapshotId` is still in the tree, just no longer on the active
   lineage, and shows up as an "other branch" instead. A snapshot can be soft-deleted
-  (`deletedAt`) only if it's *not* an ancestor of `currentSnapshotId` — that single rule is what
+  (`deletedAt`) only if it's _not_ an ancestor of `currentSnapshotId` — that single rule is what
   keeps the active lineage protected and makes restore-points (dead-end leaves by construction)
   deletable without a separate case for either. New level-up entry points must wrap their
   mutation in `withLevelUpSnapshot` so the snapshot is taken automatically.
@@ -105,12 +108,13 @@ path-derived id straight through to the wrapped handler.
 
 **Never read `req.query.path` in a catch-all dispatcher — use `getPathSegments(req, basePath)`
 from `api/_lib/request.ts` instead.** This project spent a long time chasing a bug where every
-request with a *real* sub-path under `/api/admin/users/*`, `/api/characters/*`, and `/api/user/*`
+request with a _real_ sub-path under `/api/admin/users/*`, `/api/characters/*`, and `/api/user/*`
 was silently served as if it had zero path segments — `PATCH /api/characters/:id` landing on the
 POST-only create handler and failing with a 405, `PATCH /api/user/password` landing on the
 profile-update handler and failing zod validation with a confusing "expected string, received
 undefined", etc. — with nothing logged (a normal `res.status(405)` response isn't an exception).
 Two theories were tried and both turned out to be red herrings:
+
 - Renaming `[[...path]].ts` (Next.js's "optional catch-all" syntax, which only means anything
   inside Next.js's own router) to `[...path].ts` (a genuinely generic Vercel dynamic route) —
   this looked plausible from reading Vercel's `fs-detectors` source and even seemed to fix a
@@ -122,7 +126,7 @@ Two theories were tried and both turned out to be red herrings:
 `console.log(req.method, req.url, req.query)` to a dispatcher, deploying, reproducing the bug,
 and reading the resulting Vercel Runtime Log line): for these dynamic routes, Vercel forwards the
 matched path segment under the **literal query key `...path`** (dots included), not `path` — e.g.
-`req.query` was `{"...path": "00595c1b-..."}`. `req.query.path` was therefore *always*
+`req.query` was `{"...path": "00595c1b-..."}`. `req.query.path` was therefore _always_
 `undefined`, on every request, regardless of single vs. double bracket in the filename. Every
 dispatcher's `segments = ([] as string[]).concat(req.query.path ?? [])` silently evaluated to
 `[]` for every request with a real sub-path, all along.
@@ -170,7 +174,7 @@ it.
   (`0011_drop_characters_data_jsonb.sql` + `0012_add_relational_character_tables.sql`).
 - **Character sharing**: `character_shares` (`character_id`, `shared_with_user_id`) is a real
   table — unlike everything else about a character, "who else can see this" needs to be
-  queryable from the *recipient's* side (their bootstrap needs "what's been shared with me"),
+  queryable from the _recipient's_ side (their bootstrap needs "what's been shared with me"),
   which a value scoped to one owner's character row can't support on its own.
   Always view-only: the recipient never gets a write endpoint for someone else's character.
   `useCharacter()` (`app/providers/app-data/useAppData.ts`) resolves both owned and

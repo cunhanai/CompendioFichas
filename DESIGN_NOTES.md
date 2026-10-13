@@ -1,6 +1,15 @@
 # Compêndio de Fichas — notas de design e regras do produto
 
-Mockup em Tailwind (para futura migração a React) do sistema de fichas de RPG multi-usuário/multi-sistema. Arquivo principal: `Compendio de Fichas.dc.html` + componentes filhos (`SystemCard`, `CharCard`, `SheetTab`, `FieldView`, `AbilityScore`, `WeaponRow`, `SkillRow`).
+> **Como ler este arquivo**: é um **log cronológico, append-only** — cada seção é uma leva de
+> pedidos/decisões, na ordem em que aconteceram, do mockup original até a última mudança. As duas
+> primeiras seções (**"Regras de produto"** e **"Fórmulas de cálculo"**, logo abaixo) são a parte
+> mais estável e próxima de uma referência — o resto é histórico, útil para entender *por que*
+> algo é do jeito que é, mas não é organizado por tópico nem pensado pra leitura de ponta a ponta.
+> Pra uma visão geral curada do projeto, veja [`ONBOARDING.md`](./ONBOARDING.md); pra arquitetura,
+> [`CLAUDE.md`](./CLAUDE.md). **Toda mudança de produto/design pedida deve ser adicionada no final
+> deste arquivo, como uma nova seção `##`** — ver "Regra permanente de processo" mais abaixo.
+
+Mockup em Tailwind (para futura migração a React) do sistema de fichas de RPG multi-usuário/multi-sistema. Arquivo principal: `Compendio de Fichas.dc.html` + componentes filhos (`SystemCard`, `CharCard`, `SheetTab`, `FieldView`, `AbilityScore`, `WeaponRow`, `SkillRow`). *(Nota histórica: este parágrafo descreve como o projeto começou — um mockup estático em HTML/Tailwind. Hoje é uma SPA React com backend real; ver `ONBOARDING.md`.)*
 
 ## Escopo desta rodada
 Apenas o sistema **Pathfinder 1ª Edição** foi implementado/mockado. Outros sistemas (Dune: Aventuras, Tormenta20, Vampiro: A Máscara) aparecem na listagem só como contexto de multi-sistema, alguns marcados "em breve".
@@ -901,3 +910,21 @@ fazer isso usando markdown)".
 - Escopo deliberadamente restrito à descrição dos talentos (não estendido a perícias, magias,
   habilidades especiais, etc.) — é o que foi pedido; o componente `Markdown` fica em `shared/ui`
   justamente pra poder ser reaproveitado se/quando isso for pedido noutro lugar.
+
+## Carga: badge + highlight do quadrado ativo (leve/média/pesada)
+
+Pedido do usuário: o indicativo de qual estado de carga (leve/média/pesada) está ativo deveria
+aparecer tanto como badge quanto destacando o quadrado correspondente, nas mesmas cores já usadas
+na barra (verde/laranja/vermelho).
+
+- Dois mapas novos em `constants.ts`, ao lado do `LOAD_STATE_BAR_COLOR` já existente:
+  `LOAD_STATE_BADGE_CLASS` (pílula de texto) e `LOAD_STATE_HIGHLIGHT_CLASS` (borda + fundo
+  tingido pro quadrado ativo) — mesma família de cor por estado (`leve` emerald, `média` orange,
+  `pesada`/`sobrecarregado` rose), só variando a aplicação.
+- `LoadDialog.tsx`: a pílula de estado aparece ao lado do peso atual, acima da barra; o texto
+  redundante "· carga {state}" que ficava embaixo da barra saiu (a pílula já diz isso).
+- No modo visualização, o quadrado Leve/Média/Pesada correspondente ao estado atual (calculado a
+  partir de `loadState()`) ganha a borda/fundo destacado — `sobrecarregado` não tem quadrado
+  próprio (é "acima do limite de Pesada"), então nesse caso o quadrado de Pesada continua sendo o
+  destacado. Os outros três quadrados (Erguer sobre a cabeça/Erguer do chão/Arrastar-empurrar)
+  nunca são destacados — não fazem parte do estado leve/média/pesada.

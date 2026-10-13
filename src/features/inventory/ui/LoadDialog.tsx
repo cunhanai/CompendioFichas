@@ -1,11 +1,16 @@
 import type { Character } from '@/entities/character/model/types';
 import { computeCarriedWeight, loadState } from '@/entities/character/model/calculations';
-import { LOAD_STATE_BAR_COLOR } from '@/entities/character/model/constants';
+import {
+  LOAD_STATE_BADGE_CLASS,
+  LOAD_STATE_BAR_COLOR,
+  LOAD_STATE_HIGHLIGHT_CLASS,
+} from '@/entities/character/model/constants';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { UnsavedChangesDialog } from '@/shared/ui/organisms/UnsavedChangesDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { parseNumberInput } from '@/shared/lib/parseNumberInput';
+import { cn } from '@/shared/lib/cn';
 import { setLoadField } from '../model/mutations';
 
 const FIELDS: { key: keyof Character['load']; label: string }[] = [
@@ -45,6 +50,10 @@ export function LoadDialog({
     character.load.heavy > 0
       ? Math.min(100, Math.round((carried / character.load.heavy) * 100))
       : 0;
+  // 'sobrecarregado' has no tile of its own — it's past the "pesada" threshold, so that tile
+  // stays the one highlighted.
+  const highlightedKey: keyof Character['load'] =
+    state === 'leve' ? 'light' : state === 'média' ? 'medium' : 'heavy';
 
   return (
     <>
@@ -60,24 +69,38 @@ export function LoadDialog({
         }
       >
         <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-xs text-neutral-500">Carregando agora (calculado)</span>
-            <span className="text-sm font-semibold text-neutral-100">
-              {String(carried).replace('.', ',')} kg
+            <span className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-neutral-100">
+                {String(carried).replace('.', ',')} kg
+              </span>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                  LOAD_STATE_BADGE_CLASS[state],
+                )}
+              >
+                {state}
+              </span>
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
             <div className={`h-full ${LOAD_STATE_BAR_COLOR[state]}`} style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-2 text-[11px] text-neutral-500">
-            Soma do peso dos equipamentos · carga {state}
-          </p>
+          <p className="mt-2 text-[11px] text-neutral-500">Soma do peso dos equipamentos</p>
         </div>
 
         {!editing ? (
           <div className="grid grid-cols-2 gap-2.5 text-center">
             {FIELDS.map((f) => (
-              <div key={f.key} className="rounded-lg bg-neutral-950 py-2.5">
+              <div
+                key={f.key}
+                className={cn(
+                  'rounded-lg py-2.5',
+                  f.key === highlightedKey ? LOAD_STATE_HIGHLIGHT_CLASS[state] : 'bg-neutral-950',
+                )}
+              >
                 <p className="text-sm font-medium text-neutral-100">{character.load[f.key]} kg</p>
                 <p className="text-[10px] text-neutral-500">{f.label.replace(' (kg)', '')}</p>
               </div>

@@ -49,6 +49,24 @@ export const LOAD_STATE_BAR_COLOR: Record<LoadState, string> = {
   sobrecarregado: 'bg-rose-500',
 };
 
+/** Pill badge classes for the current load state — same green/orange/red as the bar, applied to
+ * a small label instead of a fill. */
+export const LOAD_STATE_BADGE_CLASS: Record<LoadState, string> = {
+  leve: 'bg-emerald-900/40 text-emerald-400',
+  média: 'bg-orange-900/40 text-orange-400',
+  pesada: 'bg-rose-950/50 text-rose-300',
+  sobrecarregado: 'bg-rose-950/50 text-rose-300',
+};
+
+/** Highlight classes for whichever load-threshold tile (Leve/Média/Pesada) matches the current
+ * state, same color family as the bar/badge. */
+export const LOAD_STATE_HIGHLIGHT_CLASS: Record<LoadState, string> = {
+  leve: 'border border-emerald-700/50 bg-emerald-950/40',
+  média: 'border border-orange-700/50 bg-orange-950/40',
+  pesada: 'border border-rose-700/50 bg-rose-950/40',
+  sobrecarregado: 'border border-rose-700/50 bg-rose-950/40',
+};
+
 export const SIZES: Size[] = [
   'Miúdo',
   'Diminuto',

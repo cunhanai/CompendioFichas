@@ -1,10 +1,14 @@
 # Compêndio de Fichas
 
-SPA para gerenciar fichas de personagem de RPG de mesa, multi-usuário e multi-sistema. Esta
-rodada implementa o sistema **Pathfinder 1ª Edição**; outros sistemas aparecem apenas como
-contexto de navegação (alguns marcados "em breve").
+SPA para gerenciar fichas de personagem de RPG de mesa, multi-usuário e multi-sistema. Hoje, só o
+sistema **Pathfinder 1ª Edição** está de fato implementado; outros sistemas aparecem apenas como
+contexto de navegação (marcados "em breve").
 
-Ver `DESIGN_NOTES.md` para as regras de produto e decisões de design completas.
+A aplicação tem um backend real (Postgres/Neon + Vercel Serverless Functions) — não é um mockup
+local. **Novo no projeto? Comece por [`ONBOARDING.md`](./ONBOARDING.md)** — visão geral de alto e
+baixo nível, fluxo de trabalho e deploy. Para arquitetura detalhada, veja [`CLAUDE.md`](./CLAUDE.md);
+para o histórico completo de decisões de produto/design, [`DESIGN_NOTES.md`](./DESIGN_NOTES.md);
+para o que está pendente, [`BACKLOG.md`](./BACKLOG.md).
 
 ## Stack
 
@@ -23,19 +27,30 @@ npm install
 npm run dev
 ```
 
+`npm run dev` sobe só o front-end (Vite). As chamadas a `/api/...` precisam de um backend rodando
+junto — não há hoje um fluxo local documentado para isso (ver "Gap conhecido de ambiente de
+desenvolvimento local" em [`ONBOARDING.md`](./ONBOARDING.md#4-deploy)). O desenvolvimento deste
+projeto tem acontecido majoritariamente sem um navegador/backend real disponível, validado via
+typecheck, lint, testes automatizados e build de produção (ver `ONBOARDING.md` → "Fluxo de
+trabalho").
+
 ## Scripts
 
-- `npm run dev` — servidor de desenvolvimento
+- `npm run dev` — servidor de desenvolvimento (só front-end, ver acima)
 - `npm run build` — typecheck + build de produção
 - `npm run preview` — preview do build de produção
 - `npm run lint` — ESLint
 - `npm run format` — Prettier
 - `npm test` — Vitest (execução única)
 - `npm run test:watch` — Vitest (modo watch)
+- `npm run db:migrate` — aplica migrações pendentes (`drizzle-kit migrate`, lendo
+  `.env.development.local`) — **não roda automaticamente no deploy**, ver `ONBOARDING.md` → Deploy
+- `npm run db:seed` — popula dados de exemplo (`db/seed.ts`)
 
 ## Estado do projeto
 
-Aplicação de frontend com dados de exemplo em memória (sem backend real) — login, cadastro e
-persistência são simulados via `localStorage`, mantendo o mesmo escopo do mockup original em
-Tailwind (`Compendio de Fichas.dc.html`), agora implementado como componentes React reais em vez
-de HTML estático.
+Backend real: Postgres (Neon) acessado via Vercel Serverless Functions, com Drizzle como ORM —
+autenticação por sessão (cookie), sem cadastro público. Deploy automático a partir de `main` na
+Vercel. Detalhes de arquitetura em [`CLAUDE.md`](./CLAUDE.md); o que já está implementado vs.
+pendente está resumido em [`ONBOARDING.md`](./ONBOARDING.md#5-estado-do-projeto-feito-planejado-faltando)
+e detalhado em [`BACKLOG.md`](./BACKLOG.md).
