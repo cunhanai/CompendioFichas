@@ -1061,3 +1061,32 @@ perguntas de esclarecimento (local das tags, versionamento, origem do texto).
   (`PhotoGalleryDialog`/`SharePickerDialog`), o `FeatureTag` completo aparece como `headerActions`
   do `Popup`, ao lado do título — mesmo slot já usado por `EditToggleButton` nos diálogos de
   talentos/habilidades.
+
+## Changelog vira versionamento por dia; mais tags "em desenvolvimento"; navegação da ficha só com ícones
+
+Três pedidos do usuário na mesma leva.
+
+- **Changelog: versionamento por dia, não por PR.** Pedido explícito: "eu faço micro versões ao
+  longo do dia, então ao final do dia vamos gerar um changelog do dia". `CHANGELOG_ENTRIES`
+  (`entities/changelog/model/data.ts`) deixa de ter uma entrada por PR mesclada
+  (`AAAA.MM.DD-beta.N`) e passa a ter **uma entrada por dia** (`AAAA.MM.DD-beta`, sem sufixo
+  numérico) — as duas entradas do dia 13/10 (uma por PR) foram consolidadas em uma só, e as
+  mudanças das PRs seguintes do mesmo dia (changelog em si, tags, navegação por ícone) entraram
+  nela também em vez de criar versões novas. Na prática: a entrada do dia corrente vai sendo
+  ampliada a cada PR que mescla naquele dia; só vira uma entrada "fechada" (e uma nova começa)
+  quando o dia muda.
+- **Mais funcionalidades marcadas "em desenvolvimento"**: aba Criaturas, aba Plano (as duas ainda
+  são só uma `EmptyState` sem nenhuma ação funcional — nem "Vincular criatura" nem "Criar plano"
+  fazem algo), e as duas seções da aba Histórico, Snapshots por nível e Registro de sessões
+  (ambas existem e funcionam, mas o usuário as considera ainda em desenvolvimento). Como essas são
+  abas/seções inteiras, e não um botão pequeno de cabeçalho como compartilhamento/galeria, o
+  `FeatureTag` entra direto ao lado do título da seção (`SheetPage.tsx`'s novo `<h2>`, ver abaixo;
+  e dos `<h3>` de cada `SectionCard` em `HistoricoTab.tsx`) — sobra espaço de sobra ali, diferente
+  dos ícones compactos do cabeçalho.
+- **Navegação da ficha**: pedido explícito, com captura de tela mostrando a aba "Combate" com
+  ícone+nome enquanto as outras abas mostravam só o ícone — "quero na navegação mostre só o ícone,
+  sem nome da seção, e antes de iniciar a seção de fato, quero o nome dela". `SheetTabBar.tsx`
+  perdeu o `<span>` condicional que mostrava o nome da aba ativa (agora é sempre só o ícone, com
+  `title`/`aria-label` pra acessibilidade); `SheetPage.tsx` ganhou um `<h2>` com o nome da seção
+  ativa, posicionado entre a barra de abas e o conteúdo — é também onde o `FeatureTag` de
+  Criaturas/Plano é anexado.

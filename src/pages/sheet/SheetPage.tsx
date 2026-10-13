@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useCharacter } from '@/app/providers';
-import type { SheetTabId } from '@/entities/character/model/constants';
+import { SHEET_TABS, type SheetTabId } from '@/entities/character/model/constants';
 import { routes } from '@/shared/lib/routes';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { SheetHeader } from '@/widgets/sheet-header';
 import { QuickStats } from '@/widgets/quick-stats';
+import { FeatureTag } from '@/shared/ui/atoms/FeatureTag';
 import { SheetTabBar } from './SheetTabBar';
 import { GeralTab } from './tabs/GeralTab';
 import { CombateTab } from './tabs/CombateTab';
@@ -65,6 +66,11 @@ export function SheetPage() {
 
         <div className="flex flex-col gap-5">
           <SheetTabBar active={tab} onChange={setTab} />
+
+          <h2 className="font-display flex items-center gap-2 text-lg text-neutral-100">
+            {SHEET_TABS.find((t) => t.id === tab)?.label}
+            {(tab === 'criaturas' || tab === 'plano') && <FeatureTag status="em-desenvolvimento" />}
+          </h2>
 
           {tab === 'geral' && <GeralTab characterId={characterId} />}
           {tab === 'combate' && (
