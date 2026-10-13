@@ -9,4 +9,5 @@ export const routes = {
   adminUsers: (tab?: 'users' | 'activity') =>
     tab ? `/admin/usuarios?tab=${tab}` : '/admin/usuarios',
   sheet: (characterId: string) => `/personagens/${characterId}`,
+  changelog: () => '/novidades',
 };

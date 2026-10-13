@@ -1,10 +1,11 @@
-import { Users } from 'lucide-react';
+import { Sparkles, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { AccountCard, AvatarUpload } from '@/features/profile-settings';
+import { CURRENT_VERSION } from '@/entities/changelog/model/data';
 
 export function ProfilePage() {
   const { user, updateUser, setUser } = useAppData();
@@ -31,6 +32,16 @@ export function ProfilePage() {
       </div>
 
       <AccountCard user={user} onSaved={setUser} />
+
+      <Button
+        variant="secondary"
+        className="mb-3 w-full"
+        onClick={() => navigate(routes.changelog())}
+      >
+        <Sparkles className="h-4 w-4" strokeWidth={1.8} />
+        Novidades
+        <span className="ml-auto text-xs text-neutral-500">{CURRENT_VERSION}</span>
+      </Button>
 
       {user.isAdmin && (
         <Button

@@ -1024,3 +1024,36 @@ relacionado a este, mas respondido na mesma rodada).
   visualização, sem nenhuma indicação de que o item estava vazio e precisava ser preenchido.
 - Migration `0020`: `resumo`/`fonte` em `character_feats`, `character_special_abilities`,
   `library_feats`, `library_special_abilities`.
+
+## Sistema de changelog e tags de novidade
+
+Pedido do usuário, parte do item de backlog "Sistema de changelog/novidades" — decisão tomada após
+perguntas de esclarecimento (local das tags, versionamento, origem do texto).
+
+- **Registro de novidades** (`entities/changelog/model/data.ts`, `CHANGELOG_ENTRIES`) — separado
+  de `DESIGN_NOTES.md`: este arquivo é o registro técnico (decisões de produto/arquitetura, lido
+  por quem desenvolve); o novo é voltado ao jogador, uma entrada por leva de mudanças que chegou à
+  produção (tipicamente uma PR mesclada), **reescrita em linguagem de usuário final** — não é a
+  descrição técnica da PR copiada e colada.
+- **Versionamento**: `AAAA.MM.DD-beta.N`, onde `N` incrementa por entrada lançada no mesmo dia
+  (pedido explícito do usuário: baseado em data **e** versão, com sufixo `-beta` enquanto o
+  sistema estiver nessa fase — tira o sufixo quando saírmos do beta). `CURRENT_VERSION` é só a
+  versão da entrada mais recente (`CHANGELOG_ENTRIES[0]`).
+- **Página de novidades** (`pages/changelog/ChangelogPage.tsx`, rota `/novidades` via
+  `routes.changelog()`), lazy-loaded como toda página em `AppScreens.tsx`. Acessível por um botão
+  "Novidades" na tela de Perfil (mostra a versão atual ao lado) — não entrou no ícone da sidebar
+  porque não é uma área de navegação do dia a dia, é mais parecido com o botão "Gerenciar
+  usuários" que já existe ali.
+- **Esta PR populou o changelog retroativamente com tudo a partir da PR #23** (pedido explícito do
+  usuário), já que o changelog não existia antes dela — duas entradas, uma por PR mesclada.
+- **Regra de processo nova, espelhando a já existente para `DESIGN_NOTES.md`**: toda PR que mude
+  algo visível ao usuário final deve ganhar uma entrada nova em `CHANGELOG_ENTRIES`, reescrita em
+  linguagem de jogador. Não é necessário o usuário pedir isso a cada vez.
+- **Tags "Em desenvolvimento"/"Novo"** (`shared/ui/atoms/FeatureTag.tsx`, variantes do `Badge` já
+  existente) — pedido: aparecem tanto no ponto de entrada da funcionalidade quanto dentro da
+  própria tela/diálogo; uma tag "em desenvolvimento" é substituída por "novo" quando a
+  funcionalidade for considerada completa. **Aplicação ainda pendente**: a lista de quais
+  funcionalidades contam como "em desenvolvimento" hoje foi proposta ao usuário (compartilhamento
+  de ficha — lacuna visual de `readOnly` nos popups de edição — e galeria de fotos — falta recorte
+  de imagem, virar aba, compressão) para aprovação antes de aplicar; só o componente e o sistema de
+  versionamento foram implementados nesta leva.

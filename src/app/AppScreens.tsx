@@ -26,6 +26,9 @@ const UsersPage = lazy(() =>
 const SheetPage = lazy(() =>
   import('@/pages/sheet/SheetPage').then((m) => ({ default: m.SheetPage })),
 );
+const ChangelogPage = lazy(() =>
+  import('@/pages/changelog/ChangelogPage').then((m) => ({ default: m.ChangelogPage })),
+);
 
 /** Renders the icon nav shell + whichever page the current URL points to.
  * Pages load on demand (React.lazy) — the character sheet especially is a large chunk
@@ -43,6 +46,7 @@ export function AppScreens() {
           <Route path="/perfil/criar-usuario" element={<CreateUserPage />} />
           <Route path="/admin/usuarios" element={<UsersPage />} />
           <Route path="/personagens/:characterId" element={<SheetPage />} />
+          <Route path="/novidades" element={<ChangelogPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
