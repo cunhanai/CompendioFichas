@@ -30,7 +30,8 @@ export interface SheetTabBarProps {
   onChange: (tab: SheetTabId) => void;
 }
 
-/** Icon-only tabs; the active one also shows its label — matches the mock's SheetTab component. */
+/** Icon-only tabs — the active section's name is shown as a heading above its content instead
+ * (see SheetPage.tsx), not in the tab bar itself. */
 export function SheetTabBar({ active, onChange }: SheetTabBarProps) {
   return (
     <div className="grid grid-cols-5 gap-0.5 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1 sm:grid-cols-9">
@@ -43,15 +44,15 @@ export function SheetTabBar({ active, onChange }: SheetTabBarProps) {
             type="button"
             onClick={() => onChange(t.id)}
             title={t.label}
+            aria-label={t.label}
             className={cn(
-              'flex h-11 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition',
+              'flex h-11 w-full items-center justify-center rounded-lg text-xs font-medium transition',
               isActive
                 ? 'text-ink bg-amber-500'
                 : 'text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200',
             )}
           >
             <Icon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-            {isActive && <span className="hidden sm:inline">{t.label}</span>}
           </button>
         );
       })}

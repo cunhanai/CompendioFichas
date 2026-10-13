@@ -128,8 +128,10 @@ resolvidos" abaixo)
 - **[feito]** Habilidades especiais ganharam os mesmos campos `resumo`/`Fonte`, e `subtitle`
   passou a ser chamado de "Origem" na UI; bug de duplicidade na criação (`SpecialPickDialog` não
   impedia adicionar a mesma habilidade duas vezes) corrigido.
-- **[feito]** Página de novidades (`/novidades`) com versionamento (`AAAA.MM.DD-beta.N`) e
+- **[feito]** Página de novidades (`/novidades`) com versionamento por dia (`AAAA.MM.DD-beta`) e
   changelog retroativo a partir da PR #23, escrito em linguagem de usuário final; componente
   `FeatureTag` para marcar funcionalidades como "em desenvolvimento"/"novo".
-- **[feito]** Tag "em desenvolvimento" aplicada a compartilhamento de ficha e galeria de fotos —
-  ponto no canto do botão no cabeçalho da ficha + badge completo dentro de cada diálogo.
+- **[feito]** Tag "em desenvolvimento" aplicada a compartilhamento de ficha, galeria de fotos,
+  abas Criaturas e Plano, e as seções Snapshots por nível/Registro de sessões na aba Histórico.
+- **[feito]** Navegação entre abas da ficha mostra só os ícones; o nome da seção aparece como
+  título acima do conteúdo, não mais dentro da própria aba ativa.

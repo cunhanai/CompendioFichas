@@ -1061,3 +1061,61 @@ perguntas de esclarecimento (local das tags, versionamento, origem do texto).
   (`PhotoGalleryDialog`/`SharePickerDialog`), o `FeatureTag` completo aparece como `headerActions`
   do `Popup`, ao lado do título — mesmo slot já usado por `EditToggleButton` nos diálogos de
   talentos/habilidades.
+
+## Changelog vira versionamento por dia; mais tags "em desenvolvimento"; navegação da ficha só com ícones
+
+Três pedidos do usuário na mesma leva.
+
+- **Changelog: versionamento por dia, não por PR.** Pedido explícito: "eu faço micro versões ao
+  longo do dia, então ao final do dia vamos gerar um changelog do dia". `CHANGELOG_ENTRIES`
+  (`entities/changelog/model/data.ts`) deixa de ter uma entrada por PR mesclada
+  (`AAAA.MM.DD-beta.N`) e passa a ter **uma entrada por dia** (`AAAA.MM.DD-beta`, sem sufixo
+  numérico) — as duas entradas do dia 13/10 (uma por PR) foram consolidadas em uma só, e as
+  mudanças das PRs seguintes do mesmo dia (changelog em si, tags, navegação por ícone) entraram
+  nela também em vez de criar versões novas. Na prática: a entrada do dia corrente vai sendo
+  ampliada a cada PR que mescla naquele dia; só vira uma entrada "fechada" (e uma nova começa)
+  quando o dia muda.
+- **Mais funcionalidades marcadas "em desenvolvimento"**: aba Criaturas, aba Plano (as duas ainda
+  são só uma `EmptyState` sem nenhuma ação funcional — nem "Vincular criatura" nem "Criar plano"
+  fazem algo), e as duas seções da aba Histórico, Snapshots por nível e Registro de sessões
+  (ambas existem e funcionam, mas o usuário as considera ainda em desenvolvimento). Como essas são
+  abas/seções inteiras, e não um botão pequeno de cabeçalho como compartilhamento/galeria, o
+  `FeatureTag` entra direto ao lado do título da seção (`SheetPage.tsx`'s novo `<h2>`, ver abaixo;
+  e dos `<h3>` de cada `SectionCard` em `HistoricoTab.tsx`) — sobra espaço de sobra ali, diferente
+  dos ícones compactos do cabeçalho.
+- **Navegação da ficha**: pedido explícito, com captura de tela mostrando a aba "Combate" com
+  ícone+nome enquanto as outras abas mostravam só o ícone — "quero na navegação mostre só o ícone,
+  sem nome da seção, e antes de iniciar a seção de fato, quero o nome dela". `SheetTabBar.tsx`
+  perdeu o `<span>` condicional que mostrava o nome da aba ativa (agora é sempre só o ícone, com
+  `title`/`aria-label` pra acessibilidade); `SheetPage.tsx` ganhou um `<h2>` com o nome da seção
+  ativa, posicionado entre a barra de abas e o conteúdo — é também onde o `FeatureTag` de
+  Criaturas/Plano é anexado.
+
+## Fix: alerta de segurança reaparecia idêntico mesmo depois de dispensado
+
+Pedido do usuário, com print mostrando o alerta "11 tentativas... última hora" marcado como "há 18
+dias" — dois sintomas relatados: dispensar o alerta e fazer login de novo faz ele voltar
+"exatamente igual"; e uma tentativa de login de um usuário real no dia anterior não aparecia
+refletida nele.
+
+- **Causa raiz, confirmada lendo o código** (não a mesma dos bugs anteriores sobre essa tabela —
+  ver "Dispensar um alerta de segurança dispensa a pilha inteira do mesmo tipo", já corrigido):
+  `maybeRaiseSecurityAlert` sempre recalculava a janela como "a última hora corrida" a partir de
+  `Date.now()`. Dispensar um alerta não apaga as tentativas de login falhas do `audit_log` — elas
+  continuam lá. Então, se o número de tentativas na última hora já tinha cruzado o limite (8) uma
+  vez, a primeira tentativa falha/bloqueada seguinte (mesmo uma só) recalculava a mesma janela,
+  via de regra encontrava a mesma contagem (ou bem parecida), e inseria um alerta novo com a
+  descrição praticamente idêntica — lido pelo usuário como "o mesmo alerta voltou", mesmo sendo
+  tecnicamente uma linha nova.
+- **Fix**: a janela agora é limitada pela última vez que um alerta foi dispensado —
+  `since = max(agora - 1h, últimoDismissedAt)` — em vez de sempre `agora - 1h`. Só uma consulta a
+  mais em `maybeRaiseSecurityAlert` (pega o `dismissedAt` mais recente entre os alertas já
+  dispensados). Na prática: dispensar um alerta zera o contador na hora; só tentativas de login
+  genuinamente **novas**, depois daquele dismiss, conseguem cruzar o limite de novo — resolve o
+  "dispensei e voltou igual" sem precisar de uma coluna nova nem migration.
+- **Sobre "a tentativa de ontem não aparece"**: esse alerta é um detector de força bruta de janela
+  curta (1 hora), não um histórico — uma tentativa isolada e distante no tempo nunca deveria gerar
+  (nem atualizar) um alerta sozinha, e isso continua correto depois do fix. Toda tentativa de
+  login, bem-sucedida ou não, sempre fica registrada permanentemente em `audit_log` (visível em
+  Gestão de usuários → Atividade) — o alerta de segurança é só o aviso de "muita coisa acontecendo
+  rápido", não um substituto pro log de auditoria.

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Camera } from 'lucide-react';
 import { useCharacter } from '@/app/providers';
 import { SectionCard } from '@/shared/ui/molecules/SectionCard';
+import { FeatureTag } from '@/shared/ui/atoms/FeatureTag';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 import { Button } from '@/shared/ui/atoms/Button';
 import type { LevelSnapshot } from '@/entities/character/model/types';
@@ -77,8 +78,9 @@ export function HistoricoTab({ characterId }: { characterId: string }) {
     <div className="flex flex-col gap-5">
       <SectionCard>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          <h3 className="flex items-center gap-2 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             Snapshots por nível
+            <FeatureTag status="em-desenvolvimento" />
           </h3>
           <div className="flex flex-wrap items-center gap-2">
             {character.active && (
@@ -144,9 +146,10 @@ export function HistoricoTab({ characterId }: { characterId: string }) {
 
       <SectionCard>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          <h3 className="flex items-center gap-2 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
             Registro de sessões{' '}
             <span className="text-neutral-600">({character.sessionLog.length} sessões)</span>
+            <FeatureTag status="em-desenvolvimento" />
           </h3>
         </div>
         {character.sessionLog.length === 0 ? (
