@@ -12,6 +12,8 @@ import { cn } from '@/shared/lib/cn';
 
 const CATEGORIES: { value: LibraryCategory; label: string }[] = [
   { value: 'classes', label: 'Classes' },
+  { value: 'racas', label: 'Raças' },
+  { value: 'tipos', label: 'Tipos de criatura' },
   { value: 'magias', label: 'Magias' },
   { value: 'talentos', label: 'Talentos' },
   { value: 'pericias', label: 'Perícias' },

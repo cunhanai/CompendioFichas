@@ -3,8 +3,10 @@ import { db } from '../../../db/client.js';
 import {
   libraryClasses,
   libraryCreatures,
+  libraryCreatureTypes,
   libraryFeats,
   libraryLanguages,
+  libraryRaces,
   librarySkills,
   librarySpecialAbilities,
   librarySpells,
@@ -138,6 +140,32 @@ export default withErrorHandling(async function handler(req: VercelRequest, res:
       }
       const [row] = await db
         .insert(libraryClasses)
+        .values({ ...parsed.data, systemId })
+        .returning();
+      res.status(201).json({ item: row });
+      return;
+    }
+    case 'racas': {
+      const parsed = genericLibraryItemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Dados inválidos.' });
+        return;
+      }
+      const [row] = await db
+        .insert(libraryRaces)
+        .values({ ...parsed.data, systemId })
+        .returning();
+      res.status(201).json({ item: row });
+      return;
+    }
+    case 'tipos': {
+      const parsed = genericLibraryItemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Dados inválidos.' });
+        return;
+      }
+      const [row] = await db
+        .insert(libraryCreatureTypes)
         .values({ ...parsed.data, systemId })
         .returning();
       res.status(201).json({ item: row });

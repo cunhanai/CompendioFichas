@@ -225,6 +225,8 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
 
       identity: {
         raca: row.raca,
+        tipoCriatura: row.tipoCriatura,
+        subtipoCriatura: row.subtipoCriatura,
         tamanho: row.tamanho as Character['identity']['tamanho'],
         sexo: row.sexo,
         idadeNum: row.idadeNum,
@@ -871,6 +873,8 @@ function coreRowValues(character: Character, userId: string) {
     favorited: character.favorited,
     active: character.active,
     raca: character.identity.raca,
+    tipoCriatura: character.identity.tipoCriatura,
+    subtipoCriatura: character.identity.subtipoCriatura,
     tamanho: character.identity.tamanho,
     sexo: character.identity.sexo,
     idadeNum: character.identity.idadeNum,

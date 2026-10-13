@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { Character } from '@/entities/character/model/types';
+import { useAppData, useLibrary } from '@/app/providers';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { TextInput } from '@/shared/ui/atoms/TextField';
@@ -18,8 +19,18 @@ export function LanguagesDialog({ open, onOpenChange, character, update }: Langu
   const [addOpen, setAddOpen] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [text, setText] = useState('');
+  const { addLibraryItem } = useAppData();
+  const library = useLibrary(character.systemId);
+  const known = character.languages.map((l) => l.name);
+  const candidates = (library?.idiomas ?? []).map((i) => i.name).filter((n) => !known.includes(n));
 
   const removeTarget = character.languages.find((l) => l.id === removeId);
+
+  const pick = (name: string) => {
+    update((c) => addLanguage(c, name));
+    setText('');
+    setAddOpen(false);
+  };
 
   return (
     <>
@@ -50,7 +61,7 @@ export function LanguagesDialog({ open, onOpenChange, character, update }: Langu
       </Popup>
 
       <Popup open={addOpen} onOpenChange={setAddOpen} title="Adicionar idioma" size="sm">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <TextInput
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -62,14 +73,33 @@ export function LanguagesDialog({ open, onOpenChange, character, update }: Langu
             className="shrink-0"
             onClick={() => {
               if (!text.trim()) return;
-              update((c) => addLanguage(c, text.trim()));
-              setText('');
-              setAddOpen(false);
+              const name = text.trim();
+              if (!candidates.includes(name) && !known.includes(name)) {
+                addLibraryItem(character.systemId, 'idiomas', { name, desc: '' });
+              }
+              pick(name);
             }}
           >
             Adicionar
           </Button>
         </div>
+        {candidates.length > 0 && (
+          <>
+            <p className="mb-2 text-[11px] text-neutral-600">Ou escolha um já conhecido:</p>
+            <div className="flex flex-col gap-2">
+              {candidates.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => pick(name)}
+                  className="rounded-lg bg-neutral-950 px-4 py-3 text-left text-sm text-neutral-200 transition hover:bg-neutral-800/70"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </Popup>
 
       <ConfirmDialog

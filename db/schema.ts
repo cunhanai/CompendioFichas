@@ -122,6 +122,8 @@ export const characters = pgTable('characters', {
 
   // Identity
   raca: text('raca').notNull().default(''),
+  tipoCriatura: text('tipo_criatura').notNull().default(''),
+  subtipoCriatura: text('subtipo_criatura').notNull().default(''),
   tamanho: text('tamanho').notNull().default(''),
   sexo: text('sexo').notNull().default(''),
   idadeNum: integer('idade_num').notNull().default(0),
@@ -690,6 +692,22 @@ export const libraryCreatures = pgTable('library_creatures', {
 });
 
 export const libraryClasses = pgTable('library_classes', {
+  id: uuid('id').primaryKey(),
+  systemId: librarySystemId(),
+  name: text('name').notNull(),
+  desc: text('desc').notNull(),
+  tag: text('tag').notNull(),
+});
+
+export const libraryRaces = pgTable('library_races', {
+  id: uuid('id').primaryKey(),
+  systemId: librarySystemId(),
+  name: text('name').notNull(),
+  desc: text('desc').notNull(),
+  tag: text('tag').notNull(),
+});
+
+export const libraryCreatureTypes = pgTable('library_creature_types', {
   id: uuid('id').primaryKey(),
   systemId: librarySystemId(),
   name: text('name').notNull(),

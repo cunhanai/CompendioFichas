@@ -33,6 +33,8 @@ const ELYNDRA: Character = {
 
   identity: {
     raca: 'Meio-Elfa',
+    tipoCriatura: '',
+    subtipoCriatura: '',
     tamanho: 'Médio',
     sexo: 'Feminino',
     idadeNum: 24,
@@ -302,6 +304,8 @@ const BORIN: Character = {
 
   identity: {
     raca: 'Anão da Colina',
+    tipoCriatura: '',
+    subtipoCriatura: '',
     tamanho: 'Médio',
     sexo: 'Masculino',
     idadeNum: 87,
@@ -446,6 +450,8 @@ const SABLE: Character = {
 
   identity: {
     raca: 'Humana',
+    tipoCriatura: '',
+    subtipoCriatura: '',
     tamanho: 'Médio',
     sexo: 'Feminino',
     idadeNum: 21,
@@ -584,6 +590,8 @@ const KAELEN: Character = {
 
   identity: {
     raca: 'Elfo',
+    tipoCriatura: '',
+    subtipoCriatura: '',
     tamanho: 'Médio',
     sexo: 'Masculino',
     idadeNum: 112,

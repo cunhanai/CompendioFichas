@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowUpCircle } from 'lucide-react';
 import type { Character } from '@/entities/character/model/types';
 import { alignmentFull, effectiveLevel } from '@/entities/character/model/calculations';
@@ -9,11 +10,13 @@ import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { UnitInput } from '@/shared/ui/atoms/UnitInput';
+import { PickerField } from '@/shared/ui/atoms/PickerField';
 import { cn } from '@/shared/lib/cn';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 import { setAlignmentLaw, setAlignmentMoral, updateIdentity } from '../model/mutations';
 import { ClassesEditor } from './ClassesEditor';
+import { LibraryValuePickerDialog } from './LibraryValuePickerDialog';
 
 export interface IdentityDialogProps {
   open: boolean;
@@ -58,6 +61,7 @@ export function IdentityDialog({
     cancelClose,
     update: trackedUpdate,
   } = useEditableSection({ open, isEmpty, character, update, onOpenChange });
+  const [picker, setPicker] = useState<'raca' | 'tipo' | null>(null);
 
   return (
     <>
@@ -89,6 +93,8 @@ export function IdentityDialog({
                 value={alignmentFull(character.alignmentLaw, character.alignmentMoral)}
               />
               <FieldView label="Raça" value={identity.raca} />
+              <FieldView label="Tipo de criatura" value={identity.tipoCriatura} />
+              <FieldView label="Subtipo" value={identity.subtipoCriatura} />
               <FieldView label="Sexo" value={identity.sexo} />
               <FieldView label="Tamanho" value={identity.tamanho} />
               <FieldView label="Idade" value={`${identity.idadeNum} anos`} />
@@ -173,10 +179,25 @@ export function IdentityDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <TextField
+              <PickerField
                 label="Raça"
                 value={identity.raca}
-                onChange={(e) => trackedUpdate((c) => updateIdentity(c, { raca: e.target.value }))}
+                placeholder="Escolher raça..."
+                onClick={() => setPicker('raca')}
+              />
+              <PickerField
+                label="Tipo de criatura"
+                value={identity.tipoCriatura}
+                placeholder="Escolher tipo..."
+                onClick={() => setPicker('tipo')}
+              />
+              <TextField
+                label="Subtipo"
+                value={identity.subtipoCriatura}
+                placeholder="Ex: humano, fogo..."
+                onChange={(e) =>
+                  trackedUpdate((c) => updateIdentity(c, { subtipoCriatura: e.target.value }))
+                }
               />
               <TextField
                 label="Sexo"
@@ -255,6 +276,24 @@ export function IdentityDialog({
         onOpenChange={(o) => !o && cancelClose()}
         onSave={keepChanges}
         onDiscard={discardChanges}
+      />
+      <LibraryValuePickerDialog
+        open={picker === 'raca'}
+        onOpenChange={(o) => !o && setPicker(null)}
+        title="Escolher raça"
+        placeholder="Nome de outra raça..."
+        systemId={character.systemId}
+        category="racas"
+        onPick={(name) => trackedUpdate((c) => updateIdentity(c, { raca: name }))}
+      />
+      <LibraryValuePickerDialog
+        open={picker === 'tipo'}
+        onOpenChange={(o) => !o && setPicker(null)}
+        title="Escolher tipo de criatura"
+        placeholder="Nome de outro tipo..."
+        systemId={character.systemId}
+        category="tipos"
+        onPick={(name) => trackedUpdate((c) => updateIdentity(c, { tipoCriatura: name }))}
       />
     </>
   );

@@ -191,6 +191,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       case 'idiomas':
       case 'criaturas':
       case 'classes':
+      case 'racas':
+      case 'tipos':
         return postLibraryItem(systemId, category, { id, name, desc, tag: '' });
       case 'habilidades':
         return postLibraryItem(systemId, 'habilidades', {

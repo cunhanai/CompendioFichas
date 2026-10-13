@@ -928,3 +928,34 @@ na barra (verde/laranja/vermelho).
   próprio (é "acima do limite de Pesada"), então nesse caso o quadrado de Pesada continua sendo o
   destacado. Os outros três quadrados (Erguer sobre a cabeça/Erguer do chão/Arrastar-empurrar)
   nunca são destacados — não fazem parte do estado leve/média/pesada.
+
+## Raça, Tipo de criatura/subtipo e Idiomas passam a vir da biblioteca compartilhada
+
+Pedido do usuário, como parte de uma leva maior de pedidos — resposta às perguntas de
+esclarecimento: Tipo de criatura (que já estava no backlog como "campo Tipo vindo da biblioteca")
+e o novo pedido de "Tipo de criatura e subtipo" são o mesmo campo, e a fonte confirmada foi
+biblioteca compartilhada.
+
+- **Duas categorias novas na biblioteca compartilhada**: `racas` e `tipos` (tipo de criatura, ex.
+  "Humanoide") — mesmo padrão `{id, name, desc, tag}` já usado por perícias/idiomas/criaturas/
+  classes, tabelas novas `library_races`/`library_creature_types` (migration `0018`), mesmo
+  endpoint genérico `POST /api/libraries/:systemId/:category`, aparecem como abas novas em
+  `LibraryPage.tsx`.
+- **Subtipo continua texto livre** (`identity.subtipoCriatura`, coluna `characters.subtipo_criatura`)
+  — ao contrário de Tipo, subtipos variam demais e são normalmente um parêntese específico de cada
+  criatura (ex. "(humano)", "(fogo)") pra valer um catálogo próprio.
+- **`PickerField`** (novo átomo em `shared/ui/atoms`): mesmo visual do `TextField`, mas é um botão
+  que abre um diálogo de escolha em vez de editar inline — usado pros campos que agora vêm de uma
+  lista (Raça, Tipo de criatura) em vez de digitação livre.
+- **`LibraryValuePickerDialog`** (novo, `features/sheet-identity/ui/`): versão "valor único" do
+  padrão já usado em `ClassPickerDialog` (escolher da biblioteca ou digitar um nome novo, que
+  também é gravado na biblioteca) — `ClassPickerDialog` lida com uma *lista* de classes, esse
+  componente novo é pra um campo de valor único como Raça/Tipo. Usado duas vezes em
+  `IdentityDialog.tsx` (Raça → categoria `racas`, Tipo → categoria `tipos`), sem duplicar o
+  componente.
+- **Idiomas**: `LanguagesDialog.tsx` ganhou o mesmo padrão "escolher da biblioteca ou digitar um
+  nome novo" dentro do próprio popup "Adicionar idioma" que já existia (em vez de extrair um
+  componente novo, já que esse popup já tinha a lógica de digitar-e-adicionar — só precisava
+  ganhar a lista de candidatos da biblioteca ao lado). Antes disso, `idiomas` existia como
+  categoria da biblioteca desde a criação do backend normalizado, mas nada na ficha de fato lia ou
+  gravava lá — confirmado e corrigido nesta leva (ver `BACKLOG.md`).

@@ -12,10 +12,29 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
-- **Ver os dados de vida (HP) dos personagens** — pedido vago demais pra agir sem confirmar: HP já
-  aparece na ficha (Quick Stats, GeralTab) e no editor de PV. Preciso entender _onde_ o usuário
-  esperava ver e não está vendo — no card do personagem na lista (`CharCard`)? No dashboard? Em
-  algum resumo específico?
+- **Excluir ficha de personagem (soft delete), com visualização/restauração pelo usuário master**
+  (pedido em 2026-10-13) — hoje não existe exclusão de personagem nenhuma (só ativo/inativo, que é
+  arquivamento reversível pelo próprio dono, não remoção). Pedido: dono pode "excluir" a própria
+  ficha, que vira soft delete (`characters.deleted_at`, mesmo padrão já usado em
+  `character_snapshots.deletedAt`); o usuário master pode ver as fichas excluídas (de qualquer
+  usuário) e restaurá-las. Pontos a decidir: uma ficha excluída ainda aparece em algum lugar pro
+  próprio dono (lixeira), ou só some pra ele e só o master consegue achar de novo? Existe um prazo
+  de retenção/exclusão definitiva, ou fica para sempre como soft delete? Essa tela de fichas
+  excluídas é nova (`/admin/...`) ou entra em "Gestão de usuários" já existente? **Importante**:
+  como o sistema já está liberado pra usuários beta com dados reais, qualquer implementação disso
+  precisa garantir que soft delete nunca vira hard delete acidental (ex.: nenhuma rotina de limpeza
+  automática sem confirmação explícita).
+- **Itens da biblioteca compartilhada com versão em português e em inglês, cadastradas pelos
+  próprios jogadores, de fontes diferentes** (pedido em 2026-10-13) — exemplo dado: o talento
+  "Acuidade com Arma" poderia ter tanto o texto oficial do livro (PT) quanto o texto equivalente
+  do d20pf1e (EN, "Weapon Finesse") registrados no mesmo item. "Isso será importante em breve",
+  mas ainda sem decisão de implementação. Pontos a decidir: é um campo de idioma por item
+  (duplicando nome/descrição/etc. em dois idiomas dentro do mesmo registro), ou dois registros
+  separados linkados um ao outro? Afeta só `desc`/campos de texto longo, ou também `name` (um
+  talento pode ter nomes diferentes em cada idioma — ver o exemplo dado)? Como o usuário escolhe
+  qual idioma ver na ficha (preferência global da conta? por sistema? por item, alternável na
+  hora)? Toca toda a biblioteca compartilhada (todas as ~8 categorias), não só talentos — o
+  exemplo foi só ilustrativo.
 - **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
   possivelmente outros tipos) e redesenhar o popup do atributo** — pedido explícito de mudança de
   design: "o valor final e o modificador do atributo final devem estar em destaque, depois as
@@ -50,6 +69,28 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
   campos compartilhados? Depende da decisão do item anterior (biblioteca editável) pra fazer
   sentido por completo.
+- **Sistema de changelog/novidades: tags "em desenvolvimento"/"novo", notificação de mudanças, e
+  página de atualizações com versão** (pedido em 2026-10-13) — três pedidos conectados:
+  - Tags visuais marcando o que está "em desenvolvimento" (ainda não pronto/estável) e o que foi
+    "adicionado de novo" (lançado recentemente) em algum lugar da UI — não ficou definido onde
+    (badge ao lado da feature na navegação? na tela em si?) nem como a marcação é decidida/mantida
+    (manual, por feature, a cada release? expira sozinha depois de um tempo?).
+  - Notificação de "o que foi adicionado, arrumado ou corrigido" — o app já tem um componente
+    genérico de notificação (`NotificationBanner`, `shared/ui/organisms`, hoje usado só por
+    `SecurityAlertBanner` para alertas de segurança — ver `DESIGN_NOTES.md`, "Notificações viraram
+    um componente genérico"), construído de propósito para outros tipos de notificação no futuro;
+    é um candidato natural a reaproveitar aqui, mas o conteúdo (lista de mudanças por release) e o
+    gatilho de quando mostrar pra cada usuário (uma vez só? toda vez que loga depois de um deploy
+    novo?) precisam de definição.
+  - **Página de atualizações do sistema**, com versão e data de cada entrada, e **tracking de
+    versão do sistema** (a versão atual exibida nessa página). Precisa decidir: esquema de
+    versionamento (semver? data-based, tipo `2026.10.13`?), onde a versão vive (variável de
+    ambiente injetada no build? arquivo versionado no repo? gerada a partir de tags do git?), e o
+    pedido "deve ter em todo MR" implica uma **regra de processo** (toda PR precisa vir com uma
+    entrada na página de atualizações), não só uma tela — parecido em espírito com a regra já
+    existente de registrar toda mudança em `DESIGN_NOTES.md`, mas voltada pro usuário final, não
+    pra equipe de desenvolvimento. Vale decidir se as duas listas (`DESIGN_NOTES.md` interno vs.
+    changelog público) ficam seguindo processos separados ou se uma alimenta a outra.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
@@ -84,27 +125,48 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   `*itálico*` + uma barrinha de formatação) e mudar a exibição (`GeralTab`) pra renderizar a
   formatação em vez de mostrar o texto cru. Vale a pena decidir se é markdown-lite (mais simples)
   ou um editor WYSIWYG de verdade antes de implementar.
+- **Talentos: campos novos — resumo (prévia no card) e Fonte (livro ou link clicável)** (pedido em
+  2026-10-13) — o tipo `Feat`/`FeatLibraryItem` (`entities/character/model/types.ts`,
+  `entities/library-item/model/types.ts`) hoje tem os campos `id`, `name`, `tag`, `prerequisite`,
+  `benefit` e `desc`; `desc` já suporta markdown e quebra de linha (ver `DESIGN_NOTES.md`,
+  "Talentos ganham Pré-requisito/Benefício"), e o card na aba Talentos já mostra `desc` inteiro
+  como prévia (não truncado). O pedido é por um campo **`resumo` separado da descrição**, só esse
+  mostrado no card (sem precisar
+  abrir o popup pra ler), e um campo **`Fonte`** — texto livre ("livro básico") **ou** uma URL
+  (do site d20pf1e ou outro) que, quando for link, aparece clicável e abre em nova aba
+  (`target="_blank" rel="noopener noreferrer"`). Pontos a decidir: o campo `tag` e `benefit`
+  atuais continuam existindo junto dos novos campos, ou esse pedido substitui algum deles (o
+  pedido não menciona nem "tag" nem "benefício" entre os campos desejados)? `Fonte` é um campo de
+  texto livre só, ou precisa detectar automaticamente se o conteúdo é uma URL (regex `^https?://`)
+  pra decidir se vira link? Precisa de migration em `character_feats`/`library_feats` pros campos
+  novos, igual foi feito pra `prerequisite`/`benefit`.
+- **Habilidades especiais: mesma reformulação de campos — resumo, Origem, Fonte** (pedido em
+  2026-10-13) — pedido simétrico ao de Talentos acima, pra `SpecialAbility`/`SpecialLibraryItem`
+  (hoje `{id, name, subtitle, uses, desc}`): **resumo** (prévia no card, já parcialmente coberto
+  pela prévia de `desc` adicionada recentemente — ver `DESIGN_NOTES.md`, "Fix: prévia de
+  habilidade especial não mostrava a descrição" —, mas o pedido é por um campo dedicado, menor,
+  separado da descrição completa), **Origem** (classe, raça, etc. — não fica claro se substitui
+  `subtitle`, que hoje já guarda algo parecido tipo "Racial"/"Avulsa", ou é um campo novo ao lado
+  dele) e **Fonte** (mesmo comportamento de link clicável do item de Talentos). Mesmas perguntas em
+  aberto: campos existentes (`uses`) continuam, schema de `Fonte` como texto-ou-link, e migration
+  em `character_special_abilities`/`library_special_abilities`. Faz sentido decidir os dois
+  pedidos (Talentos e Habilidades especiais) juntos, já que pedem a mesma reformulação de campos
+  em paralelo — e qualquer componente novo (ex.: um `SourceLink` pra renderizar Fonte) serviria
+  pras duas categorias.
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
-- **Raça deve vir da biblioteca compartilhada** (com opção de adicionar nova) — mesmo padrão já
-  implementado pra Classes nesta leva (`library_classes`, endpoint genérico, `RacePickerDialog`
-  espelhando `ClassPickerDialog`). Não fiz ainda por volume de mudanças nesta mesma leva; é o
-  próximo candidato mais óbvio.
-- **Um campo "Tipo" na Identidade do personagem, também vindo da biblioteca compartilhada** —
-  mesmo padrão (`library_types` ou reaproveitar uma categoria existente + campo novo em
-  `characters`/`Identity`).
-- **Idiomas ainda são lista livre, não ligada à biblioteca** (confirmado ao revisar o código em
-  2026-10-13 — não é mais "precisa checar") — a categoria `idiomas` existe na biblioteca
-  compartilhada (schema/backend) desde que foi criada, mas `LanguagesDialog`
-  (`features/sheet-identity/ui/LanguagesDialog.tsx`) só adiciona/remove texto livre digitado na
-  hora, sem buscar nem gravar nada na biblioteca. Mesmo padrão de "puxar da biblioteca ou cadastrar
-  novo" já usado em talentos/armas/perícias seria o próximo passo óbvio.
+(nenhum no momento — os últimos itens desta categoria foram resolvidos em 2026-10-13, ver "Já
+resolvidos" abaixo)
 
 ## Itens já resolvidos — **[feito]**
 
 - **[feito]** Badge indicando quando a experiência (XP) está desativada.
 - **[feito]** Experiência (XP) sempre por último na lista de estatísticas da aba Geral.
 - **[feito]** Alinhamento dos tiles (Base/Temp./Total/Modificador) no popup de atributo.
+- **[feito]** Raça vinda da biblioteca compartilhada (categoria `racas`).
+- **[feito]** Tipo de criatura vindo da biblioteca compartilhada (categoria `tipos`); subtipo como
+  texto livre.
+- **[feito]** Idiomas agora podem ser escolhidos da biblioteca compartilhada, além de digitados.
 - **[feito]** Snapshot espúria ao subir um personagem novo pro nível 1 (a primeira classe
   adicionada não deveria gerar histórico).
