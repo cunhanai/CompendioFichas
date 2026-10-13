@@ -4,6 +4,7 @@ export * from './Button';
 export * from './IconButton';
 export * from './Markdown';
 export * from './PickerField';
+export * from './SourceLink';
 export * from './PasswordField';
 export * from './Switch';
 export * from './TextField';

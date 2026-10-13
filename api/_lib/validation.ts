@@ -149,8 +149,10 @@ const characterFeatSchema = z.object({
   id: uuid,
   name: z.string(),
   tag: z.string(),
+  resumo: z.string(),
   prerequisite: z.string(),
   benefit: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });
 const characterSpecialAbilitySchema = z.object({
@@ -158,6 +160,16 @@ const characterSpecialAbilitySchema = z.object({
   name: z.string(),
   subtitle: z.string(),
   uses: z.string(),
+  resumo: z.string(),
+  fonte: z.string(),
+  desc: z.string(),
+});
+const characterSpellLikeAbilitySchema = z.object({
+  id: uuid,
+  name: z.string(),
+  spells: z.string(),
+  usesPerDay: z.string(),
+  casterLevel: z.string(),
   desc: z.string(),
 });
 const conditionalModSchema = z.object({ id: uuid, text: z.string() });
@@ -242,7 +254,7 @@ const characterSnapshotDataSchema = z.object({
   favoredSchool: z.string(),
   opposedSchools: z.array(z.string()),
   spellbooks: z.array(spellcastingBlockSchema),
-  spellLikeAbilities: z.array(characterSpecialAbilitySchema),
+  spellLikeAbilities: z.array(characterSpellLikeAbilitySchema),
   skills: z.array(skillSchema),
   conditionalMods: z.array(conditionalModSchema),
   weapons: z.array(characterWeaponSchema),
@@ -308,6 +320,8 @@ export const specialItemSchema = z.object({
   name: z.string().min(1),
   subtitle: z.string(),
   uses: z.string(),
+  resumo: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });
 
@@ -322,7 +336,9 @@ export const featItemSchema = z.object({
   id: uuid,
   name: z.string().min(1),
   tag: z.string(),
+  resumo: z.string(),
   prerequisite: z.string(),
   benefit: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });

@@ -5,13 +5,19 @@ import type { SpellLibraryItem } from '@/entities/library-item/model/types';
 import {
   SpellBookCard,
   SpellBookCreateDialog,
+  SpellLikeDetailDialog,
   SpellPickDialog,
+  addSpellLikeAbility,
   addSpellToBook,
   createSpellbook,
   removeSpellbook,
   setCircleMax,
 } from '@/features/spellbook';
-import { SectionCard, SectionCardButton } from '@/shared/ui/molecules/SectionCard';
+import {
+  SectionCard,
+  SectionCardButton,
+  SectionCardHeader,
+} from '@/shared/ui/molecules/SectionCard';
 import { InfoDialog } from '@/shared/ui/organisms/InfoDialog';
 import { Badge } from '@/shared/ui/atoms/Badge';
 import { Button } from '@/shared/ui/atoms/Button';
@@ -23,6 +29,7 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
   const [pickBookIndex, setPickBookIndex] = useState<number | null>(null);
   const [detailSpell, setDetailSpell] = useState<SpellLibraryItem | null>(null);
   const [detailSlaId, setDetailSlaId] = useState<string | null>(null);
+  const [justCreatedSlaId, setJustCreatedSlaId] = useState<string | null>(null);
   const [creatingBook, setCreatingBook] = useState(false);
 
   const openSpellDetailByName = (name: string) => {
@@ -30,7 +37,6 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
     if (found) setDetailSpell(found);
   };
 
-  const sla = character.spellLikeAbilities.find((s) => s.id === detailSlaId);
   const nothingYet =
     character.spellbooks.length === 0 &&
     character.spellLikeAbilities.length === 0 &&
@@ -88,11 +94,32 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
         />
       ))}
 
-      {character.spellLikeAbilities.length > 0 && (
+      {(character.spellLikeAbilities.length > 0 || character.active) && (
         <SectionCard>
-          <h3 className="mb-3 text-sm font-semibold text-neutral-100">
-            Habilidades similares a magia
-          </h3>
+          <SectionCardHeader
+            title="Habilidades similares a magia"
+            action={
+              character.active && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    let newId = '';
+                    update((c) => {
+                      const next = addSpellLikeAbility(c);
+                      newId = next.spellLikeAbilities[next.spellLikeAbilities.length - 1].id;
+                      return next;
+                    });
+                    setJustCreatedSlaId(newId);
+                    setDetailSlaId(newId);
+                  }}
+                  className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2} />
+                  Nova habilidade
+                </button>
+              )
+            }
+          />
           <div className="flex flex-col gap-2.5">
             {character.spellLikeAbilities.map((sla) => (
               <SectionCardButton
@@ -103,10 +130,10 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="min-w-0">
                     <p className="text-sm text-neutral-200">{sla.name}</p>
-                    <p className="text-[11px] text-neutral-500">{sla.subtitle}</p>
+                    {sla.spells && <p className="text-[11px] text-neutral-500">{sla.spells}</p>}
                   </div>
-                  {sla.uses && (
-                    <span className="shrink-0 text-xs text-neutral-400">{sla.uses}</span>
+                  {sla.usesPerDay && (
+                    <span className="shrink-0 text-xs text-neutral-400">{sla.usesPerDay}</span>
                   )}
                 </div>
               </SectionCardButton>
@@ -150,13 +177,21 @@ export function MagiasTab({ characterId, systemId }: { characterId: string; syst
         }
       />
 
-      <InfoDialog
-        open={sla != null}
-        onOpenChange={(o) => !o && setDetailSlaId(null)}
-        title={sla?.name ?? ''}
-        subtitle={sla?.subtitle}
-        description={sla?.desc}
-      />
+      {detailSlaId && (
+        <SpellLikeDetailDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) {
+              setDetailSlaId(null);
+              setJustCreatedSlaId(null);
+            }
+          }}
+          abilityId={detailSlaId}
+          character={character}
+          update={update}
+          startEditing={detailSlaId === justCreatedSlaId}
+        />
+      )}
 
       <SpellBookCreateDialog
         open={creatingBook}

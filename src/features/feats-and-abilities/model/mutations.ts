@@ -11,8 +11,10 @@ export function addFeatFromLibrary(character: Character, feat: FeatLibraryItem):
         id: crypto.randomUUID(),
         name: feat.name,
         tag: feat.tag || 'Talento',
+        resumo: feat.resumo,
         prerequisite: feat.prerequisite,
         benefit: feat.benefit,
+        fonte: feat.fonte,
         desc: feat.desc,
       },
     ],
@@ -23,6 +25,7 @@ export function addSpecialFromLibrary(
   character: Character,
   special: SpecialLibraryItem,
 ): Character {
+  if (character.specials.some((s) => s.name === special.name)) return character;
   return {
     ...character,
     specials: [
@@ -32,18 +35,31 @@ export function addSpecialFromLibrary(
         name: special.name,
         subtitle: special.subtitle,
         uses: special.uses,
+        resumo: special.resumo,
+        fonte: special.fonte,
         desc: special.desc,
       },
     ],
   };
 }
 
-export function addCustomSpecial(character: Character): Character {
+export function addCustomSpecial(
+  character: Character,
+  id: string = crypto.randomUUID(),
+): Character {
   return {
     ...character,
     specials: [
       ...character.specials,
-      { id: crypto.randomUUID(), name: 'Nova habilidade', subtitle: 'Avulsa', uses: '', desc: '' },
+      {
+        id,
+        name: 'Nova habilidade',
+        subtitle: 'Avulsa',
+        uses: '',
+        resumo: '',
+        fonte: '',
+        desc: '',
+      },
     ],
   };
 }

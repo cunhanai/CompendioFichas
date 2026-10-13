@@ -10,7 +10,15 @@ export interface FeatLibraryAddDialogProps {
   onSubmit: (feat: Omit<FeatLibraryItem, 'id'>) => void;
 }
 
-const initial = { name: '', tag: 'Talento', prerequisite: '', benefit: '', desc: '' };
+const initial = {
+  name: '',
+  tag: 'Talento',
+  resumo: '',
+  prerequisite: '',
+  benefit: '',
+  fonte: '',
+  desc: '',
+};
 
 /** "Cadastrar novo talento na biblioteca" — unlike the other categories' generic
  * AddLibraryItemDialog (name+desc only), talentos need their own form: tag, prerequisite and
@@ -56,6 +64,12 @@ export function FeatLibraryAddDialog({ open, onOpenChange, onSubmit }: FeatLibra
           value={form.tag}
           onChange={(e) => set('tag', e.target.value)}
         />
+        <TextField
+          label="Resumo"
+          placeholder="Prévia curta mostrada no card da lista"
+          value={form.resumo}
+          onChange={(e) => set('resumo', e.target.value)}
+        />
         <div className="grid grid-cols-2 gap-3">
           <TextField
             label="Pré-requisito"
@@ -70,6 +84,12 @@ export function FeatLibraryAddDialog({ open, onOpenChange, onSubmit }: FeatLibra
             onChange={(e) => set('benefit', e.target.value)}
           />
         </div>
+        <TextField
+          label="Fonte"
+          placeholder="Ex: Livro básico, ou um link (d20pf1e, etc.)"
+          value={form.fonte}
+          onChange={(e) => set('fonte', e.target.value)}
+        />
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-neutral-400">
             Descrição{' '}

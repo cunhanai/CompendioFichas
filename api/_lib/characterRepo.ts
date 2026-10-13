@@ -337,7 +337,14 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
       })),
       spellLikeAbilities: specialsForCharacter
         .filter((s) => s.kind === 'spell-like')
-        .map((s) => ({ id: s.id, name: s.name, subtitle: s.subtitle, uses: s.uses, desc: s.desc })),
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          spells: s.spells,
+          usesPerDay: s.uses,
+          casterLevel: s.casterLevel,
+          desc: s.desc,
+        })),
 
       skills: (skillsByCharacter.get(id) ?? []).map((s) => ({
         key: s.key,
@@ -377,13 +384,23 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
         id: f.id,
         name: f.name,
         tag: f.tag,
+        resumo: f.resumo,
         prerequisite: f.prerequisite,
         benefit: f.benefit,
+        fonte: f.fonte,
         desc: f.desc,
       })),
       specials: specialsForCharacter
         .filter((s) => s.kind === 'special')
-        .map((s) => ({ id: s.id, name: s.name, subtitle: s.subtitle, uses: s.uses, desc: s.desc })),
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          subtitle: s.subtitle,
+          uses: s.uses,
+          resumo: s.resumo,
+          fonte: s.fonte,
+          desc: s.desc,
+        })),
 
       money: { pc: row.moneyPc, pp: row.moneyPp, po: row.moneyPo, pl: row.moneyPl },
       load: {
@@ -750,8 +767,10 @@ function buildInserts(character: Character): BatchQuery[] {
           characterId: id,
           name: f.name,
           tag: f.tag,
+          resumo: f.resumo,
           prerequisite: f.prerequisite,
           benefit: f.benefit,
+          fonte: f.fonte,
           desc: f.desc,
           sortOrder: i,
         })),
@@ -765,8 +784,10 @@ function buildInserts(character: Character): BatchQuery[] {
       characterId: id,
       kind: 'spell-like',
       name: s.name,
-      subtitle: s.subtitle,
-      uses: s.uses,
+      subtitle: '',
+      uses: s.usesPerDay,
+      spells: s.spells,
+      casterLevel: s.casterLevel,
       desc: s.desc,
       sortOrder: i,
     })),
@@ -777,6 +798,8 @@ function buildInserts(character: Character): BatchQuery[] {
       name: s.name,
       subtitle: s.subtitle,
       uses: s.uses,
+      resumo: s.resumo,
+      fonte: s.fonte,
       desc: s.desc,
       sortOrder: i,
     })),

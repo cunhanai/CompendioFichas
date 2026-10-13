@@ -959,3 +959,68 @@ biblioteca compartilhada.
   ganhar a lista de candidatos da biblioteca ao lado). Antes disso, `idiomas` existia como
   categoria da biblioteca desde a criação do backend normalizado, mas nada na ficha de fato lia ou
   gravava lá — confirmado e corrigido nesta leva (ver `BACKLOG.md`).
+
+## Markdown na história do personagem; habilidades similares a magia ganham fluxo de UI de verdade
+
+Dois pedidos da mesma leva maior.
+
+- **História**: `StoryDialog.tsx` trocou o `<p whitespace-pre-wrap>` de leitura pelo componente
+  `Markdown` já existente (mesmo usado em talentos) — suporta negrito/itálico/tabelas e continua
+  tratando quebra de linha simples como quebra visível. O `<textarea>` de edição ganhou uma nota
+  avisando do suporte a markdown.
+- **Habilidades similares a magia**: até esta leva, **não existia nenhuma forma de adicionar
+  uma** — `character.spellLikeAbilities` só aparecia se já viesse populado (ex.: dados de
+  exemplo); não havia botão de "+" em lugar nenhum, só um `InfoDialog` somente-leitura pras que já
+  existiam. Pedido do usuário: campos específicos — lista de magias de origem, usos por dia, nível
+  de conjurador (normalmente igual ao nível efetivo, mas pode ser digitado à mão).
+  - Novo tipo **`SpellLikeAbility`** (`entities/character/model/types.ts`), separado de
+    `SpecialAbility` (que `specials`/habilidades especiais continuam usando): `{id, name, spells,
+    usesPerDay, casterLevel, desc}` — sem `subtitle`, que era usado de forma ad-hoc pra guardar
+    "NC 5" dentro de texto livre; `casterLevel` é um campo próprio agora.
+    `character_special_abilities` (tabela compartilhada com `specials` via a coluna `kind`) ganhou
+    duas colunas novas (`spells`, `caster_level`, migration `0019`) — só populadas quando
+    `kind = 'spell-like'`; ficam `''` por padrão nas linhas de `specials`, sem afetar aquele fluxo.
+  - **`SpellLikeDetailDialog`** (novo, `features/spellbook/ui/`): mesmo padrão de dialog
+    dedicado view/edit/remover já usado em `FeatDetailDialog`/`SpecialDetailDialog`, com a
+    descrição renderizada via `Markdown`. Diferente de talentos/habilidades especiais, não existe
+    "puxar da biblioteca" aqui — são sempre específicas daquele personagem (ligadas a
+    linhagem/raça), então não faz sentido uma categoria de biblioteca pra isso.
+  - Botão "+ Nova habilidade" no cabeçalho da seção (`MagiasTab.tsx`, mesmo padrão de
+    `SectionCardHeader` + `action` já usado em Talentos) cria a entrada em branco **e já abre o
+    dialog direto em modo de edição** (`startEditing`, via `isEmpty` do `useEditableSection`) —
+    evita o problema já visto em "habilidades especiais avulsas", onde criar uma deixava um card
+    "Nova habilidade" sem indicação nenhuma de que precisava ser editado.
+  - A seção agora aparece mesmo vazia (enquanto a ficha está ativa), só pelo botão de adicionar —
+    antes só aparecia depois de já ter pelo menos uma habilidade, escondendo a única forma de
+    começar.
+
+## Talentos e Habilidades especiais ganham resumo/Fonte/Origem; bug de duplicidade corrigido
+
+Dois pedidos simétricos da mesma leva maior, decididos juntos — ver resposta do usuário ao item
+15 do backlog confirmando que o campo "Tipo" antigo e "tipo de criatura" eram o mesmo pedido (não
+relacionado a este, mas respondido na mesma rodada).
+
+- **`Feat`** (`entities/character/model/types.ts`, e `FeatLibraryItem` equivalente) ganhou
+  `resumo: string` e `fonte: string`, ao lado dos campos já existentes (`tag`, `prerequisite`,
+  `benefit`, `desc`) — nenhum campo existente foi removido, o pedido era aditivo.
+- **`SpecialAbility`** (e `SpecialLibraryItem`) ganhou os mesmos dois campos. O campo `subtitle`
+  já existente não foi renomeado no tipo (manteria compatibilidade com `character_special_abilities`,
+  que também serve `SpellLikeAbility` via `kind`), mas a UI (`SpecialDetailDialog`, modo edição)
+  agora rotula esse campo como "Origem" em vez de "Subtítulo" — era exatamente o que o pedido
+  descrevia ("classe, raça, etc."), só faltava o rótulo deixar isso claro.
+- **`SourceLink`** (novo átomo, `shared/ui/atoms/`): detecta se o valor de Fonte é uma URL
+  (`/^https?:\/\//i`) e renderiza como link clicável (`target="_blank" rel="noopener noreferrer"`,
+  ícone `ExternalLink`) ou como texto simples — usado pelos dois tipos de card/dialog (Talentos e
+  Habilidades especiais), evitando duplicar a lógica.
+- **Cards** (`TalentosTab.tsx`): a prévia no card trocou de `desc` (texto completo) para `resumo`
+  — era o próprio pedido: "um campo resumo separado da descrição, só esse mostrado no card".
+- **Bug de duplicidade corrigido**: `SpecialPickDialog` não tinha o mesmo guard de
+  `FeatPickDialog` (`addedNames`, que desabilita e marca com check o que já foi adicionado) —
+  apontado pelo usuário como "o bug na criação que nunca foi corrigido" nas habilidades especiais.
+  Retrofitado para ficar simétrico ao diálogo de Talentos.
+- **Criar uma habilidade especial avulsa do zero** (`addCustomSpecial`, botão "Nova habilidade")
+  agora abre o dialog de detalhe já em modo de edição (mesmo padrão `startEditing`/`isEmpty`
+  estabelecido nesta leva para habilidades similares a magia) — antes abria em modo de
+  visualização, sem nenhuma indicação de que o item estava vazio e precisava ser preenchido.
+- Migration `0020`: `resumo`/`fonte` em `character_feats`, `character_special_abilities`,
+  `library_feats`, `library_special_abilities`.

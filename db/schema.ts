@@ -463,8 +463,10 @@ export const characterFeats = pgTable(
     characterId: characterId(),
     name: text('name').notNull(),
     tag: text('tag').notNull().default(''),
+    resumo: text('resumo').notNull().default(''),
     prerequisite: text('prerequisite').notNull().default(''),
     benefit: text('benefit').notNull().default(''),
+    fonte: text('fonte').notNull().default(''),
     desc: text('desc').notNull().default(''),
     sortOrder: sortOrder(),
   },
@@ -482,6 +484,11 @@ export const characterSpecialAbilities = pgTable(
     name: text('name').notNull(),
     subtitle: text('subtitle').notNull().default(''),
     uses: text('uses').notNull().default(''),
+    resumo: text('resumo').notNull().default(''),
+    fonte: text('fonte').notNull().default(''),
+    // Only populated for kind: 'spell-like' — source spells and caster level.
+    spells: text('spells').notNull().default(''),
+    casterLevel: text('caster_level').notNull().default(''),
     desc: text('desc').notNull().default(''),
     sortOrder: sortOrder(),
   },
@@ -654,6 +661,8 @@ export const librarySpecialAbilities = pgTable('library_special_abilities', {
   name: text('name').notNull(),
   subtitle: text('subtitle').notNull(),
   uses: text('uses').notNull(),
+  resumo: text('resumo').notNull().default(''),
+  fonte: text('fonte').notNull().default(''),
   desc: text('desc').notNull(),
 });
 
@@ -663,8 +672,10 @@ export const libraryFeats = pgTable('library_feats', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  resumo: text('resumo').notNull().default(''),
   prerequisite: text('prerequisite').notNull().default(''),
   benefit: text('benefit').notNull().default(''),
+  fonte: text('fonte').notNull().default(''),
 });
 
 export const librarySkills = pgTable('library_skills', {

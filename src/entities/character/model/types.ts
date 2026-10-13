@@ -112,10 +112,14 @@ export interface Feat {
   id: string;
   name: string;
   tag: string;
+  /** Short preview shown on the card itself, without opening the detail dialog. */
+  resumo: string;
   /** Free text — "Nível de personagem 3", "Força 13", etc. Empty when the feat has none. */
   prerequisite: string;
   /** Free text, separate from `desc` (which can hold anything else about the feat). */
   benefit: string;
+  /** Book name, or a URL — a URL renders as a clickable link that opens in a new tab. */
+  fonte: string;
   /** Supports Markdown: bold and tables (see `shared/ui/atoms/Markdown.tsx`). */
   desc: string;
 }
@@ -123,8 +127,25 @@ export interface Feat {
 export interface SpecialAbility {
   id: string;
   name: string;
+  /** Origin — class, race, etc. (e.g. "Racial", "Clériga"). */
   subtitle: string;
   uses: string;
+  /** Short preview shown on the card itself, without opening the detail dialog. */
+  resumo: string;
+  /** Book name, or a URL — a URL renders as a clickable link that opens in a new tab. */
+  fonte: string;
+  desc: string;
+}
+
+export interface SpellLikeAbility {
+  id: string;
+  name: string;
+  /** Free text list of source spells (e.g. "Enfeitiçar Pessoa, Voar"). */
+  spells: string;
+  /** Free text, e.g. "3/dia", "à vontade". */
+  usesPerDay: string;
+  /** Free text — usually the effective level, but can be overridden by hand. */
+  casterLevel: string;
   desc: string;
 }
 
@@ -288,7 +309,7 @@ export interface Character {
   favoredSchool: string;
   opposedSchools: string[];
   spellbooks: SpellcastingBlock[];
-  spellLikeAbilities: SpecialAbility[];
+  spellLikeAbilities: SpellLikeAbility[];
 
   skills: Skill[];
   conditionalMods: ConditionalMod[];

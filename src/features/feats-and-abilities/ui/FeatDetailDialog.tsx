@@ -8,6 +8,7 @@ import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Button } from '@/shared/ui/atoms/Button';
 import { Markdown } from '@/shared/ui/atoms/Markdown';
+import { SourceLink } from '@/shared/ui/atoms/SourceLink';
 import { FieldView } from '@/shared/ui/molecules/FieldView';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { removeFeat, updateFeat } from '../model/mutations';
@@ -60,10 +61,15 @@ export function FeatDetailDialog({
       >
         {!editing ? (
           <div className="flex flex-col gap-3">
-            {(feat.prerequisite || feat.benefit) && (
+            {(feat.prerequisite || feat.benefit || feat.fonte) && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {feat.prerequisite && <FieldView label="Pré-requisito" value={feat.prerequisite} />}
                 {feat.benefit && <FieldView label="Benefício" value={feat.benefit} />}
+                {feat.fonte && (
+                  <FieldView label="Fonte">
+                    <SourceLink value={feat.fonte} className="text-sm" />
+                  </FieldView>
+                )}
               </div>
             )}
             <Markdown>{feat.desc}</Markdown>
@@ -83,17 +89,35 @@ export function FeatDetailDialog({
               onChange={(e) => trackedUpdate((c) => updateFeat(c, featId, { tag: e.target.value }))}
             />
             <TextField
-              label="Pré-requisito"
-              value={feat.prerequisite}
+              label="Resumo"
+              placeholder="Prévia curta mostrada no card da lista"
+              value={feat.resumo}
               onChange={(e) =>
-                trackedUpdate((c) => updateFeat(c, featId, { prerequisite: e.target.value }))
+                trackedUpdate((c) => updateFeat(c, featId, { resumo: e.target.value }))
               }
             />
+            <div className="grid grid-cols-2 gap-3">
+              <TextField
+                label="Pré-requisito"
+                value={feat.prerequisite}
+                onChange={(e) =>
+                  trackedUpdate((c) => updateFeat(c, featId, { prerequisite: e.target.value }))
+                }
+              />
+              <TextField
+                label="Benefício"
+                value={feat.benefit}
+                onChange={(e) =>
+                  trackedUpdate((c) => updateFeat(c, featId, { benefit: e.target.value }))
+                }
+              />
+            </div>
             <TextField
-              label="Benefício"
-              value={feat.benefit}
+              label="Fonte"
+              placeholder="Ex: Livro básico, ou um link (d20pf1e, etc.)"
+              value={feat.fonte}
               onChange={(e) =>
-                trackedUpdate((c) => updateFeat(c, featId, { benefit: e.target.value }))
+                trackedUpdate((c) => updateFeat(c, featId, { fonte: e.target.value }))
               }
             />
             <label className="flex flex-col gap-1.5">
