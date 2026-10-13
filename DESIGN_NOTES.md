@@ -901,3 +901,21 @@ fazer isso usando markdown)".
 - Escopo deliberadamente restrito à descrição dos talentos (não estendido a perícias, magias,
   habilidades especiais, etc.) — é o que foi pedido; o componente `Markdown` fica em `shared/ui`
   justamente pra poder ser reaproveitado se/quando isso for pedido noutro lugar.
+
+## Carga: badge + highlight do quadrado ativo (leve/média/pesada)
+
+Pedido do usuário: o indicativo de qual estado de carga (leve/média/pesada) está ativo deveria
+aparecer tanto como badge quanto destacando o quadrado correspondente, nas mesmas cores já usadas
+na barra (verde/laranja/vermelho).
+
+- Dois mapas novos em `constants.ts`, ao lado do `LOAD_STATE_BAR_COLOR` já existente:
+  `LOAD_STATE_BADGE_CLASS` (pílula de texto) e `LOAD_STATE_HIGHLIGHT_CLASS` (borda + fundo
+  tingido pro quadrado ativo) — mesma família de cor por estado (`leve` emerald, `média` orange,
+  `pesada`/`sobrecarregado` rose), só variando a aplicação.
+- `LoadDialog.tsx`: a pílula de estado aparece ao lado do peso atual, acima da barra; o texto
+  redundante "· carga {state}" que ficava embaixo da barra saiu (a pílula já diz isso).
+- No modo visualização, o quadrado Leve/Média/Pesada correspondente ao estado atual (calculado a
+  partir de `loadState()`) ganha a borda/fundo destacado — `sobrecarregado` não tem quadrado
+  próprio (é "acima do limite de Pesada"), então nesse caso o quadrado de Pesada continua sendo o
+  destacado. Os outros três quadrados (Erguer sobre a cabeça/Erguer do chão/Arrastar-empurrar)
+  nunca são destacados — não fazem parte do estado leve/média/pesada.
