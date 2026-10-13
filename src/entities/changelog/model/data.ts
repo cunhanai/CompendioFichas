@@ -24,8 +24,9 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       'Talentos e habilidades especiais ganharam um campo de resumo (mostrado no card da lista) e um campo de Fonte, que vira link clicável quando é uma URL. O campo "Origem" de uma habilidade especial (antes "Subtítulo") agora tem esse nome na tela de edição.',
       'Corrigido um bug que permitia adicionar a mesma habilidade especial duas vezes pela biblioteca.',
       'Nova página de Novidades (esta aqui!), acessível pelo botão "Novidades" na tela de Perfil.',
-      'Funcionalidades ainda incompletas agora ganham uma tag "Em desenvolvimento" — hoje isso vale para compartilhamento de ficha e galeria de fotos.',
+      'Funcionalidades ainda incompletas agora ganham uma tag "Em desenvolvimento" — hoje isso vale para compartilhamento de ficha, galeria de fotos, abas Criaturas e Plano, e as seções de Snapshots/Registro de sessões na aba Histórico.',
       'A navegação entre abas da ficha agora mostra só os ícones; o nome da seção aparece como título acima do conteúdo.',
+      'Corrigido um bug no alerta de segurança de tentativas de login: dispensar o alerta agora realmente zera a contagem, em vez de um alerta praticamente idêntico reaparecer logo em seguida.',
     ],
   },
 ];
