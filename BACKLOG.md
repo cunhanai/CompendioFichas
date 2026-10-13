@@ -24,6 +24,17 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   como o sistema já está liberado pra usuários beta com dados reais, qualquer implementação disso
   precisa garantir que soft delete nunca vira hard delete acidental (ex.: nenhuma rotina de limpeza
   automática sem confirmação explícita).
+- **Itens da biblioteca compartilhada com versão em português e em inglês, cadastradas pelos
+  próprios jogadores, de fontes diferentes** (pedido em 2026-10-13) — exemplo dado: o talento
+  "Acuidade com Arma" poderia ter tanto o texto oficial do livro (PT) quanto o texto equivalente
+  do d20pf1e (EN, "Weapon Finesse") registrados no mesmo item. "Isso será importante em breve",
+  mas ainda sem decisão de implementação. Pontos a decidir: é um campo de idioma por item
+  (duplicando nome/descrição/etc. em dois idiomas dentro do mesmo registro), ou dois registros
+  separados linkados um ao outro? Afeta só `desc`/campos de texto longo, ou também `name` (um
+  talento pode ter nomes diferentes em cada idioma — ver o exemplo dado)? Como o usuário escolhe
+  qual idioma ver na ficha (preferência global da conta? por sistema? por item, alternável na
+  hora)? Toca toda a biblioteca compartilhada (todas as ~8 categorias), não só talentos — o
+  exemplo foi só ilustrativo.
 - **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
   possivelmente outros tipos) e redesenhar o popup do atributo** — pedido explícito de mudança de
   design: "o valor final e o modificador do atributo final devem estar em destaque, depois as
