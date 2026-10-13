@@ -1,14 +1,19 @@
 # Backlog
 
 Pedidos do usuário ainda não implementados (ou implementados parcialmente — ver nota em cada
-item), registrados como pedido em 2026-09-30/10-01. Itens marcados **[feito]** já foram
-resolvidos nesta mesma leva de trabalho (branch `claude/reported-bugs-batch-3`); os demais
-continuam pendentes, sem data definida para início.
+item), sem data definida para início. Lista viva — itens saem daqui quando implementados (ver
+`DESIGN_NOTES.md` para o registro de quando/como cada um foi resolvido) e novos pedidos entram
+conforme chegam. Para o resumo de alto nível de feito/planejado/faltando, veja
+[`ONBOARDING.md`](./ONBOARDING.md#5-estado-do-projeto-feito-planejado-faltando).
+
+Os itens abaixo foram registrados originalmente a partir de um pedido em lote de 2026-09-30/10-01
+(branch `claude/reported-bugs-batch-3`); quatro itens pequenos dessa leva já foram resolvidos na
+hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
 - **Ver os dados de vida (HP) dos personagens** — pedido vago demais pra agir sem confirmar: HP já
-  aparece na ficha (Quick Stats, GeralTab) e no editor de PV. Preciso entender *onde* o usuário
+  aparece na ficha (Quick Stats, GeralTab) e no editor de PV. Preciso entender _onde_ o usuário
   esperava ver e não está vendo — no card do personagem na lista (`CharCard`)? No dashboard? Em
   algum resumo específico?
 - **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
@@ -34,8 +39,12 @@ continuam pendentes, sem data definida para início.
   de cada categoria (na tela de Biblioteca e dentro da ficha) precisa de botões de editar/remover
   além dos de adicionar/escolher. Relacionado ao item de habilidades especiais abaixo.
 - **Habilidades especiais criadas na ficha devem estar atreladas à biblioteca, não "avulsas"** —
-  hoje `ClassPickerDialog`-style flows pra habilidades especiais criam o item só na ficha, sem
-  passar pela biblioteca (diferente de talentos, que já usa `addLibraryItem`). Precisa decidir:
+  `addCustomSpecial` (`features/feats-and-abilities/model/mutations.ts`) cria o item só na ficha,
+  sem passar pela biblioteca (diferente de talentos, que desde a leva de Pré-requisito/Benefício
+  usa `addFeatToLibrary` ao cadastrar um novo). Note que habilidades especiais **puxadas** da
+  biblioteca já existente (`addSpecialFromLibrary`) e já editáveis/removíveis na ficha
+  (`SpecialDetailDialog`) não têm esse problema — é só o fluxo de criar uma nova do zero que não
+  grava na biblioteca. Precisa decidir:
   quando a descrição/incremento for específico só daquele personagem (o usuário menciona esse
   caso explicitamente), como isso convive com "a habilidade também está na biblioteca" — a ficha
   guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
@@ -85,12 +94,14 @@ continuam pendentes, sem data definida para início.
 - **Um campo "Tipo" na Identidade do personagem, também vindo da biblioteca compartilhada** —
   mesmo padrão (`library_types` ou reaproveitar uma categoria existente + campo novo em
   `characters`/`Identity`).
-- **Idiomas: confirmar se já vêm da biblioteca ou só como lista livre, e adicionar o fluxo de
-  "adicionar novo à biblioteca" se estiver faltando** — a categoria `idiomas` já existe na
-  biblioteca compartilhada (schema/backend), mas não foi confirmado se `LanguagesDialog` na ficha
-  já lê de lá ou ainda é uma lista de texto livre sem ligação com a biblioteca.
+- **Idiomas ainda são lista livre, não ligada à biblioteca** (confirmado ao revisar o código em
+  2026-10-13 — não é mais "precisa checar") — a categoria `idiomas` existe na biblioteca
+  compartilhada (schema/backend) desde que foi criada, mas `LanguagesDialog`
+  (`features/sheet-identity/ui/LanguagesDialog.tsx`) só adiciona/remove texto livre digitado na
+  hora, sem buscar nem gravar nada na biblioteca. Mesmo padrão de "puxar da biblioteca ou cadastrar
+  novo" já usado em talentos/armas/perícias seria o próximo passo óbvio.
 
-## Itens desta mensagem já resolvidos nesta leva — **[feito]**
+## Itens já resolvidos — **[feito]**
 
 - **[feito]** Badge indicando quando a experiência (XP) está desativada.
 - **[feito]** Experiência (XP) sempre por último na lista de estatísticas da aba Geral.

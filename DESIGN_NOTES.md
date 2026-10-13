@@ -1,6 +1,15 @@
 # Compêndio de Fichas — notas de design e regras do produto
 
-Mockup em Tailwind (para futura migração a React) do sistema de fichas de RPG multi-usuário/multi-sistema. Arquivo principal: `Compendio de Fichas.dc.html` + componentes filhos (`SystemCard`, `CharCard`, `SheetTab`, `FieldView`, `AbilityScore`, `WeaponRow`, `SkillRow`).
+> **Como ler este arquivo**: é um **log cronológico, append-only** — cada seção é uma leva de
+> pedidos/decisões, na ordem em que aconteceram, do mockup original até a última mudança. As duas
+> primeiras seções (**"Regras de produto"** e **"Fórmulas de cálculo"**, logo abaixo) são a parte
+> mais estável e próxima de uma referência — o resto é histórico, útil para entender *por que*
+> algo é do jeito que é, mas não é organizado por tópico nem pensado pra leitura de ponta a ponta.
+> Pra uma visão geral curada do projeto, veja [`ONBOARDING.md`](./ONBOARDING.md); pra arquitetura,
+> [`CLAUDE.md`](./CLAUDE.md). **Toda mudança de produto/design pedida deve ser adicionada no final
+> deste arquivo, como uma nova seção `##`** — ver "Regra permanente de processo" mais abaixo.
+
+Mockup em Tailwind (para futura migração a React) do sistema de fichas de RPG multi-usuário/multi-sistema. Arquivo principal: `Compendio de Fichas.dc.html` + componentes filhos (`SystemCard`, `CharCard`, `SheetTab`, `FieldView`, `AbilityScore`, `WeaponRow`, `SkillRow`). *(Nota histórica: este parágrafo descreve como o projeto começou — um mockup estático em HTML/Tailwind. Hoje é uma SPA React com backend real; ver `ONBOARDING.md`.)*
 
 ## Escopo desta rodada
 Apenas o sistema **Pathfinder 1ª Edição** foi implementado/mockado. Outros sistemas (Dune: Aventuras, Tormenta20, Vampiro: A Máscara) aparecem na listagem só como contexto de multi-sistema, alguns marcados "em breve".
