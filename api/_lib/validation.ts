@@ -76,6 +76,8 @@ const abilitiesSchema = z.object({
 const characterClassSchema = z.object({ id: uuid, name: z.string(), level: int4 });
 const identitySchema = z.object({
   raca: z.string(),
+  tipoCriatura: z.string(),
+  subtipoCriatura: z.string(),
   tamanho: z.enum(['', 'Miúdo', 'Diminuto', 'Pequeno', 'Médio', 'Grande', 'Enorme', 'Colossal']),
   sexo: z.string(),
   idadeNum: int4,

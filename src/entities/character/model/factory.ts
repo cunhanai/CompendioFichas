@@ -21,6 +21,8 @@ export function createBlankCharacter(systemId: string, name: string): Character 
 
     identity: {
       raca: '',
+      tipoCriatura: '',
+      subtipoCriatura: '',
       tamanho: '',
       sexo: '',
       idadeNum: 0,

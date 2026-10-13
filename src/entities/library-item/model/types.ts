@@ -6,7 +6,9 @@ export type LibraryCategory =
   | 'armas'
   | 'idiomas'
   | 'criaturas'
-  | 'classes';
+  | 'classes'
+  | 'racas'
+  | 'tipos';
 
 export interface LibraryItem {
   id: string;
@@ -67,4 +69,6 @@ export interface SharedLibrary {
   idiomas: LibraryItem[];
   criaturas: LibraryItem[];
   classes: LibraryItem[];
+  racas: LibraryItem[];
+  tipos: LibraryItem[];
 }

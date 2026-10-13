@@ -48,5 +48,9 @@ export function toDisplayItems(library: SharedLibrary, category: LibraryCategory
       return library.criaturas;
     case 'classes':
       return library.classes.map((c) => ({ ...c, tag: c.tag || 'Classe' }));
+    case 'racas':
+      return library.racas;
+    case 'tipos':
+      return library.tipos;
   }
 }

@@ -156,32 +156,17 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
-- **Raça deve vir da biblioteca compartilhada** (com opção de adicionar nova) — mesmo padrão já
-  implementado pra Classes nesta leva (`library_classes`, endpoint genérico, `RacePickerDialog`
-  espelhando `ClassPickerDialog`). Não fiz ainda por volume de mudanças nesta mesma leva; é o
-  próximo candidato mais óbvio.
-- **Um campo "Tipo" na Identidade do personagem, também vindo da biblioteca compartilhada** —
-  mesmo padrão (`library_types` ou reaproveitar uma categoria existente + campo novo em
-  `characters`/`Identity`).
-- **Tipo de criatura e subtipo, como dois campos de texto livre na Identidade** (pedido em
-  2026-10-13) — parecido com o item "Tipo" logo acima, mas pedido como **texto livre** (ex.:
-  "Humanoide" / "humano"), não vindo da biblioteca compartilhada — vale confirmar com o usuário se
-  são pedidos distintos de propósito (um texto livre simples, outro ligado à biblioteca) ou se é a
-  mesma necessidade dita de duas formas, pra não implementar os dois separadamente à toa. Se for
-  texto livre mesmo, é direto: dois campos novos em `Identity`
-  (`entities/character/model/types.ts`), colunas novas em `characters`, mesmo padrão já usado pra
-  Peso/Terra natal.
-- **Idiomas ainda são lista livre, não ligada à biblioteca** (confirmado ao revisar o código em
-  2026-10-13 — não é mais "precisa checar") — a categoria `idiomas` existe na biblioteca
-  compartilhada (schema/backend) desde que foi criada, mas `LanguagesDialog`
-  (`features/sheet-identity/ui/LanguagesDialog.tsx`) só adiciona/remove texto livre digitado na
-  hora, sem buscar nem gravar nada na biblioteca. Mesmo padrão de "puxar da biblioteca ou cadastrar
-  novo" já usado em talentos/armas/perícias seria o próximo passo óbvio.
+(nenhum no momento — os últimos itens desta categoria foram resolvidos em 2026-10-13, ver "Já
+resolvidos" abaixo)
 
 ## Itens já resolvidos — **[feito]**
 
 - **[feito]** Badge indicando quando a experiência (XP) está desativada.
 - **[feito]** Experiência (XP) sempre por último na lista de estatísticas da aba Geral.
 - **[feito]** Alinhamento dos tiles (Base/Temp./Total/Modificador) no popup de atributo.
+- **[feito]** Raça vinda da biblioteca compartilhada (categoria `racas`).
+- **[feito]** Tipo de criatura vindo da biblioteca compartilhada (categoria `tipos`); subtipo como
+  texto livre.
+- **[feito]** Idiomas agora podem ser escolhidos da biblioteca compartilhada, além de digitados.
 - **[feito]** Snapshot espúria ao subir um personagem novo pro nível 1 (a primeira classe
   adicionada não deveria gerar histórico).

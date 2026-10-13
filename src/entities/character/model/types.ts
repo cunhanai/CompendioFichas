@@ -39,6 +39,10 @@ export interface CharacterClass {
 
 export interface Identity {
   raca: string;
+  /** Vem da biblioteca compartilhada, mesmo padrão de `raca` (ex.: "Humanoide"). */
+  tipoCriatura: string;
+  /** Texto livre — varia demais pra valer um catálogo (ex.: "(humano)", "(fogo)"). */
+  subtipoCriatura: string;
   tamanho: Size;
   sexo: string;
   idadeNum: number;
