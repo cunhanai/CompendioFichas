@@ -82,12 +82,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   reaproveitar aqui, mas o conteúdo (lista de mudanças por release) e o gatilho de quando mostrar
   pra cada usuário (uma vez só? toda vez que loga depois de um deploy novo?) precisam de
   definição.
-- **Aplicar as tags "em desenvolvimento"/"novo" às funcionalidades que ainda estão incompletas**
-  (o componente `FeatureTag` e a decisão de onde aparece já estão feitos — ver `DESIGN_NOTES.md`,
-  "Sistema de changelog e tags de novidade") — falta decidir/aprovar **qual** é a lista atual de
-  funcionalidades "em desenvolvimento" e aplicar a tag nos pontos de entrada + dentro de cada uma.
-  Candidatos propostos ao usuário: compartilhamento de ficha (lacuna visual de `readOnly` nos 16
-  popups de edição) e galeria de fotos (falta recorte de imagem, virar aba, compressão).
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
@@ -137,3 +131,5 @@ resolvidos" abaixo)
 - **[feito]** Página de novidades (`/novidades`) com versionamento (`AAAA.MM.DD-beta.N`) e
   changelog retroativo a partir da PR #23, escrito em linguagem de usuário final; componente
   `FeatureTag` para marcar funcionalidades como "em desenvolvimento"/"novo".
+- **[feito]** Tag "em desenvolvimento" aplicada a compartilhamento de ficha e galeria de fotos —
+  ponto no canto do botão no cabeçalho da ficha + badge completo dentro de cada diálogo.

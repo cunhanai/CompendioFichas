@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ImagePlus, Trash2, Upload } from 'lucide-rea
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
+import { FeatureTag } from '@/shared/ui/atoms/FeatureTag';
 import { useAppToast } from '@/shared/ui/organisms';
 import { api, ApiError } from '@/shared/lib/api';
 import { resizeImageKeepingAspect } from '@/shared/lib/image';
@@ -124,7 +125,13 @@ export function PhotoGalleryDialog({
 
   return (
     <>
-      <Popup open={open} onOpenChange={handleOpenChange} title={title} size="lg">
+      <Popup
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={title}
+        size="lg"
+        headerActions={<FeatureTag status="em-desenvolvimento" />}
+      >
         {viewing ? (
           <div className="flex flex-col gap-3">
             <div className="relative flex items-center justify-center overflow-hidden rounded-xl bg-neutral-950">
