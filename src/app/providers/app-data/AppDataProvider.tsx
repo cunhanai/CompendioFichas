@@ -200,6 +200,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           name,
           subtitle: desc,
           uses: '',
+          resumo: '',
+          fonte: '',
           desc,
         });
       case 'magias':

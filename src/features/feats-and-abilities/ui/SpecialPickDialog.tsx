@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Check, Plus, Search } from 'lucide-react';
 import type { SpecialLibraryItem } from '@/entities/library-item/model/types';
 import { Popup } from '@/shared/ui/organisms/Popup';
+import { cn } from '@/shared/lib/cn';
 
 export interface SpecialPickDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   specials: SpecialLibraryItem[];
+  addedNames: string[];
   onPick: (special: SpecialLibraryItem) => void;
   onCreateCustom: () => void;
 }
@@ -15,6 +17,7 @@ export function SpecialPickDialog({
   open,
   onOpenChange,
   specials,
+  addedNames,
   onPick,
   onCreateCustom,
 }: SpecialPickDialogProps) {
@@ -52,25 +55,38 @@ export function SpecialPickDialog({
         />
       </div>
       <div className="flex flex-col gap-2">
-        {filtered.map((sp) => (
-          <div
-            key={sp.id}
-            className="flex items-center justify-between gap-3 rounded-lg bg-neutral-950 px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="text-sm text-neutral-200">{sp.name}</p>
-              <p className="text-[11px] text-neutral-500">{sp.subtitle}</p>
-            </div>
-            <button
-              type="button"
-              title="Adicionar à ficha"
-              onClick={() => onPick(sp)}
-              className="hover:text-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-amber-400 transition hover:bg-amber-500"
+        {filtered.map((sp) => {
+          const added = addedNames.includes(sp.name);
+          return (
+            <div
+              key={sp.id}
+              className="flex items-center justify-between gap-3 rounded-lg bg-neutral-950 px-4 py-3"
             >
-              <Plus className="h-4 w-4" strokeWidth={2.4} />
-            </button>
-          </div>
-        ))}
+              <div className="min-w-0">
+                <p className="text-sm text-neutral-200">{sp.name}</p>
+                <p className="text-[11px] text-neutral-500">{sp.subtitle}</p>
+              </div>
+              <button
+                type="button"
+                title="Adicionar à ficha"
+                disabled={added}
+                onClick={() => onPick(sp)}
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition',
+                  added
+                    ? 'bg-emerald-600 text-white'
+                    : 'hover:text-ink bg-neutral-800 text-amber-400 hover:bg-amber-500',
+                )}
+              >
+                {added ? (
+                  <Check className="h-4 w-4" strokeWidth={2.4} />
+                ) : (
+                  <Plus className="h-4 w-4" strokeWidth={2.4} />
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </Popup>
   );

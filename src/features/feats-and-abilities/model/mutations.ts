@@ -11,8 +11,10 @@ export function addFeatFromLibrary(character: Character, feat: FeatLibraryItem):
         id: crypto.randomUUID(),
         name: feat.name,
         tag: feat.tag || 'Talento',
+        resumo: feat.resumo,
         prerequisite: feat.prerequisite,
         benefit: feat.benefit,
+        fonte: feat.fonte,
         desc: feat.desc,
       },
     ],
@@ -32,6 +34,8 @@ export function addSpecialFromLibrary(
         name: special.name,
         subtitle: special.subtitle,
         uses: special.uses,
+        resumo: special.resumo,
+        fonte: special.fonte,
         desc: special.desc,
       },
     ],
@@ -43,7 +47,15 @@ export function addCustomSpecial(character: Character): Character {
     ...character,
     specials: [
       ...character.specials,
-      { id: crypto.randomUUID(), name: 'Nova habilidade', subtitle: 'Avulsa', uses: '', desc: '' },
+      {
+        id: crypto.randomUUID(),
+        name: 'Nova habilidade',
+        subtitle: 'Avulsa',
+        uses: '',
+        resumo: '',
+        fonte: '',
+        desc: '',
+      },
     ],
   };
 }

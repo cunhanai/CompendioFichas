@@ -22,6 +22,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
   const [newFeatOpen, setNewFeatOpen] = useState(false);
   const [featDetailId, setFeatDetailId] = useState<string | null>(null);
   const [specialDetailId, setSpecialDetailId] = useState<string | null>(null);
+  const [justCreatedSpecialId, setJustCreatedSpecialId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -53,7 +54,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
                   {feat.tag}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-neutral-500">{feat.desc}</p>
+              {feat.resumo && <p className="mt-1 text-xs text-neutral-500">{feat.resumo}</p>}
             </button>
           ))}
         </div>
@@ -84,7 +85,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
               <div className="min-w-0">
                 <p className="text-sm text-neutral-200">{sp.name}</p>
                 <p className="text-[11px] text-neutral-500">{sp.subtitle}</p>
-                {sp.desc && <p className="mt-1 text-xs text-neutral-500">{sp.desc}</p>}
+                {sp.resumo && <p className="mt-1 text-xs text-neutral-500">{sp.resumo}</p>}
               </div>
               {sp.uses && <span className="shrink-0 text-xs text-neutral-400">{sp.uses}</span>}
             </button>
@@ -117,13 +118,21 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         open={specialPickOpen}
         onOpenChange={setSpecialPickOpen}
         specials={library?.habilidades ?? []}
+        addedNames={character.specials.map((s) => s.name)}
         onPick={(sp) => {
           update((c) => addSpecialFromLibrary(c, sp));
           setSpecialPickOpen(false);
         }}
         onCreateCustom={() => {
-          update(addCustomSpecial);
+          let newId = '';
+          update((c) => {
+            const next = addCustomSpecial(c);
+            newId = next.specials[next.specials.length - 1].id;
+            return next;
+          });
           setSpecialPickOpen(false);
+          setJustCreatedSpecialId(newId);
+          setSpecialDetailId(newId);
         }}
       />
 
@@ -139,10 +148,16 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
       {specialDetailId && (
         <SpecialDetailDialog
           open
-          onOpenChange={(o) => !o && setSpecialDetailId(null)}
+          onOpenChange={(o) => {
+            if (!o) {
+              setSpecialDetailId(null);
+              setJustCreatedSpecialId(null);
+            }
+          }}
           specialId={specialDetailId}
           character={character}
           update={update}
+          startEditing={specialDetailId === justCreatedSpecialId}
         />
       )}
     </div>

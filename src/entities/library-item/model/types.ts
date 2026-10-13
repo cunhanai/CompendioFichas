@@ -47,6 +47,8 @@ export interface SpecialLibraryItem {
   name: string;
   subtitle: string;
   uses: string;
+  resumo: string;
+  fonte: string;
   desc: string;
 }
 
@@ -54,8 +56,10 @@ export interface FeatLibraryItem {
   id: string;
   name: string;
   tag: string;
+  resumo: string;
   prerequisite: string;
   benefit: string;
+  fonte: string;
   desc: string;
 }
 

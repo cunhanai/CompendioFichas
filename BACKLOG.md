@@ -58,12 +58,16 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   de cada categoria (na tela de Biblioteca e dentro da ficha) precisa de botões de editar/remover
   além dos de adicionar/escolher. Relacionado ao item de habilidades especiais abaixo.
 - **Habilidades especiais criadas na ficha devem estar atreladas à biblioteca, não "avulsas"** —
-  `addCustomSpecial` (`features/feats-and-abilities/model/mutations.ts`) cria o item só na ficha,
-  sem passar pela biblioteca (diferente de talentos, que desde a leva de Pré-requisito/Benefício
-  usa `addFeatToLibrary` ao cadastrar um novo). Note que habilidades especiais **puxadas** da
-  biblioteca já existente (`addSpecialFromLibrary`) e já editáveis/removíveis na ficha
-  (`SpecialDetailDialog`) não têm esse problema — é só o fluxo de criar uma nova do zero que não
-  grava na biblioteca. Precisa decidir:
+  confirmado pelo usuário que os dois fluxos (avulsa e puxada da biblioteca) devem continuar
+  existindo como hoje; o que fica pendente aqui é só a decisão de design abaixo, não os dois
+  fluxos em si. O bug de criação que existia nesse fluxo (`SpecialPickDialog` não impedia
+  adicionar a mesma habilidade duas vezes, diferente de `FeatPickDialog`) **já foi corrigido**
+  (ver `DESIGN_NOTES.md`). `addCustomSpecial` (`features/feats-and-abilities/model/mutations.ts`)
+  cria o item só na ficha, sem passar pela biblioteca (diferente de talentos, que desde a leva de
+  Pré-requisito/Benefício usa `addFeatToLibrary` ao cadastrar um novo). Note que habilidades
+  especiais **puxadas** da biblioteca já existente (`addSpecialFromLibrary`) e já
+  editáveis/removíveis na ficha (`SpecialDetailDialog`) não têm esse problema — é só o fluxo de
+  criar uma nova do zero que não grava na biblioteca. Precisa decidir:
   quando a descrição/incremento for específico só daquele personagem (o usuário menciona esse
   caso explicitamente), como isso convive com "a habilidade também está na biblioteca" — a ficha
   guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
@@ -112,34 +116,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   - Comprimir mais as imagens ao adicionar na galeria — `resizeImageKeepingAspect` já redimensiona
     (corta o lado maior a 1280px) mas vale revisar a qualidade de compressão usada no
     `canvas.toDataURL`/`toBlob` pra reduzir o tamanho final do arquivo.
-- **Talentos: campos novos — resumo (prévia no card) e Fonte (livro ou link clicável)** (pedido em
-  2026-10-13) — o tipo `Feat`/`FeatLibraryItem` (`entities/character/model/types.ts`,
-  `entities/library-item/model/types.ts`) hoje tem os campos `id`, `name`, `tag`, `prerequisite`,
-  `benefit` e `desc`; `desc` já suporta markdown e quebra de linha (ver `DESIGN_NOTES.md`,
-  "Talentos ganham Pré-requisito/Benefício"), e o card na aba Talentos já mostra `desc` inteiro
-  como prévia (não truncado). O pedido é por um campo **`resumo` separado da descrição**, só esse
-  mostrado no card (sem precisar
-  abrir o popup pra ler), e um campo **`Fonte`** — texto livre ("livro básico") **ou** uma URL
-  (do site d20pf1e ou outro) que, quando for link, aparece clicável e abre em nova aba
-  (`target="_blank" rel="noopener noreferrer"`). Pontos a decidir: o campo `tag` e `benefit`
-  atuais continuam existindo junto dos novos campos, ou esse pedido substitui algum deles (o
-  pedido não menciona nem "tag" nem "benefício" entre os campos desejados)? `Fonte` é um campo de
-  texto livre só, ou precisa detectar automaticamente se o conteúdo é uma URL (regex `^https?://`)
-  pra decidir se vira link? Precisa de migration em `character_feats`/`library_feats` pros campos
-  novos, igual foi feito pra `prerequisite`/`benefit`.
-- **Habilidades especiais: mesma reformulação de campos — resumo, Origem, Fonte** (pedido em
-  2026-10-13) — pedido simétrico ao de Talentos acima, pra `SpecialAbility`/`SpecialLibraryItem`
-  (hoje `{id, name, subtitle, uses, desc}`): **resumo** (prévia no card, já parcialmente coberto
-  pela prévia de `desc` adicionada recentemente — ver `DESIGN_NOTES.md`, "Fix: prévia de
-  habilidade especial não mostrava a descrição" —, mas o pedido é por um campo dedicado, menor,
-  separado da descrição completa), **Origem** (classe, raça, etc. — não fica claro se substitui
-  `subtitle`, que hoje já guarda algo parecido tipo "Racial"/"Avulsa", ou é um campo novo ao lado
-  dele) e **Fonte** (mesmo comportamento de link clicável do item de Talentos). Mesmas perguntas em
-  aberto: campos existentes (`uses`) continuam, schema de `Fonte` como texto-ou-link, e migration
-  em `character_special_abilities`/`library_special_abilities`. Faz sentido decidir os dois
-  pedidos (Talentos e Habilidades especiais) juntos, já que pedem a mesma reformulação de campos
-  em paralelo — e qualquer componente novo (ex.: um `SourceLink` pra renderizar Fonte) serviria
-  pras duas categorias.
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
@@ -160,3 +136,8 @@ resolvidos" abaixo)
   nenhuma forma de adicionar uma.
 - **[feito]** Snapshot espúria ao subir um personagem novo pro nível 1 (a primeira classe
   adicionada não deveria gerar histórico).
+- **[feito]** Talentos ganharam campo `resumo` (prévia dedicada no card) e `Fonte` (texto ou link
+  clicável).
+- **[feito]** Habilidades especiais ganharam os mesmos campos `resumo`/`Fonte`, e `subtitle`
+  passou a ser chamado de "Origem" na UI; bug de duplicidade na criação (`SpecialPickDialog` não
+  impedia adicionar a mesma habilidade duas vezes) corrigido.

@@ -7,6 +7,8 @@ import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { EditToggleButton } from '@/shared/ui/molecules/EditToggleButton';
 import { TextField } from '@/shared/ui/atoms/TextField';
 import { Button } from '@/shared/ui/atoms/Button';
+import { SourceLink } from '@/shared/ui/atoms/SourceLink';
+import { FieldView } from '@/shared/ui/molecules/FieldView';
 import { useEditableSection } from '@/shared/lib/useEditableSection';
 import { removeSpecial, updateSpecial } from '../model/mutations';
 
@@ -16,6 +18,9 @@ export interface SpecialDetailDialogProps {
   specialId: string;
   character: Character;
   update: (updater: (c: Character) => Character) => void;
+  /** True right after creating an "avulsa" habilidade, so the dialog opens straight into edit
+   * mode instead of a blank read-only view with nothing to click on. */
+  startEditing?: boolean;
 }
 
 /** View/edit detail for one habilidade especial already on the character — a dedicated dialog
@@ -27,6 +32,7 @@ export function SpecialDetailDialog({
   specialId,
   character,
   update,
+  startEditing = false,
 }: SpecialDetailDialogProps) {
   const {
     editing,
@@ -37,7 +43,7 @@ export function SpecialDetailDialog({
     discardChanges,
     cancelClose,
     update: trackedUpdate,
-  } = useEditableSection({ open, isEmpty: false, character, update, onOpenChange });
+  } = useEditableSection({ open, isEmpty: startEditing, character, update, onOpenChange });
   const [confirmRemove, setConfirmRemove] = useState(false);
   const special = character.specials.find((s) => s.id === specialId);
   if (!special) return null;
@@ -57,12 +63,24 @@ export function SpecialDetailDialog({
         }
       >
         {!editing ? (
-          <>
-            {special.uses && <p className="mb-3 text-xs text-neutral-500">Usos: {special.uses}</p>}
+          <div className="flex flex-col gap-3">
+            {(special.uses || special.fonte) && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {special.uses && <FieldView label="Usos" value={special.uses} />}
+                {special.fonte && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] tracking-wide text-neutral-500 uppercase">
+                      Fonte
+                    </span>
+                    <SourceLink value={special.fonte} className="text-sm" />
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-neutral-300">
               {special.desc}
             </p>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
             <TextField
@@ -72,9 +90,18 @@ export function SpecialDetailDialog({
                 trackedUpdate((c) => updateSpecial(c, specialId, { name: e.target.value }))
               }
             />
+            <TextField
+              label="Resumo"
+              placeholder="Prévia curta mostrada no card da lista"
+              value={special.resumo}
+              onChange={(e) =>
+                trackedUpdate((c) => updateSpecial(c, specialId, { resumo: e.target.value }))
+              }
+            />
             <div className="grid grid-cols-2 gap-3">
               <TextField
-                label="Subtítulo"
+                label="Origem"
+                placeholder="Ex: Racial, Clériga, Avulsa"
                 value={special.subtitle}
                 onChange={(e) =>
                   trackedUpdate((c) => updateSpecial(c, specialId, { subtitle: e.target.value }))
@@ -89,6 +116,14 @@ export function SpecialDetailDialog({
                 }
               />
             </div>
+            <TextField
+              label="Fonte"
+              placeholder="Ex: Livro básico, ou um link (d20pf1e, etc.)"
+              value={special.fonte}
+              onChange={(e) =>
+                trackedUpdate((c) => updateSpecial(c, specialId, { fonte: e.target.value }))
+              }
+            />
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-neutral-400">Descrição</span>
               <textarea

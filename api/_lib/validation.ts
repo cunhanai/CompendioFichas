@@ -149,8 +149,10 @@ const characterFeatSchema = z.object({
   id: uuid,
   name: z.string(),
   tag: z.string(),
+  resumo: z.string(),
   prerequisite: z.string(),
   benefit: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });
 const characterSpecialAbilitySchema = z.object({
@@ -158,6 +160,8 @@ const characterSpecialAbilitySchema = z.object({
   name: z.string(),
   subtitle: z.string(),
   uses: z.string(),
+  resumo: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });
 const characterSpellLikeAbilitySchema = z.object({
@@ -316,6 +320,8 @@ export const specialItemSchema = z.object({
   name: z.string().min(1),
   subtitle: z.string(),
   uses: z.string(),
+  resumo: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });
 
@@ -330,7 +336,9 @@ export const featItemSchema = z.object({
   id: uuid,
   name: z.string().min(1),
   tag: z.string(),
+  resumo: z.string(),
   prerequisite: z.string(),
   benefit: z.string(),
+  fonte: z.string(),
   desc: z.string(),
 });

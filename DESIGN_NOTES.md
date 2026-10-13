@@ -993,3 +993,34 @@ Dois pedidos da mesma leva maior.
   - A seção agora aparece mesmo vazia (enquanto a ficha está ativa), só pelo botão de adicionar —
     antes só aparecia depois de já ter pelo menos uma habilidade, escondendo a única forma de
     começar.
+
+## Talentos e Habilidades especiais ganham resumo/Fonte/Origem; bug de duplicidade corrigido
+
+Dois pedidos simétricos da mesma leva maior, decididos juntos — ver resposta do usuário ao item
+15 do backlog confirmando que o campo "Tipo" antigo e "tipo de criatura" eram o mesmo pedido (não
+relacionado a este, mas respondido na mesma rodada).
+
+- **`Feat`** (`entities/character/model/types.ts`, e `FeatLibraryItem` equivalente) ganhou
+  `resumo: string` e `fonte: string`, ao lado dos campos já existentes (`tag`, `prerequisite`,
+  `benefit`, `desc`) — nenhum campo existente foi removido, o pedido era aditivo.
+- **`SpecialAbility`** (e `SpecialLibraryItem`) ganhou os mesmos dois campos. O campo `subtitle`
+  já existente não foi renomeado no tipo (manteria compatibilidade com `character_special_abilities`,
+  que também serve `SpellLikeAbility` via `kind`), mas a UI (`SpecialDetailDialog`, modo edição)
+  agora rotula esse campo como "Origem" em vez de "Subtítulo" — era exatamente o que o pedido
+  descrevia ("classe, raça, etc."), só faltava o rótulo deixar isso claro.
+- **`SourceLink`** (novo átomo, `shared/ui/atoms/`): detecta se o valor de Fonte é uma URL
+  (`/^https?:\/\//i`) e renderiza como link clicável (`target="_blank" rel="noopener noreferrer"`,
+  ícone `ExternalLink`) ou como texto simples — usado pelos dois tipos de card/dialog (Talentos e
+  Habilidades especiais), evitando duplicar a lógica.
+- **Cards** (`TalentosTab.tsx`): a prévia no card trocou de `desc` (texto completo) para `resumo`
+  — era o próprio pedido: "um campo resumo separado da descrição, só esse mostrado no card".
+- **Bug de duplicidade corrigido**: `SpecialPickDialog` não tinha o mesmo guard de
+  `FeatPickDialog` (`addedNames`, que desabilita e marca com check o que já foi adicionado) —
+  apontado pelo usuário como "o bug na criação que nunca foi corrigido" nas habilidades especiais.
+  Retrofitado para ficar simétrico ao diálogo de Talentos.
+- **Criar uma habilidade especial avulsa do zero** (`addCustomSpecial`, botão "Nova habilidade")
+  agora abre o dialog de detalhe já em modo de edição (mesmo padrão `startEditing`/`isEmpty`
+  estabelecido nesta leva para habilidades similares a magia) — antes abria em modo de
+  visualização, sem nenhuma indicação de que o item estava vazio e precisava ser preenchido.
+- Migration `0020`: `resumo`/`fonte` em `character_feats`, `character_special_abilities`,
+  `library_feats`, `library_special_abilities`.
