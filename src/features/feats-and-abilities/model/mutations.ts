@@ -25,6 +25,7 @@ export function addSpecialFromLibrary(
   character: Character,
   special: SpecialLibraryItem,
 ): Character {
+  if (character.specials.some((s) => s.name === special.name)) return character;
   return {
     ...character,
     specials: [
@@ -42,13 +43,16 @@ export function addSpecialFromLibrary(
   };
 }
 
-export function addCustomSpecial(character: Character): Character {
+export function addCustomSpecial(
+  character: Character,
+  id: string = crypto.randomUUID(),
+): Character {
   return {
     ...character,
     specials: [
       ...character.specials,
       {
-        id: crypto.randomUUID(),
+        id,
         name: 'Nova habilidade',
         subtitle: 'Avulsa',
         uses: '',

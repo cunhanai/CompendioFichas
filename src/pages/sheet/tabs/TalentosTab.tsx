@@ -54,7 +54,9 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
                   {feat.tag}
                 </span>
               </div>
-              {feat.resumo && <p className="mt-1 text-xs text-neutral-500">{feat.resumo}</p>}
+              {(feat.resumo || feat.desc) && (
+                <p className="mt-1 text-xs text-neutral-500">{feat.resumo || feat.desc}</p>
+              )}
             </button>
           ))}
         </div>
@@ -85,7 +87,9 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
               <div className="min-w-0">
                 <p className="text-sm text-neutral-200">{sp.name}</p>
                 <p className="text-[11px] text-neutral-500">{sp.subtitle}</p>
-                {sp.resumo && <p className="mt-1 text-xs text-neutral-500">{sp.resumo}</p>}
+                {(sp.resumo || sp.desc) && (
+                  <p className="mt-1 text-xs text-neutral-500">{sp.resumo || sp.desc}</p>
+                )}
               </div>
               {sp.uses && <span className="shrink-0 text-xs text-neutral-400">{sp.uses}</span>}
             </button>
@@ -124,12 +128,8 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           setSpecialPickOpen(false);
         }}
         onCreateCustom={() => {
-          let newId = '';
-          update((c) => {
-            const next = addCustomSpecial(c);
-            newId = next.specials[next.specials.length - 1].id;
-            return next;
-          });
+          const newId = crypto.randomUUID();
+          update((c) => addCustomSpecial(c, newId));
           setSpecialPickOpen(false);
           setJustCreatedSpecialId(newId);
           setSpecialDetailId(newId);

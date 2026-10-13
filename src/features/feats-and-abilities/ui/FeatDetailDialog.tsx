@@ -66,12 +66,9 @@ export function FeatDetailDialog({
                 {feat.prerequisite && <FieldView label="Pré-requisito" value={feat.prerequisite} />}
                 {feat.benefit && <FieldView label="Benefício" value={feat.benefit} />}
                 {feat.fonte && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[11px] tracking-wide text-neutral-500 uppercase">
-                      Fonte
-                    </span>
+                  <FieldView label="Fonte">
                     <SourceLink value={feat.fonte} className="text-sm" />
-                  </div>
+                  </FieldView>
                 )}
               </div>
             )}

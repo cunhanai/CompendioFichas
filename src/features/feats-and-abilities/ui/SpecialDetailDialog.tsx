@@ -68,12 +68,9 @@ export function SpecialDetailDialog({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {special.uses && <FieldView label="Usos" value={special.uses} />}
                 {special.fonte && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[11px] tracking-wide text-neutral-500 uppercase">
-                      Fonte
-                    </span>
+                  <FieldView label="Fonte">
                     <SourceLink value={special.fonte} className="text-sm" />
-                  </div>
+                  </FieldView>
                 )}
               </div>
             )}
