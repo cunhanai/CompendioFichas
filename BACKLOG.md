@@ -12,10 +12,18 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
-- **Ver os dados de vida (HP) dos personagens** — pedido vago demais pra agir sem confirmar: HP já
-  aparece na ficha (Quick Stats, GeralTab) e no editor de PV. Preciso entender _onde_ o usuário
-  esperava ver e não está vendo — no card do personagem na lista (`CharCard`)? No dashboard? Em
-  algum resumo específico?
+- **Excluir ficha de personagem (soft delete), com visualização/restauração pelo usuário master**
+  (pedido em 2026-10-13) — hoje não existe exclusão de personagem nenhuma (só ativo/inativo, que é
+  arquivamento reversível pelo próprio dono, não remoção). Pedido: dono pode "excluir" a própria
+  ficha, que vira soft delete (`characters.deleted_at`, mesmo padrão já usado em
+  `character_snapshots.deletedAt`); o usuário master pode ver as fichas excluídas (de qualquer
+  usuário) e restaurá-las. Pontos a decidir: uma ficha excluída ainda aparece em algum lugar pro
+  próprio dono (lixeira), ou só some pra ele e só o master consegue achar de novo? Existe um prazo
+  de retenção/exclusão definitiva, ou fica para sempre como soft delete? Essa tela de fichas
+  excluídas é nova (`/admin/...`) ou entra em "Gestão de usuários" já existente? **Importante**:
+  como o sistema já está liberado pra usuários beta com dados reais, qualquer implementação disso
+  precisa garantir que soft delete nunca vira hard delete acidental (ex.: nenhuma rotina de limpeza
+  automática sem confirmação explícita).
 - **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
   possivelmente outros tipos) e redesenhar o popup do atributo** — pedido explícito de mudança de
   design: "o valor final e o modificador do atributo final devem estar em destaque, depois as
