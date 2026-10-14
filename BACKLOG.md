@@ -73,6 +73,12 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
   campos compartilhados? Depende da decisão do item anterior (biblioteca editável) pra fazer
   sentido por completo.
+- **Anotar combos de combate do personagem** (pedido em 2026-10-14) — jogador quer um lugar pra
+  registrar combos (ex.: sequência de ações/talentos que funcionam bem juntos) do próprio
+  personagem. Pontos a decidir: é um campo de texto livre único (tipo a história, com suporte a
+  markdown), ou uma lista de combos nomeados, cada um com seus próprios passos/campos? Fica numa
+  aba existente (Combate? Talentos?) ou precisa de espaço próprio? Combos citam talentos/magias já
+  cadastrados na ficha (link/referência) ou é tudo texto solto?
 - **Notificação de "o que foi adicionado, arrumado ou corrigido"** (parte do pedido de
   2026-10-13 de "Sistema de changelog/novidades" — a página de atualizações e as tags já foram
   feitas, ver "Já resolvidos") — o app já tem um componente genérico de notificação
