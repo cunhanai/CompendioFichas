@@ -12,18 +12,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
-- **Excluir ficha de personagem (soft delete), com visualização/restauração pelo usuário master**
-  (pedido em 2026-10-13) — hoje não existe exclusão de personagem nenhuma (só ativo/inativo, que é
-  arquivamento reversível pelo próprio dono, não remoção). Pedido: dono pode "excluir" a própria
-  ficha, que vira soft delete (`characters.deleted_at`, mesmo padrão já usado em
-  `character_snapshots.deletedAt`); o usuário master pode ver as fichas excluídas (de qualquer
-  usuário) e restaurá-las. Pontos a decidir: uma ficha excluída ainda aparece em algum lugar pro
-  próprio dono (lixeira), ou só some pra ele e só o master consegue achar de novo? Existe um prazo
-  de retenção/exclusão definitiva, ou fica para sempre como soft delete? Essa tela de fichas
-  excluídas é nova (`/admin/...`) ou entra em "Gestão de usuários" já existente? **Importante**:
-  como o sistema já está liberado pra usuários beta com dados reais, qualquer implementação disso
-  precisa garantir que soft delete nunca vira hard delete acidental (ex.: nenhuma rotina de limpeza
-  automática sem confirmação explícita).
 - **Itens da biblioteca compartilhada com versão em português e em inglês, cadastradas pelos
   próprios jogadores, de fontes diferentes** (pedido em 2026-10-13) — exemplo dado: o talento
   "Acuidade com Arma" poderia ter tanto o texto oficial do livro (PT) quanto o texto equivalente
@@ -137,3 +125,6 @@ resolvidos" abaixo)
   título acima do conteúdo, não mais dentro da própria aba ativa.
 - **[feito]** Campo "Anotações adicionais" (texto livre com markdown) na aba Combate — generalizado
   a partir do pedido original de "anotar combos de combate".
+- **[feito]** Exclusão de ficha de personagem (soft delete), com lixeira pro dono (botão em
+  `CharactersPage`) e pro usuário master (aba "Fichas excluídas" em Gestão de usuários) —
+  retenção de 90 dias, sem rotina de limpeza automática.

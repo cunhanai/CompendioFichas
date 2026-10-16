@@ -119,6 +119,10 @@ export const characters = pgTable('characters', {
   photoUrl: text('photo_url'),
   favorited: boolean('favorited').notNull().default(false),
   active: boolean('active').notNull().default(true),
+  // Soft delete, same pattern as character_snapshots.deletedAt below — null means "not deleted".
+  // Excluded from every normal query (loadCharactersForUser/loadSharedWithMe); only the trash
+  // views (own + master-only cross-user) read rows where this is set.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 
   // Identity
   raca: text('raca').notNull().default(''),

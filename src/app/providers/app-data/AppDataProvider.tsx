@@ -127,6 +127,28 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const deleteCharacter: AppDataContextValue['deleteCharacter'] = (characterId) => {
+    const previous = data.characters;
+    setData((d) =>
+      d ? { ...d, characters: d.characters.filter((c) => c.id !== characterId) } : d,
+    );
+    api.delete(`/characters/${characterId}`).catch((err: unknown) => {
+      console.error('Failed to delete character', err);
+      toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
+      setData((d) => (d ? { ...d, characters: previous } : d));
+    });
+  };
+
+  // Not optimistic: the restored character's full data only exists server-side (it was never in
+  // local state — deleting it removed it from `characters`, and trash views only ever held a
+  // lightweight summary, never the full object).
+  const restoreCharacter: AppDataContextValue['restoreCharacter'] = async (characterId) => {
+    const { character } = await api.post<{ character: Character }>(
+      `/characters/${characterId}/restore`,
+    );
+    setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
+  };
+
   // Not optimistic like the rest of this file: the server is the only source of truth for who a
   // character is shared with (it also dedupes/validates the target), and the picker only has
   // the target's id, not their name/username to show locally in the meantime.
@@ -288,6 +310,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setUser,
     updateCharacter,
     addCharacter,
+    deleteCharacter,
+    restoreCharacter,
     addLibraryItem,
     addWeaponToLibrary,
     addSpecialToLibrary,

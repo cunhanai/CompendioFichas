@@ -15,9 +15,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     version: '2026.10.16-beta',
     date: '2026-10-16',
-    title: 'Anotações adicionais na aba Combate',
+    title: 'Anotações adicionais na aba Combate, e exclusão de ficha',
     changes: [
       'Nova seção "Anotações adicionais" na aba Combate — um campo de texto livre com suporte a markdown, útil para anotar combos de combate, lembretes de regra ou qualquer outra coisa.',
+      'Agora dá para excluir uma ficha de personagem (vira soft delete) pelo botão no cabeçalho da ficha — ela some da sua lista, mas fica guardada numa lixeira por 90 dias, acessível pelo botão de lixeira na tela de personagens do sistema, com opção de restaurar.',
     ],
   },
   {
