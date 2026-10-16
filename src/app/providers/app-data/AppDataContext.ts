@@ -36,6 +36,8 @@ export interface AppDataContextValue {
   setUser: (user: UserProfile) => void;
   updateCharacter: (id: string, updater: (c: Character) => Character) => void;
   addCharacter: (character: Character) => void;
+  deleteCharacter: (characterId: string) => void;
+  restoreCharacter: (characterId: string) => Promise<void>;
   /** Generic "Novo item" add — builds the right shape per category from just a name+description. */
   addLibraryItem: (
     systemId: string,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Library, Plus, Skull, Star, Users } from 'lucide-react';
+import { Library, Plus, Skull, Star, Trash2, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
@@ -12,6 +12,7 @@ import { Button } from '@/shared/ui/atoms/Button';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { EmptyState } from '@/shared/ui/molecules/EmptyState';
 import { SharePickerDialog } from '@/features/sheet-sharing';
+import { TrashDialog } from '@/features/character-trash';
 
 export function CharactersPage() {
   const { systemId = '' } = useParams<{ systemId: string }>();
@@ -24,9 +25,11 @@ export function CharactersPage() {
     mySharesByCharacterId,
     shareCharacter,
     unshareCharacter,
+    restoreCharacter,
   } = useAppData();
   const navigate = useNavigate();
   const [shareOpenId, setShareOpenId] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   const system = systems.find((s) => s.id === systemId);
   const library = libraries[systemId];
@@ -87,6 +90,14 @@ export function CharactersPage() {
           </IconButton>
           <IconButton label="Fichas de monstros (mestre)" variant="neutral" size="lg" disabled>
             <Skull className="h-5 w-5" strokeWidth={1.8} />
+          </IconButton>
+          <IconButton
+            label="Lixeira"
+            variant="neutral"
+            size="lg"
+            onClick={() => setTrashOpen(true)}
+          >
+            <Trash2 className="h-5 w-5" strokeWidth={1.8} />
           </IconButton>
           <Button size="lg" onClick={handleNewCharacter}>
             <Plus className="h-4 w-4" strokeWidth={2.2} />
@@ -179,6 +190,12 @@ export function CharactersPage() {
           onUnshare={(userId) => unshareCharacter(shareOpenId, userId)}
         />
       )}
+      <TrashDialog
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        systemId={systemId}
+        onRestore={restoreCharacter}
+      />
     </main>
   );
 }

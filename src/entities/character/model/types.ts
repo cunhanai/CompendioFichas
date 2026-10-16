@@ -315,6 +315,9 @@ export interface Character {
   conditionalMods: ConditionalMod[];
 
   weapons: Weapon[];
+  /** Free-text notes shown in the aba Combate — supports markdown. Generic on purpose (not
+   * "combos" specifically): the aba's description just suggests combat combos as one use. */
+  notasAdicionais: string;
 
   feats: Feat[];
   specials: SpecialAbility[];
@@ -333,4 +336,18 @@ export interface Character {
   sessionLog: SessionLogEntry[];
 
   lastAccessedAt: string;
+}
+
+/** A soft-deleted character as shown in a trash view ("Lixeira") — summary only, not the full
+ * `Character`: a trash list is about deciding whether to restore or ignore, not editing, so
+ * there's no reason to pay for assembling every child table. See `deletedAt` on `characters` in
+ * db/schema.ts. */
+export interface DeletedCharacterSummary {
+  id: string;
+  systemId: string;
+  name: string;
+  photoUrl: string | null;
+  deletedAt: string;
+  ownerName: string;
+  ownerUsername: string;
 }

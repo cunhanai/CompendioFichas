@@ -17,6 +17,7 @@ import {
   AcDialog,
   InitDialog,
   ManobrasDialog,
+  NotasAdicionaisDialog,
   RmDialog,
   SavesDialog,
 } from '@/features/combat-stats';
@@ -29,7 +30,11 @@ import {
   moveWeapon,
 } from '@/features/weapons';
 import { StatCard } from '@/shared/ui/molecules/StatCard';
-import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
+import {
+  SectionCard,
+  SectionCardButton,
+  SectionCardHeader,
+} from '@/shared/ui/molecules/SectionCard';
 
 type Popup =
   | { kind: 'init' }
@@ -40,7 +45,12 @@ type Popup =
   | { kind: 'weapon'; id: string }
   | { kind: 'weaponPick' }
   | { kind: 'weaponLibraryAdd' }
+  | { kind: 'notas' }
   | null;
+
+// Rough character count at which a 3-line clamp (`line-clamp-3`) actually truncates the text at
+// this card's width — "Ler mais" only makes sense to show when there's more to read.
+const NOTAS_PREVIEW_THRESHOLD = 220;
 
 export function CombateTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
@@ -165,6 +175,18 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
         </DragDropProvider>
       </SectionCard>
 
+      <SectionCardButton onClick={() => setPopup({ kind: 'notas' })}>
+        <h3 className="mb-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
+          Anotações adicionais
+        </h3>
+        <p className="line-clamp-3 text-sm leading-relaxed text-neutral-300">
+          {character.notasAdicionais || 'Combos de combate, lembretes de regra, o que quiser.'}
+        </p>
+        {character.notasAdicionais.length > NOTAS_PREVIEW_THRESHOLD && (
+          <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
+        )}
+      </SectionCardButton>
+
       <InitDialog
         open={popup?.kind === 'init'}
         onOpenChange={(o) => !o && close()}
@@ -232,6 +254,12 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
           update((c) => addWeaponFromLibrary(c, { ...weapon, id }));
           close();
         }}
+      />
+      <NotasAdicionaisDialog
+        open={popup?.kind === 'notas'}
+        onOpenChange={(o) => !o && close()}
+        character={character}
+        update={update}
       />
     </div>
   );

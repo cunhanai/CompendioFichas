@@ -9,8 +9,10 @@ import {
   Pencil,
   Share2,
   Star,
+  Trash2,
   X,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppData, useCharacter } from '@/app/providers';
 import {
   alignmentAbbrev,
@@ -18,6 +20,7 @@ import {
   effectiveLevel,
 } from '@/entities/character/model/calculations';
 import { joinDot } from '@/shared/lib/format';
+import { routes } from '@/shared/lib/routes';
 import {
   PhotoGalleryDialog,
   PhotoUploadDialog,
@@ -31,13 +34,16 @@ import { Switch } from '@/shared/ui/atoms/Switch';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { Badge } from '@/shared/ui/atoms/Badge';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
+import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 
 export function SheetHeader({ characterId, onBack }: { characterId: string; onBack: () => void }) {
   const { character, update, readOnly, ownerUsername } = useCharacter(characterId);
-  const { mySharesByCharacterId, shareCharacter, unshareCharacter } = useAppData();
+  const { mySharesByCharacterId, shareCharacter, unshareCharacter, deleteCharacter } = useAppData();
+  const navigate = useNavigate();
   const [shareOpen, setShareOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(character.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +123,14 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         </IconButton>
         <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500" />
       </div>
+      <IconButton
+        label="Excluir ficha"
+        variant="danger"
+        size="sm"
+        onClick={() => setConfirmDelete(true)}
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+      </IconButton>
     </>
   );
 
@@ -242,6 +256,18 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
             currentShares={currentShares}
             onShare={(userId) => shareCharacter(characterId, userId)}
             onUnshare={(userId) => unshareCharacter(characterId, userId)}
+          />
+          <ConfirmDialog
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            title="Excluir esta ficha?"
+            message={`"${character.name}" vai para a lixeira por 90 dias — dá pra restaurar nesse período, depois disso some de vez.`}
+            confirmLabel="Excluir"
+            onConfirm={() => {
+              deleteCharacter(characterId);
+              setConfirmDelete(false);
+              navigate(routes.characters(character.systemId));
+            }}
           />
         </>
       )}
