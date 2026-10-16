@@ -91,6 +91,7 @@ export function createBlankCharacter(systemId: string, name: string): Character 
     conditionalMods: [],
 
     weapons: [],
+    notasAdicionais: '',
     feats: [],
     specials: [],
 

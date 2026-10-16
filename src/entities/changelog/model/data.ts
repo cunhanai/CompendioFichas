@@ -13,6 +13,14 @@ import type { ChangelogEntry } from './types';
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: '2026.10.16-beta',
+    date: '2026-10-16',
+    title: 'Anotações adicionais na aba Combate',
+    changes: [
+      'Nova seção "Anotações adicionais" na aba Combate — um campo de texto livre com suporte a markdown, útil para anotar combos de combate, lembretes de regra ou qualquer outra coisa.',
+    ],
+  },
+  {
     version: '2026.10.13-beta',
     date: '2026-10-13',
     title: 'Biblioteca compartilhada, markdown, habilidades similares a magia e novidades',

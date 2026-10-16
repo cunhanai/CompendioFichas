@@ -148,6 +148,13 @@
       "when": 1791914112814,
       "tag": "0020_early_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792183374248,
+      "tag": "0021_tricky_maggott",
+      "breakpoints": true
     }
   ]
 }

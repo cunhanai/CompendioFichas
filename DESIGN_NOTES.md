@@ -1119,3 +1119,19 @@ refletida nele.
   login, bem-sucedida ou não, sempre fica registrada permanentemente em `audit_log` (visível em
   Gestão de usuários → Atividade) — o alerta de segurança é só o aviso de "muita coisa acontecendo
   rápido", não um substituto pro log de auditoria.
+
+## Campo "Anotações adicionais" na aba Combate (generalização do pedido de combos)
+
+Pedido original: um lugar pra anotar combos de combate. Resposta do usuário ao ser perguntado
+sobre o formato: texto livre (não lista de combos nomeados), mas **generalizar o campo** — não é
+"combos" especificamente, é um campo de anotações adicionais qualquer, com combos sendo só um dos
+usos sugeridos na descrição.
+
+- `Character.notasAdicionais: string` (coluna `characters.notas_adicionais`, migration `0021`) —
+  mesmo padrão exato de `story`: um `SectionCardButton` com prévia de 3 linhas na aba (aqui,
+  Combate, não Geral), abrindo `NotasAdicionaisDialog` (`features/combat-stats/ui/`), com
+  suporte a markdown no modo de edição e `Markdown` renderizado no modo de visualização.
+- Fica na aba Combate (não uma aba própria) — campo pequeno o suficiente pra não justificar uma
+  aba nova, e a motivação original (combos) é conceitualmente de combate.
+- O texto de ajuda no modo de edição já planta a sugestão de uso: "combos de combate, lembretes
+  de regra, o que for" — sem travar o campo num único propósito.

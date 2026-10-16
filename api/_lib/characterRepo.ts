@@ -320,6 +320,7 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
       },
       bbaValue: row.bbaValue,
       rmValue: row.rmValue,
+      notasAdicionais: row.notasAdicionais,
 
       favoredSchool: row.favoredSchool,
       opposedSchools: row.opposedSchools,
@@ -923,6 +924,7 @@ function coreRowValues(character: Character, userId: string) {
     acDeflection: character.acDeflection,
     bbaValue: character.bbaValue,
     rmValue: character.rmValue,
+    notasAdicionais: character.notasAdicionais,
     favoredSchool: character.favoredSchool,
     opposedSchools: character.opposedSchools,
     speedBase: character.speed.base,

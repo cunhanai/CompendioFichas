@@ -315,6 +315,9 @@ export interface Character {
   conditionalMods: ConditionalMod[];
 
   weapons: Weapon[];
+  /** Free-text notes shown in the aba Combate — supports markdown. Generic on purpose (not
+   * "combos" specifically): the aba's description just suggests combat combos as one use. */
+  notasAdicionais: string;
 
   feats: Feat[];
   specials: SpecialAbility[];

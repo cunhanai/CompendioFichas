@@ -3,3 +3,4 @@ export { InitDialog } from './ui/InitDialog';
 export { SavesDialog } from './ui/SavesDialog';
 export { ManobrasDialog } from './ui/ManobrasDialog';
 export { RmDialog } from './ui/RmDialog';
+export { NotasAdicionaisDialog } from './ui/NotasAdicionaisDialog';

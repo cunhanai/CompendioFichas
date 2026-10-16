@@ -152,6 +152,9 @@ export const characters = pgTable('characters', {
   acDeflection: integer('ac_deflection').notNull().default(0),
   bbaValue: integer('bba_value').notNull().default(0),
   rmValue: integer('rm_value').notNull().default(0),
+  // Free-text notes shown in the aba Combate — supports markdown. Generic on purpose, not
+  // "combos" specifically; the aba's description just suggests combos as one use.
+  notasAdicionais: text('notas_adicionais').notNull().default(''),
 
   favoredSchool: text('favored_school').notNull().default(''),
   opposedSchools: text('opposed_schools').array().notNull().default([]),

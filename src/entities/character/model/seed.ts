@@ -212,6 +212,7 @@ const ELYNDRA: Character = {
     },
   ],
 
+  notasAdicionais: '',
   feats: [
     {
       id: 'f-1',
@@ -402,6 +403,7 @@ const BORIN: Character = {
     },
   ],
 
+  notasAdicionais: '',
   feats: [
     {
       id: 'f-1',
@@ -556,6 +558,7 @@ const SABLE: Character = {
     },
   ],
 
+  notasAdicionais: '',
   feats: [
     {
       id: 'f-1',
@@ -706,6 +709,7 @@ const KAELEN: Character = {
     },
   ],
 
+  notasAdicionais: '',
   feats: [
     {
       id: 'f-1',
