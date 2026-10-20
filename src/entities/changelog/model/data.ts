@@ -13,6 +13,14 @@ import type { ChangelogEntry } from './types';
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: '2026.10.20-beta',
+    date: '2026-10-20',
+    title: 'Nova especialização de Conhecimento',
+    changes: [
+      'Agora dá para adicionar quantas especializações de Conhecimento quiser na aba Perícias, digitando o nome (ex: "Conhecimento (criaturas das sombras)") — igual já funcionava com Apresentação, Ofícios e Profissão, além das 10 especializações fixas que já existiam.',
+    ],
+  },
+  {
     version: '2026.10.16-beta',
     date: '2026-10-16',
     title: 'Anotações adicionais na aba Combate, e exclusão de ficha',

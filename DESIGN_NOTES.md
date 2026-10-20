@@ -1174,3 +1174,19 @@ ideias"). Proposta feita e implementada (sem objeção do usuário):
 - **Excluir a própria ficha**: botão novo (`Trash2`, variante `danger`) no cabeçalho da ficha
   (`SheetHeader`), ao lado de Compartilhar — só pro dono (não aparece em modo `readOnly`), com
   `ConfirmDialog` confirmando antes, e navega de volta pra lista de personagens depois.
+
+## Nova categoria de perícia multi-especialização: Conhecimento
+
+Pedido do usuário: além das 10 especializações fixas de Conhecimento já existentes (arcano,
+engenharia, exploração, geografia, história, local, natureza, nobreza, planos, religião), queria
+poder digitar e adicionar especializações livres — "mais um que pode digitar e adicionar o que
+quiser", no mesmo molde de Apresentação/Ofícios/Profissão.
+
+Como `MULTI_SKILL_CATEGORIES` (`entities/character/model/skillCatalog.ts`) já é um mecanismo
+totalmente genérico e orientado a dados (a UI em `PericiasTab.tsx`/`AddMultiSkillRow.tsx` itera o
+array sem nenhum código por categoria), a implementação foi só adicionar uma entrada:
+`{ categoryKey: 'conhecimento', label: 'Conhecimento', ability: 'int', trainedOnly: true }`
+(mesmo `ability`/`trainedOnly` das linhas fixas de Conhecimento). Sem migração de banco — é um
+array em código, não dado persistido; personagens existentes simplesmente passam a poder usar a
+categoria nova a partir de agora. `categoryKey` escolhido como `conhecimento` (sem colidir com as
+chaves fixas `conhec-*` já usadas pelas 10 especializações hardcoded).

@@ -144,6 +144,7 @@ describe('reconcileSkills', () => {
     // legacy-conversion test cases above to be reconsidered.
     expect(MULTI_SKILL_CATEGORIES.map((c) => c.categoryKey).sort()).toEqual([
       'apresentacao',
+      'conhecimento',
       'oficios',
       'profissao',
     ]);
