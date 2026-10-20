@@ -2,10 +2,14 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { Breadcrumbs } from '@/widgets/app-shell';
-import { UsersManagementPanel, ActivityLog } from '@/features/user-management';
+import {
+  UsersManagementPanel,
+  ActivityLog,
+  DeletedCharactersPanel,
+} from '@/features/user-management';
 import { PillTabs } from '@/shared/ui/molecules/PillTabs';
 
-type Tab = 'users' | 'activity';
+type Tab = 'users' | 'activity' | 'deleted';
 
 export function UsersPage() {
   const { user } = useAppData();
@@ -14,7 +18,12 @@ export function UsersPage() {
   // banner) switches the tab even when this page is already mounted — a query-string-only
   // navigation doesn't remount the component, so a useState initializer wouldn't see it.
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab: Tab = searchParams.get('tab') === 'activity' ? 'activity' : 'users';
+  const tabParam = searchParams.get('tab');
+  // 'deleted' only resolves for the master account — a non-master admin hitting
+  // ?tab=deleted (bookmarked, shared, or guessed) falls back to 'users' instead of landing on a
+  // tab with nothing rendered under it.
+  const tab: Tab =
+    tabParam === 'activity' || (tabParam === 'deleted' && user.isMaster) ? tabParam : 'users';
   const setTab = (next: Tab) => setSearchParams(next === 'users' ? {} : { tab: next });
 
   if (!user.isAdmin) return <Navigate to={routes.profile()} replace />;
@@ -36,10 +45,13 @@ export function UsersPage() {
         options={[
           { value: 'users', label: 'Usuários' },
           { value: 'activity', label: 'Atividade recente' },
+          ...(user.isMaster ? [{ value: 'deleted' as const, label: 'Fichas excluídas' }] : []),
         ]}
       />
 
-      {tab === 'users' ? <UsersManagementPanel /> : <ActivityLog />}
+      {tab === 'users' && <UsersManagementPanel />}
+      {tab === 'activity' && <ActivityLog />}
+      {tab === 'deleted' && user.isMaster && <DeletedCharactersPanel />}
     </main>
   );
 }

@@ -2,7 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characterPhotos, characters, characterShares, users } from '../../../db/schema.js';
-import { createCharacter, loadCharacterById, updateCharacterOwned } from '../characterRepo.js';
+import {
+  CHARACTER_NOT_DELETED,
+  createCharacter,
+  loadCharacterById,
+  loadDeletedCharactersForUser,
+  restoreCharacterOwned,
+  softDeleteCharacterOwned,
+  updateCharacterOwned,
+} from '../characterRepo.js';
 import { requireUserId } from '../auth.js';
 import { withErrorHandling } from '../handler.js';
 import {
@@ -84,6 +92,73 @@ export const updateCharacterHandler = withErrorHandling(async function handler(
   res.status(200).json({ character: saved });
 });
 
+/** DELETE /api/characters/:id — soft-deletes a character owned by the caller. The 90-day
+ * retention is purely informational on the frontend today — no automated cleanup job exists
+ * yet, by design (see BACKLOG.md): nothing should hard-delete a beta user's data without an
+ * explicit, separate confirmation step being built first. */
+export const deleteCharacterHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'DELETE') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  const deleted = await softDeleteCharacterOwned(id, userId);
+  if (!deleted) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  res.status(200).json({ ok: true });
+});
+
+/** POST /api/characters/:id/restore — restores a character the caller deleted themselves. */
+export const restoreCharacterHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  const restored = await restoreCharacterOwned(id, userId);
+  if (!restored) {
+    res.status(404).json({ error: 'Ficha excluída não encontrada.' });
+    return;
+  }
+
+  const character = await loadCharacterById(id);
+  res.status(200).json({ character });
+});
+
+/** GET /api/characters/deleted — the caller's own trash, across every system. */
+export const listDeletedCharactersHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  const deleted = await loadDeletedCharactersForUser(userId);
+  res.status(200).json({ deleted });
+});
+
 async function listShares(characterId: string) {
   return db
     .select({ userId: users.id, name: users.name, username: users.username })
@@ -118,12 +193,7 @@ export const shareCharacterHandler = withErrorHandling(async function handler(
     return;
   }
 
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .limit(1);
-  if (!owned) {
+  if (!(await isOwner(id, userId))) {
     res.status(404).json({ error: 'Personagem não encontrado.' });
     return;
   }
@@ -166,12 +236,7 @@ export const unshareCharacterHandler = withErrorHandling(async function handler(
     return;
   }
 
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .limit(1);
-  if (!owned) {
+  if (!(await isOwner(id, userId))) {
     res.status(404).json({ error: 'Personagem não encontrado.' });
     return;
   }
@@ -196,11 +261,15 @@ async function listPhotos(characterId: string) {
     .orderBy(asc(characterPhotos.sortOrder));
 }
 
+/** Also excludes soft-deleted characters — a trashed character is frozen pending restore-or-purge,
+ * so nothing (sharing, photos) should be able to touch it in the meantime. */
 async function isOwner(characterId: string, userId: string): Promise<boolean> {
   const [owned] = await db
     .select({ id: characters.id })
     .from(characters)
-    .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
+    .where(
+      and(eq(characters.id, characterId), eq(characters.userId, userId), CHARACTER_NOT_DELETED),
+    )
     .limit(1);
   return !!owned;
 }
@@ -213,10 +282,12 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
   const [shared] = await db
     .select({ characterId: characterShares.characterId })
     .from(characterShares)
+    .innerJoin(characters, eq(characterShares.characterId, characters.id))
     .where(
       and(
         eq(characterShares.characterId, characterId),
         eq(characterShares.sharedWithUserId, userId),
+        CHARACTER_NOT_DELETED,
       ),
     )
     .limit(1);

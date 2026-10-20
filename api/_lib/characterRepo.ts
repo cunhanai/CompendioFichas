@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import {
   characters,
@@ -30,12 +30,21 @@ import {
 import type {
   AbilityKey,
   Character,
+  DeletedCharacterSummary,
   LevelSnapshot,
 } from '../../src/entities/character/model/types.js';
 
 type CharacterRow = typeof characters.$inferSelect;
 
 const ABILITY_KEYS: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+/** A soft-deleted (trashed) character is frozen pending restore-or-purge — every read path that
+ * should hide it, and every write path that should refuse to touch it, shares these two
+ * conditions rather than each hand-rolling `isNull`/`isNotNull` on `characters.deletedAt`. Safe
+ * to reuse across unrelated queries: a drizzle condition is just a SQL fragment bound to the
+ * column, not tied to any one query's state. */
+export const CHARACTER_NOT_DELETED = isNull(characters.deletedAt);
+export const CHARACTER_IS_DELETED = isNotNull(characters.deletedAt);
 
 function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
@@ -320,6 +329,7 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
       },
       bbaValue: row.bbaValue,
       rmValue: row.rmValue,
+      notasAdicionais: row.notasAdicionais,
 
       favoredSchool: row.favoredSchool,
       opposedSchools: row.opposedSchools,
@@ -450,8 +460,82 @@ async function assembleCharacters(coreRows: CharacterRow[]): Promise<Character[]
 }
 
 export async function loadCharactersForUser(userId: string): Promise<Character[]> {
-  const coreRows = await db.select().from(characters).where(eq(characters.userId, userId));
+  const coreRows = await db
+    .select()
+    .from(characters)
+    .where(and(eq(characters.userId, userId), CHARACTER_NOT_DELETED));
   return assembleCharacters(coreRows);
+}
+
+/** Shared by both trash views below — only the `WHERE` differs (the owner's own trash vs. every
+ * user's, for the master view), so the row shape and shaping stay in exactly one place. */
+async function loadDeletedCharacterSummaries(
+  ownerUserId?: string,
+): Promise<DeletedCharacterSummary[]> {
+  const rows = await db
+    .select({
+      id: characters.id,
+      systemId: characters.systemId,
+      name: characters.name,
+      deletedAt: characters.deletedAt,
+      ownerName: users.name,
+      ownerUsername: users.username,
+    })
+    .from(characters)
+    .innerJoin(users, eq(characters.userId, users.id))
+    .where(
+      ownerUserId
+        ? and(eq(characters.userId, ownerUserId), CHARACTER_IS_DELETED)
+        : CHARACTER_IS_DELETED,
+    )
+    .orderBy(desc(characters.deletedAt));
+  return rows.map((r) => ({ ...r, deletedAt: r.deletedAt!.toISOString() }));
+}
+
+/** The caller's own trash — characters they deleted themselves. */
+export async function loadDeletedCharactersForUser(
+  userId: string,
+): Promise<DeletedCharacterSummary[]> {
+  return loadDeletedCharacterSummaries(userId);
+}
+
+/** Every deleted character across every user — master-only (see requireAdminUser + isMaster
+ * check in the route handler). */
+export async function loadAllDeletedCharacters(): Promise<DeletedCharacterSummary[]> {
+  return loadDeletedCharacterSummaries();
+}
+
+/** Soft-deletes a character — owner-only (scoped by userId). Returns false if no matching,
+ * not-already-deleted row was found. */
+export async function softDeleteCharacterOwned(id: string, userId: string): Promise<boolean> {
+  const rows = await db
+    .update(characters)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(characters.id, id), eq(characters.userId, userId), CHARACTER_NOT_DELETED))
+    .returning({ id: characters.id });
+  return rows.length > 0;
+}
+
+/** Restores a character the caller owns. Returns false if no matching, currently-deleted row was
+ * found (already restored, wrong owner, or never existed). */
+export async function restoreCharacterOwned(id: string, userId: string): Promise<boolean> {
+  const rows = await db
+    .update(characters)
+    .set({ deletedAt: null })
+    .where(and(eq(characters.id, id), eq(characters.userId, userId), CHARACTER_IS_DELETED))
+    .returning({ id: characters.id });
+  return rows.length > 0;
+}
+
+/** Restores any user's deleted character — master-only (see requireAdminUser + isMaster check in
+ * the route handler), no owner scoping. */
+export async function restoreCharacterAny(id: string): Promise<boolean> {
+  const rows = await db
+    .update(characters)
+    .set({ deletedAt: null })
+    .where(and(eq(characters.id, id), CHARACTER_IS_DELETED))
+    .returning({ id: characters.id });
+  return rows.length > 0;
 }
 
 /** Re-reads a single character straight from the DB — used right after `createCharacter`/
@@ -475,7 +559,7 @@ export async function loadSharedWithMe(
     .from(characterShares)
     .innerJoin(characters, eq(characterShares.characterId, characters.id))
     .innerJoin(users, eq(characters.userId, users.id))
-    .where(eq(characterShares.sharedWithUserId, userId));
+    .where(and(eq(characterShares.sharedWithUserId, userId), CHARACTER_NOT_DELETED));
 
   const hydrated = await assembleCharacters(rows.map((r) => r.core));
   const byId = new Map(hydrated.map((c) => [c.id, c]));
@@ -923,6 +1007,7 @@ function coreRowValues(character: Character, userId: string) {
     acDeflection: character.acDeflection,
     bbaValue: character.bbaValue,
     rmValue: character.rmValue,
+    notasAdicionais: character.notasAdicionais,
     favoredSchool: character.favoredSchool,
     opposedSchools: character.opposedSchools,
     speedBase: character.speed.base,
@@ -974,23 +1059,22 @@ export async function updateCharacterOwned(
   character: Character,
   userId: string,
 ): Promise<boolean> {
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .limit(1);
-  if (!owned) return false;
-
   const core = coreRowValues(character, userId);
-  await db.batch([
-    // Re-asserts ownership in the write itself (not just the SELECT above) — a future caller
-    // of this function that skips re-deriving that check still can't move another user's row.
-    db
-      .update(characters)
-      .set(core)
-      .where(and(eq(characters.id, id), eq(characters.userId, userId))),
-    ...buildDeletes(id),
-    ...buildInserts(character),
-  ] as [BatchQuery, ...BatchQuery[]]);
+  // The ownership (and non-deleted-ness) check and the `characters` row write happen as one
+  // round trip — not a separate preliminary SELECT followed by a batch — specifically to close
+  // most of the race where a character gets soft-deleted between a check and a write: child-table
+  // deletes/inserts below only ever run once this confirms a live, owned row actually matched,
+  // instead of being queued unconditionally alongside a write that might silently affect 0 rows.
+  const [updated] = await db
+    .update(characters)
+    .set(core)
+    .where(and(eq(characters.id, id), eq(characters.userId, userId), CHARACTER_NOT_DELETED))
+    .returning({ id: characters.id });
+  if (!updated) return false;
+
+  await db.batch([...buildDeletes(id), ...buildInserts(character)] as [
+    BatchQuery,
+    ...BatchQuery[],
+  ]);
   return true;
 }

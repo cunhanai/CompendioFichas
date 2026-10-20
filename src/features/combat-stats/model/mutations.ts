@@ -72,3 +72,7 @@ export function setBbaValue(character: Character, value: number): Character {
 export function setRmValue(character: Character, value: number): Character {
   return { ...character, rmValue: value };
 }
+
+export function setNotasAdicionais(character: Character, notasAdicionais: string): Character {
+  return { ...character, notasAdicionais };
+}

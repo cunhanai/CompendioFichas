@@ -3,6 +3,9 @@ import { getPathSegments } from '../_lib/request.js';
 import {
   createCharacterHandler,
   updateCharacterHandler,
+  deleteCharacterHandler,
+  restoreCharacterHandler,
+  listDeletedCharactersHandler,
   shareCharacterHandler,
   unshareCharacterHandler,
   listCharacterPhotosHandler,
@@ -11,7 +14,8 @@ import {
 } from '../_lib/routes/characters.js';
 
 /**
- * One function serving /api/characters (POST), /api/characters/:id (PATCH),
+ * One function serving /api/characters (POST), /api/characters/:id (PATCH/DELETE),
+ * /api/characters/deleted (GET, the caller's own trash), /api/characters/:id/restore (POST),
  * /api/characters/:id/shares (POST to grant, DELETE to revoke), and
  * /api/characters/:id/photos[/:photoId] (GET to list, POST to add, DELETE to remove) — keeps the
  * Hobby-plan serverless function count down.
@@ -29,6 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (segments.length === 0) {
     return createCharacterHandler(req, res);
   }
+  if (segments.length === 1 && segments[0] === 'deleted') {
+    return listDeletedCharactersHandler(req, res);
+  }
+  if (segments.length === 2 && segments[1] === 'restore') {
+    return restoreCharacterHandler(req, res, segments[0]);
+  }
   if (segments.length === 2 && segments[1] === 'shares') {
     return req.method === 'DELETE'
       ? unshareCharacterHandler(req, res, segments[0])
@@ -43,7 +53,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return removeCharacterPhotoHandler(req, res, segments[0], segments[2]);
   }
   if (segments.length === 1) {
-    return updateCharacterHandler(req, res, segments[0]);
+    return req.method === 'DELETE'
+      ? deleteCharacterHandler(req, res, segments[0])
+      : updateCharacterHandler(req, res, segments[0]);
   }
 
   res.status(404).json({ error: 'Not found' });

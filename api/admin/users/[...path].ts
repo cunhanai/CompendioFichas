@@ -7,16 +7,20 @@ import {
   listActivityHandler,
   listSecurityAlertsHandler,
   dismissSecurityAlertHandler,
+  listDeletedCharactersHandler,
+  restoreDeletedCharacterHandler,
 } from '../../_lib/routes/adminUsers.js';
 
 /**
  * One function serving every /api/admin/users/... route — Vercel's Hobby plan caps
  * serverless functions at 12, so this whole area is dispatched from a single catch-all file.
  *
- *   GET    /api/admin/users                       -> list users
- *   GET    /api/admin/users/activity               -> recent audit log entries
- *   GET    /api/admin/users/security-alerts        -> undismissed security alerts
- *   PATCH  /api/admin/users/security-alerts/:id    -> dismiss one alert
+ *   GET    /api/admin/users                               -> list users
+ *   GET    /api/admin/users/activity                       -> recent audit log entries
+ *   GET    /api/admin/users/security-alerts                -> undismissed security alerts
+ *   PATCH  /api/admin/users/security-alerts/:id            -> dismiss one alert
+ *   GET    /api/admin/users/deleted-characters              -> every deleted character (master-only)
+ *   POST   /api/admin/users/deleted-characters/:id/restore -> restore any user's deleted character (master-only)
  *   PATCH  /api/admin/users/:id                    -> update active/admin status
  *   POST   /api/admin/users/:id/reset-password     -> reset a user's password
  *
@@ -47,6 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (segments.length === 2 && segments[0] === 'security-alerts') {
     return dismissSecurityAlertHandler(req, res, segments[1]);
+  }
+  if (segments.length === 1 && segments[0] === 'deleted-characters') {
+    return listDeletedCharactersHandler(req, res);
+  }
+  if (segments.length === 3 && segments[0] === 'deleted-characters' && segments[2] === 'restore') {
+    return restoreDeletedCharacterHandler(req, res, segments[1]);
   }
   if (segments.length === 1) {
     return updateUserHandler(req, res, segments[0]);

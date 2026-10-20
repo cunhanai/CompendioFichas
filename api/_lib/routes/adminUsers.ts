@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
 import { requireAdminUser, hashPassword } from '../auth.js';
+import { loadAllDeletedCharacters, restoreCharacterAny } from '../characterRepo.js';
 import { adminUpdateUserBodySchema } from '../validation.js';
 import { toAdminUserView } from '../mappers.js';
 import { generateTempPassword } from '../password.js';
@@ -213,4 +214,53 @@ export const dismissSecurityAlertHandler = withErrorHandling(async function hand
   }
 
   res.status(200).json({ alert, dismissedIds: dismissedRows.map((row) => row.id) });
+});
+
+/** GET /api/admin/users/deleted-characters — every deleted character across every user.
+ * Master-only (not just admin): deletion/restoration of someone else's data is reserved for the
+ * single master account, same tier split already used for isAdmin grants elsewhere here. */
+export const listDeletedCharactersHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
+  if (!caller.isMaster) {
+    res.status(403).json({ error: 'Apenas o usuário master pode fazer isso.' });
+    return;
+  }
+
+  const deleted = await loadAllDeletedCharacters();
+  res.status(200).json({ deleted });
+});
+
+/** POST /api/admin/users/deleted-characters/:id/restore — restores any user's deleted
+ * character. Master-only, see above. */
+export const restoreDeletedCharacterHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
+  if (!caller.isMaster) {
+    res.status(403).json({ error: 'Apenas o usuário master pode fazer isso.' });
+    return;
+  }
+
+  const restored = await restoreCharacterAny(id);
+  if (!restored) {
+    res.status(404).json({ error: 'Ficha excluída não encontrada.' });
+    return;
+  }
+
+  res.status(200).json({ ok: true });
 });

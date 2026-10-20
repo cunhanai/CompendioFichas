@@ -119,6 +119,10 @@ export const characters = pgTable('characters', {
   photoUrl: text('photo_url'),
   favorited: boolean('favorited').notNull().default(false),
   active: boolean('active').notNull().default(true),
+  // Soft delete, same pattern as character_snapshots.deletedAt below — null means "not deleted".
+  // Excluded from every normal query (loadCharactersForUser/loadSharedWithMe); only the trash
+  // views (own + master-only cross-user) read rows where this is set.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 
   // Identity
   raca: text('raca').notNull().default(''),
@@ -152,6 +156,9 @@ export const characters = pgTable('characters', {
   acDeflection: integer('ac_deflection').notNull().default(0),
   bbaValue: integer('bba_value').notNull().default(0),
   rmValue: integer('rm_value').notNull().default(0),
+  // Free-text notes shown in the aba Combate — supports markdown. Generic on purpose, not
+  // "combos" specifically; the aba's description just suggests combos as one use.
+  notasAdicionais: text('notas_adicionais').notNull().default(''),
 
   favoredSchool: text('favored_school').notNull().default(''),
   opposedSchools: text('opposed_schools').array().notNull().default([]),

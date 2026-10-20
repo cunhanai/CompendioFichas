@@ -258,6 +258,7 @@ const characterSnapshotDataSchema = z.object({
   skills: z.array(skillSchema),
   conditionalMods: z.array(conditionalModSchema),
   weapons: z.array(characterWeaponSchema),
+  notasAdicionais: z.string(),
   feats: z.array(characterFeatSchema),
   specials: z.array(characterSpecialAbilitySchema),
   money: moneySchema,

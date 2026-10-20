@@ -1119,3 +1119,58 @@ refletida nele.
   login, bem-sucedida ou não, sempre fica registrada permanentemente em `audit_log` (visível em
   Gestão de usuários → Atividade) — o alerta de segurança é só o aviso de "muita coisa acontecendo
   rápido", não um substituto pro log de auditoria.
+
+## Campo "Anotações adicionais" na aba Combate (generalização do pedido de combos)
+
+Pedido original: um lugar pra anotar combos de combate. Resposta do usuário ao ser perguntado
+sobre o formato: texto livre (não lista de combos nomeados), mas **generalizar o campo** — não é
+"combos" especificamente, é um campo de anotações adicionais qualquer, com combos sendo só um dos
+usos sugeridos na descrição.
+
+- `Character.notasAdicionais: string` (coluna `characters.notas_adicionais`, migration `0021`) —
+  mesmo padrão exato de `story`: um `SectionCardButton` com prévia de 3 linhas na aba (aqui,
+  Combate, não Geral), abrindo `NotasAdicionaisDialog` (`features/combat-stats/ui/`), com
+  suporte a markdown no modo de edição e `Markdown` renderizado no modo de visualização.
+- Fica na aba Combate (não uma aba própria) — campo pequeno o suficiente pra não justificar uma
+  aba nova, e a motivação original (combos) é conceitualmente de combate.
+- O texto de ajuda no modo de edição já planta a sugestão de uso: "combos de combate, lembretes
+  de regra, o que for" — sem travar o campo num único propósito.
+
+## Exclusão de ficha de personagem (soft delete) + lixeira
+
+Pedido original no backlog desde 2026-10-13, decidido em 2026-10-14: lixeira visível tanto pro
+dono quanto pro usuário master, prazo de retenção de 90 dias, local da UI a definir ("preciso de
+ideias"). Proposta feita e implementada (sem objeção do usuário):
+
+- **`characters.deleted_at`** (migration `0022`), nullable, mesmo padrão de
+  `character_snapshots.deletedAt` — null significa "não excluído". `loadCharactersForUser` e
+  `loadSharedWithMe` (`api/_lib/characterRepo.ts`) passam a filtrar `isNull(deletedAt)`, então uma
+  ficha excluída some de todo lugar normal (lista do dono, fichas compartilhadas com outros)
+  imediatamente.
+- **Sem rotina de limpeza automática** — o prazo de 90 dias é só informativo por enquanto
+  ("restam N dias", calculado no frontend a partir de `deletedAt`); nada apaga de verdade os dados
+  sozinho. Era uma condição explícita do usuário ("nenhuma rotina de limpeza automática sem
+  confirmação explícita") — construir a exclusão definitiva de verdade fica pra quando isso for
+  pedido separadamente.
+- **Endpoints novos** em `api/_lib/routes/characters.ts` (dispatcher `api/characters/[...path].ts`):
+  `DELETE /api/characters/:id` (soft delete, dono), `POST /api/characters/:id/restore` (restaura,
+  dono), `GET /api/characters/deleted` (lixeira do próprio usuário, todos os sistemas). E em
+  `api/_lib/routes/adminUsers.ts` (dispatcher `api/admin/users/[...path].ts`):
+  `GET /api/admin/users/deleted-characters` e
+  `POST /api/admin/users/deleted-characters/:id/restore` — **master-only**, não qualquer admin
+  (mesmo padrão de tier já usado pra conceder `isAdmin`: `requireAdminUser` + checagem extra de
+  `caller.isMaster`), já que mexer nos dados de outra pessoa é mais sensível que gerenciar conta.
+- **Lixeira do dono**: botão novo (`Trash2`) ao lado de "Biblioteca compartilhada" em
+  `CharactersPage`, abrindo `TrashDialog` (`features/character-trash/`) — lista carregada sob
+  demanda (só enquanto aberto, mesmo padrão de `PhotoGalleryDialog`/`ActivityLog`), filtrada pro
+  sistema atual, com "Restaurar" por item.
+- **Lixeira do master**: nova aba "Fichas excluídas" em Gestão de usuários (só aparece se
+  `user.isMaster`), `DeletedCharactersPanel` (`features/user-management/`) — mostra de **todos**
+  os usuários, com `@usuário` dono + sistema + "restam N dias".
+- **Resumo leve, não o `Character` inteiro**: um item da lixeira é `DeletedCharacterSummary`
+  (`id, systemId, name, photoUrl, deletedAt, ownerName, ownerUsername`) — montar o `Character`
+  completo (~22 tabelas) pra uma lista que só decide "restaurar ou ignorar" seria caro à toa; a
+  restauração em si recarrega o `Character` completo normalmente (`loadCharacterById`).
+- **Excluir a própria ficha**: botão novo (`Trash2`, variante `danger`) no cabeçalho da ficha
+  (`SheetHeader`), ao lado de Compartilhar — só pro dono (não aparece em modo `readOnly`), com
+  `ConfirmDialog` confirmando antes, e navega de volta pra lista de personagens depois.
