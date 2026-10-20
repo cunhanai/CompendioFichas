@@ -1243,3 +1243,33 @@ pro banco, e limite a 3 imagens (uma delas pode ser utilizada como foto de perfi
   (`ProfilePage`/`AvatarUpload`, que continua no recorte automático fixo); e a galeria continua
   sendo um diálogo aberto pelo cabeçalho, não uma aba própria da ficha — esse último era um
   pedido diferente, só parecido, registrado separadamente no backlog.
+
+### Atualização: crop no avatar da conta, e galeria virando aba da ficha
+
+Pedido de acompanhamento, respondendo aos dois itens deixados de fora acima: "faça os dois".
+
+- **Crop no avatar da própria conta**: `AvatarUpload.tsx` (`features/profile-settings`) passou a
+  usar o mesmo `ImageCropDialog` da galeria do personagem, só que travado em `aspectModes={['square']}`
+  (esconde o toggle de proporção — esse avatar sempre aparece redondo, "proporção original" não
+  faria sentido aqui). `ImageCropDialog` ganhou essa prop (`aspectModes`, default
+  `['square', 'original']`) pra servir os dois casos. Compressão feita por `cropAndCompressImage`
+  com um teto menor (`maxDim: 400, maxDataUrlLength: 150_000`) do que o da galeria — esse avatar é
+  pequeno e aparece em bem mais lugares (sidebar, etc.), não precisa do mesmo tamanho. Com isso,
+  `resizeImageToDataUrl` ficou sem nenhum uso e foi removido de `shared/lib/image.ts`.
+- **Galeria vira aba da ficha**: `PhotoGalleryDialog` (o `Popup` aberto por um botão no
+  cabeçalho) foi substituído por `FotosTab` (`pages/sheet/tabs/FotosTab.tsx`) — o mesmo
+  conteúdo/lógica (fetch lazy, upload com crop+compressão, marcar perfil, remover), só que
+  renderizado como mais uma aba (`SHEET_TABS`/`SheetTabBar`/`SheetPage`, nova entrada `fotos`
+  logo depois de `geral`, ícone `Images`) em vez de dentro de um `Popup`. O botão de câmera no
+  avatar do `SheetHeader` (que antes abria o diálogo) agora só troca pra essa aba (`onEditPhoto`
+  prop, implementada em `SheetPage` como `() => setTab('fotos')`) — `SheetHeader` não tem mais
+  nenhuma referência a foto/galeria além disso. `FotosTab` é renderizada com `key={characterId}`
+  em vez de resetar seu próprio estado num `useEffect` (que dispararia o lint
+  `react-hooks/set-state-in-effect` — setState síncrono dentro de efeito é tratado como erro
+  neste projeto): trocar de personagem já remonta a aba do zero, então o `useEffect` de fetch só
+  precisa buscar e popular, sem nenhum reset manual.
+- Confirmado com `npm run build` que isso não regrediu o cuidado de bundle do item anterior:
+  `react-easy-crop` segue fora do chunk principal — agora duplicado entre os chunks lazy de
+  `SheetPage` e `ProfilePage` (cada um só carrega quando a respectiva página abre) em vez de
+  concentrado no chunk de `sheet-sharing`, já que `PhotoGalleryDialog` (que vivia lá) não existe
+  mais.

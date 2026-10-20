@@ -122,6 +122,7 @@ export const WEAPON_DAMAGE_TYPES = ['Cortante', 'Perfurante', 'Concussão', 'Cor
 
 export const SHEET_TABS = [
   { id: 'geral', label: 'Geral' },
+  { id: 'fotos', label: 'Fotos' },
   { id: 'combate', label: 'Combate' },
   { id: 'pericias', label: 'Perícias' },
   { id: 'magias', label: 'Magias' },

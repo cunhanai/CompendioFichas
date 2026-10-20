@@ -12,6 +12,9 @@ export interface ImageCropDialogProps {
   /** An object/data URL for the file being cropped — null while nothing is queued. */
   imageSrc: string | null;
   onConfirm: (areaPixels: Area) => void;
+  /** Which aspect presets to offer. Defaults to both. A single entry (e.g. the account avatar,
+   * always shown circular) skips the toggle row entirely and locks to that one. */
+  aspectModes?: CropAspectMode[];
 }
 
 /**
@@ -28,10 +31,16 @@ export interface ImageCropDialogProps {
  * main bundle for every page view — react-easy-crop is only needed once someone opens the photo
  * gallery, which already lives behind the lazy-loaded sheet page. Import this file directly.
  */
-export function ImageCropDialog({ open, onOpenChange, imageSrc, onConfirm }: ImageCropDialogProps) {
+export function ImageCropDialog({
+  open,
+  onOpenChange,
+  imageSrc,
+  onConfirm,
+  aspectModes = ['square', 'original'],
+}: ImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [mode, setMode] = useState<CropAspectMode>('square');
+  const [mode, setMode] = useState<CropAspectMode>(aspectModes[0]);
   const [naturalAspect, setNaturalAspect] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
 
@@ -42,7 +51,7 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onConfirm }: Ima
     if (!next) {
       setCrop({ x: 0, y: 0 });
       setZoom(1);
-      setMode('square');
+      setMode(aspectModes[0]);
       setAreaPixels(null);
     }
   };
@@ -65,23 +74,25 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onConfirm }: Ima
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-2">
-          {(['square', 'original'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={cn(
-                'rounded-full px-3 py-1 text-xs font-medium transition',
-                mode === m
-                  ? 'text-ink bg-amber-500'
-                  : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200',
-              )}
-            >
-              {m === 'square' ? 'Quadrada' : 'Proporção original'}
-            </button>
-          ))}
-        </div>
+        {aspectModes.length > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            {aspectModes.map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-medium transition',
+                  mode === m
+                    ? 'text-ink bg-amber-500'
+                    : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200',
+                )}
+              >
+                {m === 'square' ? 'Quadrada' : 'Proporção original'}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-neutral-500">Zoom</span>

@@ -73,16 +73,8 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
-- **Cortar/posicionar a imagem ao adicionar foto de perfil do usuário (`ProfilePage`/
-  `AvatarUpload`)** — o componente de crop interativo (`ImageCropDialog`, `react-easy-crop`) já
-  existe e já é usado no avatar/galeria do personagem (ver "Já resolvidos"); falta só reaproveitar
-  o mesmo diálogo no upload do avatar da própria conta, que ainda usa o recorte automático fixo
-  (`resizeImageToDataUrl`, quadrado central 256×256).
-- **Galeria de fotos do personagem vira uma aba da ficha** (em vez de só um diálogo aberto por um
-  botão no cabeçalho) — pedido original junto do item de galeria+crop+compressão, mas distinto
-  dele; os outros dois pedidos daquele item (seleção de foto de perfil a partir da galeria,
-  compressão) já foram feitos nesta leva (ver "Já resolvidos"). Mover pra aba própria
-  (`PillTabs`/`SheetPage`) fica pra quando for pedido separadamente.
+(nenhum no momento — os últimos itens desta categoria, crop do avatar da conta e galeria virar
+aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
@@ -130,3 +122,10 @@ resolvidos" abaixo)
   unificadas — a galeria agora tem limite de 3 fotos e qualquer uma delas pode ser marcada (⭐)
   como foto de perfil, espelhada em `characters.photo_url`; `PhotoUploadDialog` (upload de avatar
   separado da galeria) foi removido, a edição de foto do personagem passa a ser só pela galeria.
+- **[feito]** A galeria de fotos do personagem virou uma aba própria da ficha (`FotosTab`, junto
+  de Geral/Combate/Perícias/etc.) em vez de só um diálogo aberto por um botão no cabeçalho —
+  `PhotoGalleryDialog` foi removido, o botão de câmera no avatar agora leva direto pra essa aba.
+- **[feito]** O mesmo diálogo de crop (`ImageCropDialog`) agora também é usado no upload do
+  avatar da própria conta (`ProfilePage`/`AvatarUpload`), travado em proporção quadrada — antes
+  só o avatar/galeria do personagem tinha corte interativo, a conta ainda usava o recorte
+  automático fixo (`resizeImageToDataUrl`, removido por ter ficado sem nenhum uso).
