@@ -128,14 +128,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCharacter: AppDataContextValue['deleteCharacter'] = (characterId) => {
-    const previous = data.characters;
+    const index = data.characters.findIndex((c) => c.id === characterId);
+    const removed = data.characters[index];
     setData((d) =>
       d ? { ...d, characters: d.characters.filter((c) => c.id !== characterId) } : d,
     );
     api.delete(`/characters/${characterId}`).catch((err: unknown) => {
       console.error('Failed to delete character', err);
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
-      setData((d) => (d ? { ...d, characters: previous } : d));
+      // Re-inserts just this one character at its original position, rather than restoring the
+      // whole `characters` snapshot from before the delete — a snapshot restore would silently
+      // undo any other add/restore that completed elsewhere while this request was in flight.
+      if (!removed) return;
+      setData((d) => {
+        if (!d) return d;
+        const characters = [...d.characters];
+        characters.splice(index, 0, removed);
+        return { ...d, characters };
+      });
     });
   };
 
@@ -143,9 +153,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // local state — deleting it removed it from `characters`, and trash views only ever held a
   // lightweight summary, never the full object).
   const restoreCharacter: AppDataContextValue['restoreCharacter'] = async (characterId) => {
-    const { character } = await api.post<{ character: Character }>(
+    const { character } = await api.post<{ character: Character | null }>(
       `/characters/${characterId}/restore`,
     );
+    if (!character) return;
     setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
   };
 

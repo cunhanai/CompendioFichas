@@ -6,14 +6,7 @@ import { Button } from '@/shared/ui/atoms/Button';
 import { useAppToast } from '@/shared/ui/organisms';
 import { api, ApiError } from '@/shared/lib/api';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
-
-const RETENTION_DAYS = 90;
-
-function daysRemaining(deletedAt: string): number {
-  const elapsedMs = Date.now() - new Date(deletedAt).getTime();
-  const elapsedDays = Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
-  return Math.max(0, RETENTION_DAYS - elapsedDays);
-}
+import { daysRemainingInTrash } from '@/entities/character/model/trash';
 
 export interface TrashDialogProps {
   open: boolean;
@@ -77,11 +70,11 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
               className="flex items-center justify-between gap-2 rounded-lg bg-neutral-950 px-3 py-2.5"
             >
               <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar src={c.photoUrl} size="sm" />
+                <Avatar size="sm" />
                 <div className="min-w-0">
                   <p className="truncate text-sm text-neutral-200">{c.name}</p>
                   <p className="truncate text-xs text-neutral-500">
-                    Restam {daysRemaining(c.deletedAt)} dias na lixeira
+                    Restam {daysRemainingInTrash(c.deletedAt)} dias na lixeira
                   </p>
                 </div>
               </div>

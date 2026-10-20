@@ -30,6 +30,7 @@ import {
 import type {
   AbilityKey,
   Character,
+  DeletedCharacterSummary,
   LevelSnapshot,
 } from '../../src/entities/character/model/types.js';
 
@@ -458,57 +459,42 @@ export async function loadCharactersForUser(userId: string): Promise<Character[]
   return assembleCharacters(coreRows);
 }
 
-/** A soft-deleted character's own row — the full `Character` is never assembled for the trash
- * view (expensive, and irrelevant for a list the user is about to either restore or ignore). */
-export interface DeletedCharacterSummary {
-  id: string;
-  systemId: string;
-  name: string;
-  photoUrl: string | null;
-  deletedAt: string;
-  ownerName: string;
-  ownerUsername: string;
-}
-
-/** The caller's own trash — characters they deleted themselves. */
-export async function loadDeletedCharactersForUser(
-  userId: string,
+/** Shared by both trash views below — only the `WHERE` differs (the owner's own trash vs. every
+ * user's, for the master view), so the row shape and shaping stay in exactly one place. */
+async function loadDeletedCharacterSummaries(
+  ownerUserId?: string,
 ): Promise<DeletedCharacterSummary[]> {
   const rows = await db
     .select({
       id: characters.id,
       systemId: characters.systemId,
       name: characters.name,
-      photoUrl: characters.photoUrl,
       deletedAt: characters.deletedAt,
       ownerName: users.name,
       ownerUsername: users.username,
     })
     .from(characters)
     .innerJoin(users, eq(characters.userId, users.id))
-    .where(and(eq(characters.userId, userId), isNotNull(characters.deletedAt)))
+    .where(
+      ownerUserId
+        ? and(eq(characters.userId, ownerUserId), isNotNull(characters.deletedAt))
+        : isNotNull(characters.deletedAt),
+    )
     .orderBy(desc(characters.deletedAt));
   return rows.map((r) => ({ ...r, deletedAt: r.deletedAt!.toISOString() }));
+}
+
+/** The caller's own trash — characters they deleted themselves. */
+export async function loadDeletedCharactersForUser(
+  userId: string,
+): Promise<DeletedCharacterSummary[]> {
+  return loadDeletedCharacterSummaries(userId);
 }
 
 /** Every deleted character across every user — master-only (see requireAdminUser + isMaster
  * check in the route handler). */
 export async function loadAllDeletedCharacters(): Promise<DeletedCharacterSummary[]> {
-  const rows = await db
-    .select({
-      id: characters.id,
-      systemId: characters.systemId,
-      name: characters.name,
-      photoUrl: characters.photoUrl,
-      deletedAt: characters.deletedAt,
-      ownerName: users.name,
-      ownerUsername: users.username,
-    })
-    .from(characters)
-    .innerJoin(users, eq(characters.userId, users.id))
-    .where(isNotNull(characters.deletedAt))
-    .orderBy(desc(characters.deletedAt));
-  return rows.map((r) => ({ ...r, deletedAt: r.deletedAt!.toISOString() }));
+  return loadDeletedCharacterSummaries();
 }
 
 /** Soft-deletes a character — owner-only (scoped by userId). Returns false if no matching,
@@ -1067,21 +1053,26 @@ export async function updateCharacterOwned(
   character: Character,
   userId: string,
 ): Promise<boolean> {
+  // Excludes soft-deleted characters too — a trashed character is frozen pending restore-or-
+  // purge; a stale client that still has one open shouldn't be able to keep mutating it.
   const [owned] = await db
     .select({ id: characters.id })
     .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+    .where(and(eq(characters.id, id), eq(characters.userId, userId), isNull(characters.deletedAt)))
     .limit(1);
   if (!owned) return false;
 
   const core = coreRowValues(character, userId);
   await db.batch([
-    // Re-asserts ownership in the write itself (not just the SELECT above) — a future caller
-    // of this function that skips re-deriving that check still can't move another user's row.
+    // Re-asserts ownership (and non-deleted-ness) in the write itself (not just the SELECT
+    // above) — a future caller of this function that skips re-deriving that check still can't
+    // move another user's row, or silently resurrect a trashed one's content.
     db
       .update(characters)
       .set(core)
-      .where(and(eq(characters.id, id), eq(characters.userId, userId))),
+      .where(
+        and(eq(characters.id, id), eq(characters.userId, userId), isNull(characters.deletedAt)),
+      ),
     ...buildDeletes(id),
     ...buildInserts(character),
   ] as [BatchQuery, ...BatchQuery[]]);

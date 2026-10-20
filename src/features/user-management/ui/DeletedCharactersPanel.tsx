@@ -8,14 +8,7 @@ import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Button } from '@/shared/ui/atoms/Button';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
-
-const RETENTION_DAYS = 90;
-
-function daysRemaining(deletedAt: string): number {
-  const elapsedMs = Date.now() - new Date(deletedAt).getTime();
-  const elapsedDays = Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
-  return Math.max(0, RETENTION_DAYS - elapsedDays);
-}
+import { daysRemainingInTrash } from '@/entities/character/model/trash';
 
 /** Master-only: every deleted character across every user, with a "Restaurar" action. The
  * backend already enforces master-only (403 for a plain admin) — this UI isn't the real guard,
@@ -66,13 +59,14 @@ export function DeletedCharactersPanel() {
               className="flex items-center justify-between gap-2 rounded-lg bg-neutral-950 px-3 py-2.5"
             >
               <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar src={c.photoUrl} size="sm" />
+                <Avatar size="sm" />
                 <div className="min-w-0">
                   <p className="truncate text-sm text-neutral-200">{c.name}</p>
                   <p className="truncate text-xs text-neutral-500">
                     @{c.ownerUsername} ·{' '}
                     {systems.find((s) => s.id === c.systemId)?.title ?? c.systemId} · excluída{' '}
-                    {formatRelativeTime(c.deletedAt)} · restam {daysRemaining(c.deletedAt)} dias
+                    {formatRelativeTime(c.deletedAt)} · restam {daysRemainingInTrash(c.deletedAt)}{' '}
+                    dias
                   </p>
                 </div>
               </div>

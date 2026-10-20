@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characterPhotos, characters, characterShares, users } from '../../../db/schema.js';
 import {
@@ -192,12 +192,7 @@ export const shareCharacterHandler = withErrorHandling(async function handler(
     return;
   }
 
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .limit(1);
-  if (!owned) {
+  if (!(await isOwner(id, userId))) {
     res.status(404).json({ error: 'Personagem não encontrado.' });
     return;
   }
@@ -240,12 +235,7 @@ export const unshareCharacterHandler = withErrorHandling(async function handler(
     return;
   }
 
-  const [owned] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(and(eq(characters.id, id), eq(characters.userId, userId)))
-    .limit(1);
-  if (!owned) {
+  if (!(await isOwner(id, userId))) {
     res.status(404).json({ error: 'Personagem não encontrado.' });
     return;
   }
@@ -270,11 +260,19 @@ async function listPhotos(characterId: string) {
     .orderBy(asc(characterPhotos.sortOrder));
 }
 
+/** Also excludes soft-deleted characters — a trashed character is frozen pending restore-or-purge,
+ * so nothing (sharing, photos) should be able to touch it in the meantime. */
 async function isOwner(characterId: string, userId: string): Promise<boolean> {
   const [owned] = await db
     .select({ id: characters.id })
     .from(characters)
-    .where(and(eq(characters.id, characterId), eq(characters.userId, userId)))
+    .where(
+      and(
+        eq(characters.id, characterId),
+        eq(characters.userId, userId),
+        isNull(characters.deletedAt),
+      ),
+    )
     .limit(1);
   return !!owned;
 }
@@ -287,10 +285,12 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
   const [shared] = await db
     .select({ characterId: characterShares.characterId })
     .from(characterShares)
+    .innerJoin(characters, eq(characterShares.characterId, characters.id))
     .where(
       and(
         eq(characterShares.characterId, characterId),
         eq(characterShares.sharedWithUserId, userId),
+        isNull(characters.deletedAt),
       ),
     )
     .limit(1);

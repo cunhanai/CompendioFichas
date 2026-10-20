@@ -19,7 +19,11 @@ export function UsersPage() {
   // navigation doesn't remount the component, so a useState initializer wouldn't see it.
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const tab: Tab = tabParam === 'activity' || tabParam === 'deleted' ? tabParam : 'users';
+  // 'deleted' only resolves for the master account — a non-master admin hitting
+  // ?tab=deleted (bookmarked, shared, or guessed) falls back to 'users' instead of landing on a
+  // tab with nothing rendered under it.
+  const tab: Tab =
+    tabParam === 'activity' || (tabParam === 'deleted' && user.isMaster) ? tabParam : 'users';
   const setTab = (next: Tab) => setSearchParams(next === 'users' ? {} : { tab: next });
 
   if (!user.isAdmin) return <Navigate to={routes.profile()} replace />;
