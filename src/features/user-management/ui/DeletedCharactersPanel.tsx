@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArchiveRestore } from 'lucide-react';
 import { useAppData } from '@/app/providers';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppToast } from '@/shared/ui/organisms';
 import { SectionCard } from '@/shared/ui/molecules/SectionCard';
-import { Avatar } from '@/shared/ui/atoms/Avatar';
-import { Button } from '@/shared/ui/atoms/Button';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
-import { daysRemainingInTrash } from '@/entities/character/model/trash';
+import { DeletedCharacterRow } from '@/entities/character/ui/DeletedCharacterRow';
 
 /** Master-only: every deleted character across every user, with a "Restaurar" action. The
  * backend already enforces master-only (403 for a plain admin) — this UI isn't the real guard,
@@ -54,32 +51,13 @@ export function DeletedCharactersPanel() {
       ) : (
         <div className="flex flex-col gap-1.5">
           {deleted.map((c) => (
-            <div
+            <DeletedCharacterRow
               key={c.id}
-              className="flex items-center justify-between gap-2 rounded-lg bg-neutral-950 px-3 py-2.5"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar size="sm" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-neutral-200">{c.name}</p>
-                  <p className="truncate text-xs text-neutral-500">
-                    @{c.ownerUsername} ·{' '}
-                    {systems.find((s) => s.id === c.systemId)?.title ?? c.systemId} · excluída{' '}
-                    {formatRelativeTime(c.deletedAt)} · restam {daysRemainingInTrash(c.deletedAt)}{' '}
-                    dias
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={restoringId === c.id}
-                onClick={() => handleRestore(c.id)}
-              >
-                <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Restaurar
-              </Button>
-            </div>
+              character={c}
+              subtitle={`@${c.ownerUsername} · ${systems.find((s) => s.id === c.systemId)?.title ?? c.systemId} · excluída ${formatRelativeTime(c.deletedAt)}`}
+              restoring={restoringId === c.id}
+              onRestore={() => handleRestore(c.id)}
+            />
           ))}
         </div>
       )}

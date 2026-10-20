@@ -94,10 +94,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateCharacter: AppDataContextValue['updateCharacter'] = (id, updater) => {
+    let previous: Character | undefined;
     setData((d) => {
       if (!d) return d;
-      const previousCharacters = d.characters;
-      const characters = previousCharacters.map((c) => (c.id === id ? updater(c) : c));
+      previous = d.characters.find((c) => c.id === id);
+      const characters = d.characters.map((c) => (c.id === id ? updater(c) : c));
       const updated = characters.find((c) => c.id === id);
       if (updated) {
         api.patch(`/characters/${id}`, updated).catch((err: unknown) => {
@@ -105,9 +106,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           toast.error(
             err instanceof ApiError ? err.message : 'Não foi possível salvar o personagem.',
           );
-          setData((current) =>
-            current ? { ...current, characters: previousCharacters } : current,
-          );
+          // Reverts just this one character's fields back to its pre-edit copy — not the whole
+          // `characters` array — and only if it's still present: a PATCH can fail with 404
+          // because the character was soft-deleted (by this same user, another tab/device)
+          // while the request was in flight, in which case re-inserting it here would resurrect
+          // a trashed character in this tab's local state.
+          setData((current) => {
+            if (!current || !previous) return current;
+            if (!current.characters.some((c) => c.id === id)) return current;
+            const reverted = previous;
+            return {
+              ...current,
+              characters: current.characters.map((c) => (c.id === id ? reverted : c)),
+            };
+          });
         });
       }
       return { ...d, characters };
@@ -128,23 +140,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCharacter: AppDataContextValue['deleteCharacter'] = (characterId) => {
-    const index = data.characters.findIndex((c) => c.id === characterId);
-    const removed = data.characters[index];
-    setData((d) =>
-      d ? { ...d, characters: d.characters.filter((c) => c.id !== characterId) } : d,
-    );
+    let removed: Character | undefined;
+    setData((d) => {
+      if (!d) return d;
+      removed = d.characters.find((c) => c.id === characterId);
+      return { ...d, characters: d.characters.filter((c) => c.id !== characterId) };
+    });
     api.delete(`/characters/${characterId}`).catch((err: unknown) => {
       console.error('Failed to delete character', err);
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
-      // Re-inserts just this one character at its original position, rather than restoring the
-      // whole `characters` snapshot from before the delete — a snapshot restore would silently
-      // undo any other add/restore that completed elsewhere while this request was in flight.
-      if (!removed) return;
+      // Appends the removed character back onto whatever `characters` looks like *now* (read
+      // inside the updater, not a snapshot/index captured back when delete was first called) —
+      // an index-based re-insert would land it in the wrong spot (or throw) if some other
+      // add/delete/restore changed the array's shape while this request was in flight. Exact
+      // position isn't preserved, but nothing else gets clobbered.
+      const character = removed;
+      if (!character) return;
       setData((d) => {
-        if (!d) return d;
-        const characters = [...d.characters];
-        characters.splice(index, 0, removed);
-        return { ...d, characters };
+        if (!d || d.characters.some((c) => c.id === character.id)) return d;
+        return { ...d, characters: [...d.characters, character] };
       });
     });
   };
@@ -157,7 +171,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       `/characters/${characterId}/restore`,
     );
     if (!character) return;
-    setData((d) => (d ? { ...d, characters: [...d.characters, character] } : d));
+    // Same reconciliation bootstrap applies to every other character it loads (reconciling
+    // `skills` against the current catalog, defaulting `levelSnapshots`/`currentSnapshotId`) —
+    // a character trashed before one of those changes needs it just as much on restore.
+    const normalized = normalizeCharacter(character);
+    setData((d) => {
+      if (!d) return d;
+      // Guards against a double-restore (e.g. two tabs, or a slow request retried) appending the
+      // same character twice.
+      if (d.characters.some((c) => c.id === normalized.id)) return d;
+      return { ...d, characters: [...d.characters, normalized] };
+    });
   };
 
   // Not optimistic like the rest of this file: the server is the only source of truth for who a

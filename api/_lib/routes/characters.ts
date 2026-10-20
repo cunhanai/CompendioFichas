@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { characterPhotos, characters, characterShares, users } from '../../../db/schema.js';
 import {
+  CHARACTER_NOT_DELETED,
   createCharacter,
   loadCharacterById,
   loadDeletedCharactersForUser,
@@ -267,11 +268,7 @@ async function isOwner(characterId: string, userId: string): Promise<boolean> {
     .select({ id: characters.id })
     .from(characters)
     .where(
-      and(
-        eq(characters.id, characterId),
-        eq(characters.userId, userId),
-        isNull(characters.deletedAt),
-      ),
+      and(eq(characters.id, characterId), eq(characters.userId, userId), CHARACTER_NOT_DELETED),
     )
     .limit(1);
   return !!owned;
@@ -290,7 +287,7 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
       and(
         eq(characterShares.characterId, characterId),
         eq(characterShares.sharedWithUserId, userId),
-        isNull(characters.deletedAt),
+        CHARACTER_NOT_DELETED,
       ),
     )
     .limit(1);

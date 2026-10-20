@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
-import { ArchiveRestore } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Popup } from '@/shared/ui/organisms/Popup';
-import { Avatar } from '@/shared/ui/atoms/Avatar';
-import { Button } from '@/shared/ui/atoms/Button';
 import { useAppToast } from '@/shared/ui/organisms';
 import { api, ApiError } from '@/shared/lib/api';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
-import { daysRemainingInTrash } from '@/entities/character/model/trash';
+import { DeletedCharacterRow } from '@/entities/character/ui/DeletedCharacterRow';
 
 export interface TrashDialogProps {
   open: boolean;
@@ -21,13 +18,20 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
   const toast = useAppToast();
   const [deleted, setDeleted] = useState<DeletedCharacterSummary[] | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Guards against an earlier fetch (e.g. from a fast close+reopen) resolving after a later one
+  // and clobbering it with stale data — same pattern as PhotoGalleryDialog.
+  const fetchSeq = useRef(0);
 
   useEffect(() => {
     if (!open) return;
+    const seq = ++fetchSeq.current;
     api
       .get<{ deleted: DeletedCharacterSummary[] }>('/characters/deleted')
-      .then(({ deleted: rows }) => setDeleted(rows))
+      .then(({ deleted: rows }) => {
+        if (seq === fetchSeq.current) setDeleted(rows);
+      })
       .catch((err: unknown) => {
+        if (seq !== fetchSeq.current) return;
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível carregar a lixeira.');
         setDeleted([]);
       });
@@ -65,29 +69,12 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
       ) : (
         <div className="flex flex-col gap-1.5">
           {forThisSystem.map((c) => (
-            <div
+            <DeletedCharacterRow
               key={c.id}
-              className="flex items-center justify-between gap-2 rounded-lg bg-neutral-950 px-3 py-2.5"
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar size="sm" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-neutral-200">{c.name}</p>
-                  <p className="truncate text-xs text-neutral-500">
-                    Restam {daysRemainingInTrash(c.deletedAt)} dias na lixeira
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={restoringId === c.id}
-                onClick={() => handleRestore(c.id)}
-              >
-                <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Restaurar
-              </Button>
-            </div>
+              character={c}
+              restoring={restoringId === c.id}
+              onRestore={() => handleRestore(c.id)}
+            />
           ))}
         </div>
       )}
