@@ -162,6 +162,13 @@
       "when": 1792184033195,
       "tag": "0022_thick_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792522892357,
+      "tag": "0023_mean_lyja",
+      "breakpoints": true
     }
   ]
 }

@@ -552,6 +552,12 @@ export const characterPhotos = pgTable(
     characterId: characterId(),
     dataUrl: text('data_url').notNull(),
     sortOrder: sortOrder(),
+    // At most one true per character — enforced in application code (setCharacterPhotoProfileHandler
+    // clears every other row for the character in the same batch it sets this one), not a DB
+    // constraint. The flagged photo's dataUrl is mirrored onto characters.photoUrl so every other
+    // read path (bootstrap, CharCard, SheetHeader) keeps using that cheap column instead of
+    // needing a join into this lazily-loaded table.
+    isProfile: boolean('is_profile').notNull().default(false),
   },
   (table) => [index('character_photos_character_id_idx').on(table.characterId, table.sortOrder)],
 );

@@ -23,7 +23,6 @@ import { joinDot } from '@/shared/lib/format';
 import { routes } from '@/shared/lib/routes';
 import {
   PhotoGalleryDialog,
-  PhotoUploadDialog,
   SharePickerDialog,
   setPhotoUrl,
   toggleActive,
@@ -41,7 +40,6 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
   const { mySharesByCharacterId, shareCharacter, unshareCharacter, deleteCharacter } = useAppData();
   const navigate = useNavigate();
   const [shareOpen, setShareOpen] = useState(false);
-  const [photoOpen, setPhotoOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -151,7 +149,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
             <button
               type="button"
               title="Trocar foto"
-              onClick={() => setPhotoOpen(true)}
+              onClick={() => setGalleryOpen(true)}
               className="text-ink absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-amber-500 hover:bg-amber-400"
             >
               <Camera className="h-3 w-3" strokeWidth={2} />
@@ -240,16 +238,11 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         onOpenChange={setGalleryOpen}
         characterId={characterId}
         canEdit={canEdit}
+        onProfilePhotoChange={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
       />
 
       {!readOnly && (
         <>
-          <PhotoUploadDialog
-            open={photoOpen}
-            onOpenChange={setPhotoOpen}
-            photoUrl={character.photoUrl}
-            onSave={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
-          />
           <SharePickerDialog
             open={shareOpen}
             onOpenChange={setShareOpen}

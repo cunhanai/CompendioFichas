@@ -265,6 +265,9 @@ export interface SpellcastingBlock {
 export interface CharacterPhoto {
   id: string;
   dataUrl: string;
+  /** Whether this is the gallery photo mirrored onto `Character.photoUrl` (the avatar shown
+   * everywhere else) — at most one per character, set via POST .../photos/:photoId/profile. */
+  isProfile: boolean;
 }
 
 export interface Character {

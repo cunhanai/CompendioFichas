@@ -1190,3 +1190,56 @@ array sem nenhum código por categoria), a implementação foi só adicionar uma
 array em código, não dado persistido; personagens existentes simplesmente passam a poder usar a
 categoria nova a partir de agora. `categoryKey` escolhido como `conhecimento` (sem colidir com as
 chaves fixas `conhec-*` já usadas pelas 10 especializações hardcoded).
+
+## Galeria de fotos: crop, compressão e fusão com a foto de perfil
+
+Pedido do usuário (junto com os itens de biblioteca editável/popups unificados/notificação,
+decidido fazer primeiro por ter a especificação mais fechada): "pode ir fazendo o crop e a
+galeria de fotos. preciso de algum método de compressão de imagem, senão vai ficar muito pesado
+pro banco, e limite a 3 imagens (uma delas pode ser utilizada como foto de perfil, então é perfil
++ 2 imagens e a imagem do perfil fica nessa galeria)". Três mudanças:
+
+- **Crop interativo**: nova dependência `react-easy-crop`. `ImageCropDialog`
+  (`shared/ui/organisms/ImageCropDialog.tsx`) é um diálogo genérico de pan/zoom com dois presets
+  de proporção — "Quadrada" (como todo avatar é exibido no app) e "Proporção original" (calculada
+  do próprio arquivo via `onMediaLoaded`). A lib só suporta uma janela de corte de proporção fixa
+  (pan+zoom dentro dela), não um retângulo livremente redimensionável — daí os presets em vez de
+  arrastar cantos. Deliberadamente **não exportado por `organisms/index.ts`**: esse barrel é
+  importado sem subpath por `App.tsx`/`AppDataProvider.tsx` (carregamento eager), então qualquer
+  coisa nele vai pro bundle principal de toda página — `react-easy-crop` só é necessário dentro da
+  galeria, que já vive atrás do lazy-load da página da ficha. Confirmado com `npm run build`: o
+  chunk principal (`index-*.js`) volta ao tamanho de antes depois de tirar do barrel.
+- **Compressão**: `cropAndCompressImage` (`shared/lib/image.ts`) substitui o antigo
+  `resizeImageKeepingAspect`, que só redimensionava (corta em 1280px, qualidade JPEG fixa em
+  0.85) sem nenhum teto de tamanho final. A nova função recorta pela área escolhida no
+  `ImageCropDialog` e então reduz qualidade (até 0.35) e, se ainda não couber, as dimensões
+  (×0.7 por tentativa, até um piso de 480px) até o data URL ficar ≤ 500.000 caracteres — bem
+  abaixo do teto de 2.000.000 (`MAX_PHOTO_DATA_URL_LENGTH`), já pensando em "3 fotos" não virar "3
+  linhas enormes" no Postgres.
+- **Fusão galeria + foto de perfil**: antes, `PhotoUploadDialog` (avatar único, `characters.photo_url`)
+  e a galeria (`character_photos`, até então sem limite real — `MAX_PHOTOS_PER_CHARACTER` era 60,
+  uma proteção contra abuso, não um limite de produto) eram dois fluxos de upload totalmente
+  separados. Agora:
+  - `MAX_PHOTOS_PER_CHARACTER` passa a ser **3** (limite de produto, pedido explícito).
+  - `character_photos` ganha a coluna `is_profile` (migration `0023`) — no máximo uma `true` por
+    personagem, aplicado em código (`setCharacterPhotoProfileHandler`, não uma constraint de
+    banco). Marcar uma foto como perfil zera a flag das outras e espelha o `dataUrl` dela em
+    `characters.photo_url` num único `db.batch`. Esse espelhamento é deliberado: todo lugar que
+    hoje lê `photoUrl` direto do bootstrap (CharCard, SheetHeader) continua lendo uma coluna
+    barata em vez de precisar de um join na tabela da galeria, que é carregada só sob demanda.
+  - Apagar a foto marcada como perfil zera `characters.photo_url` (`DELETE .../photos/:photoId`
+    agora devolve `photoUrl: null` quando isso acontece); nada promove automaticamente outra foto
+    — o usuário escolhe a próxima.
+  - **Migration de dados** (`0023_mean_lyja.sql`): todo personagem com `photo_url` já preenchido
+    (do fluxo antigo do `PhotoUploadDialog`) ganha uma linha retroativa em `character_photos` com
+    `is_profile = true`, casada por `data_url` exato pra ser idempotente — sem isso, essas fotos
+    ficariam "órfãs" (continuam valendo como avatar, mas não apareceriam na galeria unificada).
+  - `PhotoUploadDialog.tsx` foi removido; o botão de câmera no avatar do `SheetHeader` agora abre
+    a galeria (`PhotoGalleryDialog`) em vez de um diálogo de upload único. `setPhotoUrl` (mutation
+    local) passou a aceitar `string | null` (pra refletir a foto de perfil sendo limpa ao excluir
+    a foto marcada).
+- **Escopo explicitamente deixado de fora desta leva** (ver BACKLOG.md): o mesmo
+  `ImageCropDialog` ainda não foi plugado no upload do avatar da própria conta
+  (`ProfilePage`/`AvatarUpload`, que continua no recorte automático fixo); e a galeria continua
+  sendo um diálogo aberto pelo cabeçalho, não uma aba própria da ficha — esse último era um
+  pedido diferente, só parecido, registrado separadamente no backlog.

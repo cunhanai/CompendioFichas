@@ -8,6 +8,6 @@ export function toggleActive(character: Character): Character {
   return { ...character, active: !character.active };
 }
 
-export function setPhotoUrl(character: Character, photoUrl: string): Character {
+export function setPhotoUrl(character: Character, photoUrl: string | null): Character {
   return { ...character, photoUrl };
 }
