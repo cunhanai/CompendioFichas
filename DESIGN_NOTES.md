@@ -1273,3 +1273,32 @@ Pedido de acompanhamento, respondendo aos dois itens deixados de fora acima: "fa
   `SheetPage` e `ProfilePage` (cada um só carrega quando a respectiva página abre) em vez de
   concentrado no chunk de `sheet-sharing`, já que `PhotoGalleryDialog` (que vivia lá) não existe
   mais.
+
+### Correção de segurança: validação de imagem por assinatura de bytes, não só pelo prefixo da string
+
+Achado de uma revisão de segurança pedida pelo usuário sobre essa mesma implementação de
+imagem: `photoBodySchema.dataUrl` (`api/_lib/validation.ts`) validava só
+`z.string().startsWith('data:image/')` — aceitava **qualquer** subtipo depois de `image/`,
+incluindo `image/svg+xml`, e não verificava se o conteúdo decodificado era de fato uma imagem.
+Um request forjado direto na API (sem passar pela UI, que nunca oferece `.svg` como opção)
+podia gravar um SVG com `<script>`/`onload` na galeria disfarçado de foto. Navegadores bloqueiam
+a execução de script de um SVG renderizado via `<img>` (como `FotosTab`/`AvatarUpload` sempre
+fazem), mas o script roda se esse data URL for aberto diretamente (ex.: "abrir imagem em nova
+guia") — então a correção fecha isso na própria validação do servidor, em vez de depender de
+como cada consumidor atual (e futuro) decide renderizar o valor.
+
+- **`imageDataUrl(maxLength)`** (`api/_lib/validation.ts`): substitui o `startsWith` solto por
+  (1) um regex restringindo o subtipo declarado a `png|jpe?g|gif|webp` (a mesma lista de extensão
+  aceita no cliente) e (2) `hasKnownImageSignature`, que decodifica o base64 e checa os **bytes
+  reais** contra a assinatura binária de cada um desses 4 formatos (magic number) — não confia no
+  subtipo que a própria string declara, que é controlado inteiramente por quem monta o request.
+  Um payload `data:image/png;base64,<qualquer coisa que não comece com a assinatura PNG>` agora é
+  rejeitado, mesmo que a string pareça válida à primeira vista.
+- Usada em **dois** lugares: `photoBodySchema.dataUrl` (upload na galeria) e
+  `characterBodySchema.photoUrl` (o campo espelhado, que até então só tinha `z.string().nullable()`
+  sem validação alguma — podia ser preenchido com literalmente qualquer string via
+  `PATCH /api/characters/:id`, já que esse endpoint nunca passou pelo `photoBodySchema`).
+- Testes novos em `api/_lib/validation.test.ts` cobrindo: aceita PNG/JPEG/GIF/WEBP genuínos;
+  rejeita `image/svg+xml` de cara (subtipo fora da lista); rejeita conteúdo rotulado
+  `image/png` cujos bytes não são realmente um PNG; rejeita URL não-`data:` e string vazia.
+- Sem migração de banco — é só uma mudança na camada de validação de entrada, não no schema.
