@@ -18,6 +18,14 @@ import { getClientIp } from '../request.js';
 import { logAudit } from '../audit.js';
 import { maybeRaiseSecurityAlert } from '../securityAlerts.js';
 
+// A valid-format bcrypt hash of an arbitrary, never-used password — compared against when the
+// username doesn't exist, purely so `verifyPassword` always runs for the same ~50-100ms bcrypt
+// cost either way. Without this, `!user || !(await verifyPassword(...))` short-circuits and skips
+// the bcrypt compare entirely for an unknown username, making the response measurably faster than
+// for a real one with a wrong password — a timing side channel an attacker could use to enumerate
+// valid usernames before even hitting the per-username rate limiter below.
+const DUMMY_PASSWORD_HASH = '$2b$10$kotUmJzEdxn.ejJHgGuGqe7PCuDe0iRVlDGXzArgSDEfq/VNcGN06';
+
 export const loginHandler = withErrorHandling(async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -55,7 +63,8 @@ export const loginHandler = withErrorHandling(async function handler(
   }
 
   const [user] = await db.select().from(users).where(usernameEquals(username)).limit(1);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  const passwordOk = await verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+  if (!user || !passwordOk) {
     await logAudit({ id: user?.id, username }, 'auth.login_failed', undefined, `IP ${ip}`);
     await maybeRaiseSecurityAlert();
     res.status(401).json({ error: 'Usuário ou senha incorretos.' });

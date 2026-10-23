@@ -5,7 +5,6 @@ import {
   Check,
   ChevronLeft,
   Eye,
-  Images,
   Pencil,
   Share2,
   Star,
@@ -21,14 +20,7 @@ import {
 } from '@/entities/character/model/calculations';
 import { joinDot } from '@/shared/lib/format';
 import { routes } from '@/shared/lib/routes';
-import {
-  PhotoGalleryDialog,
-  PhotoUploadDialog,
-  SharePickerDialog,
-  setPhotoUrl,
-  toggleActive,
-  toggleFavorite,
-} from '@/features/sheet-sharing';
+import { SharePickerDialog, toggleActive, toggleFavorite } from '@/features/sheet-sharing';
 import { setName } from '@/features/sheet-identity';
 import { Switch } from '@/shared/ui/atoms/Switch';
 import { IconButton } from '@/shared/ui/atoms/IconButton';
@@ -36,13 +28,21 @@ import { Badge } from '@/shared/ui/atoms/Badge';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 
-export function SheetHeader({ characterId, onBack }: { characterId: string; onBack: () => void }) {
+export function SheetHeader({
+  characterId,
+  onBack,
+  onEditPhoto,
+}: {
+  characterId: string;
+  onBack: () => void;
+  /** The avatar's camera-badge button opens the ficha's Fotos tab instead of a dialog of its
+   * own — the gallery lives there now (see FotosTab.tsx), it's just the quickest way in. */
+  onEditPhoto: () => void;
+}) {
   const { character, update, readOnly, ownerUsername } = useCharacter(characterId);
   const { mySharesByCharacterId, shareCharacter, unshareCharacter, deleteCharacter } = useAppData();
   const navigate = useNavigate();
   const [shareOpen, setShareOpen] = useState(false);
-  const [photoOpen, setPhotoOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(character.name);
@@ -67,30 +67,11 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
 
   const currentShares = mySharesByCharacterId[characterId] ?? [];
 
-  // Browsing the gallery is allowed for a read-only shared viewer too — only adding/removing
-  // photos is owner-only (enforced inside PhotoGalleryDialog via `canEdit`).
-  const galleryButton = (
-    <div className="relative">
-      <IconButton
-        label="Galeria de fotos (em desenvolvimento)"
-        variant="neutral"
-        size="sm"
-        onClick={() => setGalleryOpen(true)}
-      >
-        <Images className="h-3.5 w-3.5" strokeWidth={1.8} />
-      </IconButton>
-      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-500" />
-    </div>
-  );
-
   const actions = readOnly ? (
-    <>
-      {galleryButton}
-      <Badge tone="sky" size="sm">
-        <Eye className="mr-1 inline h-3 w-3" strokeWidth={2} />
-        Somente leitura
-      </Badge>
-    </>
+    <Badge tone="sky" size="sm">
+      <Eye className="mr-1 inline h-3 w-3" strokeWidth={2} />
+      Somente leitura
+    </Badge>
   ) : (
     <>
       <Switch
@@ -111,7 +92,6 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
           strokeWidth={1.8}
         />
       </IconButton>
-      {galleryButton}
       <div className="relative">
         <IconButton
           label="Compartilhar (em desenvolvimento)"
@@ -151,7 +131,7 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
             <button
               type="button"
               title="Trocar foto"
-              onClick={() => setPhotoOpen(true)}
+              onClick={onEditPhoto}
               className="text-ink absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-amber-500 hover:bg-amber-400"
             >
               <Camera className="h-3 w-3" strokeWidth={2} />
@@ -235,21 +215,8 @@ export function SheetHeader({ characterId, onBack }: { characterId: string; onBa
         )
       )}
 
-      <PhotoGalleryDialog
-        open={galleryOpen}
-        onOpenChange={setGalleryOpen}
-        characterId={characterId}
-        canEdit={canEdit}
-      />
-
       {!readOnly && (
         <>
-          <PhotoUploadDialog
-            open={photoOpen}
-            onOpenChange={setPhotoOpen}
-            photoUrl={character.photoUrl}
-            onSave={(dataUrl) => update((c) => setPhotoUrl(c, dataUrl))}
-          />
           <SharePickerDialog
             open={shareOpen}
             onOpenChange={setShareOpen}

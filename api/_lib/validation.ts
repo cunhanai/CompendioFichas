@@ -36,8 +36,83 @@ export const shareBodySchema = z.object({ userId: uuid });
 // a generous ceiling against abuse, not a real-world size — same reasoning as
 // MAX_CHARACTER_JSON_LENGTH below, just scoped to one photo instead of the whole character.
 export const MAX_PHOTO_DATA_URL_LENGTH = 2_000_000;
+
+const BASE64_IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/]+=*)$/i;
+
+/** Magic-byte signatures for the four raster formats the app actually produces and accepts (see
+ * the client-side extension allowlists and `shared/lib/image.ts`), checked against the
+ * *decoded* bytes — not the data URL's own declared MIME subtype, which the caller fully
+ * controls and which `startsWith('data:image/')` alone never verified. Without this,
+ * `data:image/png;base64,<actually SVG/HTML/anything>` sails straight through: SVG in
+ * particular can carry a `<script>`, and while browsers block script execution for an SVG
+ * rendered via `<img>`, it still runs if that data URL is ever opened directly (e.g. "open
+ * image in new tab"). Rejecting anything that isn't a real PNG/JPEG/GIF/WEBP closes that off at
+ * the boundary instead of relying on how every current and future caller happens to render it. */
+function hasKnownImageSignature(bytes: Buffer): boolean {
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return true; // PNG
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return true; // JPEG
+  }
+  if (
+    bytes.length >= 6 &&
+    bytes.toString('ascii', 0, 3) === 'GIF' &&
+    (bytes.toString('ascii', 3, 6) === '87a' || bytes.toString('ascii', 3, 6) === '89a')
+  ) {
+    return true; // GIF
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes.toString('ascii', 0, 4) === 'RIFF' &&
+    bytes.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return true; // WEBP
+  }
+  return false;
+}
+
+/** A `data:` URL holding one of PNG/JPEG/GIF/WEBP, verified against the decoded bytes' own magic
+ * number (see `hasKnownImageSignature`) rather than just the string's declared MIME type. Used
+ * everywhere an image gets persisted: the character photo gallery, the character's mirrored
+ * `photoUrl`, and the account avatar (`updateProfileBodySchema.avatarUrl` below) — exported so
+ * every one of those call sites shares the same check instead of each inventing (or skipping)
+ * its own. */
+export function imageDataUrl(maxLength: number) {
+  return z
+    .string()
+    .min(1)
+    .max(maxLength)
+    .refine((value) => {
+      const match = BASE64_IMAGE_DATA_URL_RE.exec(value);
+      if (!match) return false;
+      return hasKnownImageSignature(Buffer.from(match[2], 'base64'));
+    }, 'Arquivo não é uma imagem válida (PNG, JPEG, GIF ou WEBP).');
+}
+
 export const photoBodySchema = z.object({
-  dataUrl: z.string().min(1).max(MAX_PHOTO_DATA_URL_LENGTH).startsWith('data:image/'),
+  dataUrl: imageDataUrl(MAX_PHOTO_DATA_URL_LENGTH),
+});
+
+/** PATCH /api/user — self-service profile update. `avatarUrl` goes through the same
+ * `imageDataUrl` check as every other persisted image (previously `z.string().max(500_000)`,
+ * with no content validation at all — this account avatar is shown to every admin in
+ * `UsersManagementPanel` and to anyone picked in `SharePickerDialog`, so a forged payload here
+ * had the same reach as the character photo gap this file's `imageDataUrl` was built to close). */
+export const updateProfileBodySchema = z.object({
+  name: z.string().min(1),
+  username: z.string().min(3),
+  avatarUrl: imageDataUrl(500_000).nullable().optional(),
 });
 
 export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
@@ -222,7 +297,7 @@ const characterSnapshotDataSchema = z.object({
   id: uuid,
   systemId: z.string().min(1),
   name: z.string(),
-  photoUrl: z.string().nullable(),
+  photoUrl: imageDataUrl(MAX_PHOTO_DATA_URL_LENGTH).nullable(),
   favorited: z.boolean(),
   active: z.boolean(),
   identity: identitySchema,

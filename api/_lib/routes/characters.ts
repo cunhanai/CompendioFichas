@@ -255,7 +255,11 @@ export const unshareCharacterHandler = withErrorHandling(async function handler(
 
 async function listPhotos(characterId: string) {
   return db
-    .select({ id: characterPhotos.id, dataUrl: characterPhotos.dataUrl })
+    .select({
+      id: characterPhotos.id,
+      dataUrl: characterPhotos.dataUrl,
+      isProfile: characterPhotos.isProfile,
+    })
     .from(characterPhotos)
     .where(eq(characterPhotos.characterId, characterId))
     .orderBy(asc(characterPhotos.sortOrder));
@@ -294,10 +298,9 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
   return !!shared;
 }
 
-// Not a real-world gallery size — a generous ceiling against a runaway upload loop or abuse,
-// consistent with how MAX_CHARACTER_JSON_LENGTH/MAX_PHOTO_DATA_URL_LENGTH cap the other
-// dimensions of this same concern.
-const MAX_PHOTOS_PER_CHARACTER = 60;
+// The real product limit (not just an abuse ceiling): one character's gallery doubles as its
+// profile-photo picker now, and 3 was the number the user asked for.
+const MAX_PHOTOS_PER_CHARACTER = 3;
 
 /** GET /api/characters/:id/photos — a character's photo gallery. Loaded lazily, only when the
  * gallery is actually opened, specifically so it never rides along with bootstrap or an ordinary
@@ -390,9 +393,64 @@ export const removeCharacterPhotoHandler = withErrorHandling(async function hand
     return;
   }
 
-  await db
+  const [deleted] = await db
     .delete(characterPhotos)
-    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)));
+    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)))
+    .returning({ isProfile: characterPhotos.isProfile });
 
-  res.status(200).json({ photos: await listPhotos(id) });
+  // The deleted photo was the profile one — clears the mirrored characters.photoUrl too, rather
+  // than leaving it pointing at a dataUrl that no longer exists in the gallery. The user picks a
+  // new profile photo from whatever's left (or uploads a new one); nothing promotes automatically.
+  if (deleted?.isProfile) {
+    await db.update(characters).set({ photoUrl: null }).where(eq(characters.id, id));
+  }
+
+  res
+    .status(200)
+    .json({ photos: await listPhotos(id), photoUrl: deleted?.isProfile ? null : undefined });
+});
+
+/** POST /api/characters/:id/photos/:photoId/profile — marks one gallery photo as the character's
+ * profile picture (unmarking any previous one) and mirrors its dataUrl onto characters.photoUrl,
+ * so every cheap read path (bootstrap, CharCard, SheetHeader) keeps reading that column instead
+ * of joining into the lazily-loaded gallery. Owner-only. */
+export const setCharacterPhotoProfileHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+  photoId: string,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  if (!(await isOwner(id, userId))) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  const [photo] = await db
+    .select({ dataUrl: characterPhotos.dataUrl })
+    .from(characterPhotos)
+    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)))
+    .limit(1);
+  if (!photo) {
+    res.status(404).json({ error: 'Foto não encontrada.' });
+    return;
+  }
+
+  await db.batch([
+    db
+      .update(characterPhotos)
+      .set({ isProfile: false })
+      .where(and(eq(characterPhotos.characterId, id), eq(characterPhotos.isProfile, true))),
+    db.update(characterPhotos).set({ isProfile: true }).where(eq(characterPhotos.id, photoId)),
+    db.update(characters).set({ photoUrl: photo.dataUrl }).where(eq(characters.id, id)),
+  ]);
+
+  res.status(200).json({ photos: await listPhotos(id), photoUrl: photo.dataUrl });
 });

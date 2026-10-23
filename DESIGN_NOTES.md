@@ -1174,3 +1174,180 @@ ideias"). Proposta feita e implementada (sem objeção do usuário):
 - **Excluir a própria ficha**: botão novo (`Trash2`, variante `danger`) no cabeçalho da ficha
   (`SheetHeader`), ao lado de Compartilhar — só pro dono (não aparece em modo `readOnly`), com
   `ConfirmDialog` confirmando antes, e navega de volta pra lista de personagens depois.
+
+## Nova categoria de perícia multi-especialização: Conhecimento
+
+Pedido do usuário: além das 10 especializações fixas de Conhecimento já existentes (arcano,
+engenharia, exploração, geografia, história, local, natureza, nobreza, planos, religião), queria
+poder digitar e adicionar especializações livres — "mais um que pode digitar e adicionar o que
+quiser", no mesmo molde de Apresentação/Ofícios/Profissão.
+
+Como `MULTI_SKILL_CATEGORIES` (`entities/character/model/skillCatalog.ts`) já é um mecanismo
+totalmente genérico e orientado a dados (a UI em `PericiasTab.tsx`/`AddMultiSkillRow.tsx` itera o
+array sem nenhum código por categoria), a implementação foi só adicionar uma entrada:
+`{ categoryKey: 'conhecimento', label: 'Conhecimento', ability: 'int', trainedOnly: true }`
+(mesmo `ability`/`trainedOnly` das linhas fixas de Conhecimento). Sem migração de banco — é um
+array em código, não dado persistido; personagens existentes simplesmente passam a poder usar a
+categoria nova a partir de agora. `categoryKey` escolhido como `conhecimento` (sem colidir com as
+chaves fixas `conhec-*` já usadas pelas 10 especializações hardcoded).
+
+## Galeria de fotos: crop, compressão e fusão com a foto de perfil
+
+Pedido do usuário (junto com os itens de biblioteca editável/popups unificados/notificação,
+decidido fazer primeiro por ter a especificação mais fechada): "pode ir fazendo o crop e a
+galeria de fotos. preciso de algum método de compressão de imagem, senão vai ficar muito pesado
+pro banco, e limite a 3 imagens (uma delas pode ser utilizada como foto de perfil, então é perfil
++ 2 imagens e a imagem do perfil fica nessa galeria)". Três mudanças:
+
+- **Crop interativo**: nova dependência `react-easy-crop`. `ImageCropDialog`
+  (`shared/ui/organisms/ImageCropDialog.tsx`) é um diálogo genérico de pan/zoom com dois presets
+  de proporção — "Quadrada" (como todo avatar é exibido no app) e "Proporção original" (calculada
+  do próprio arquivo via `onMediaLoaded`). A lib só suporta uma janela de corte de proporção fixa
+  (pan+zoom dentro dela), não um retângulo livremente redimensionável — daí os presets em vez de
+  arrastar cantos. Deliberadamente **não exportado por `organisms/index.ts`**: esse barrel é
+  importado sem subpath por `App.tsx`/`AppDataProvider.tsx` (carregamento eager), então qualquer
+  coisa nele vai pro bundle principal de toda página — `react-easy-crop` só é necessário dentro da
+  galeria, que já vive atrás do lazy-load da página da ficha. Confirmado com `npm run build`: o
+  chunk principal (`index-*.js`) volta ao tamanho de antes depois de tirar do barrel.
+- **Compressão**: `cropAndCompressImage` (`shared/lib/image.ts`) substitui o antigo
+  `resizeImageKeepingAspect`, que só redimensionava (corta em 1280px, qualidade JPEG fixa em
+  0.85) sem nenhum teto de tamanho final. A nova função recorta pela área escolhida no
+  `ImageCropDialog` e então reduz qualidade (até 0.35) e, se ainda não couber, as dimensões
+  (×0.7 por tentativa, até um piso de 480px) até o data URL ficar ≤ 500.000 caracteres — bem
+  abaixo do teto de 2.000.000 (`MAX_PHOTO_DATA_URL_LENGTH`), já pensando em "3 fotos" não virar "3
+  linhas enormes" no Postgres.
+- **Fusão galeria + foto de perfil**: antes, `PhotoUploadDialog` (avatar único, `characters.photo_url`)
+  e a galeria (`character_photos`, até então sem limite real — `MAX_PHOTOS_PER_CHARACTER` era 60,
+  uma proteção contra abuso, não um limite de produto) eram dois fluxos de upload totalmente
+  separados. Agora:
+  - `MAX_PHOTOS_PER_CHARACTER` passa a ser **3** (limite de produto, pedido explícito).
+  - `character_photos` ganha a coluna `is_profile` (migration `0023`) — no máximo uma `true` por
+    personagem, aplicado em código (`setCharacterPhotoProfileHandler`, não uma constraint de
+    banco). Marcar uma foto como perfil zera a flag das outras e espelha o `dataUrl` dela em
+    `characters.photo_url` num único `db.batch`. Esse espelhamento é deliberado: todo lugar que
+    hoje lê `photoUrl` direto do bootstrap (CharCard, SheetHeader) continua lendo uma coluna
+    barata em vez de precisar de um join na tabela da galeria, que é carregada só sob demanda.
+  - Apagar a foto marcada como perfil zera `characters.photo_url` (`DELETE .../photos/:photoId`
+    agora devolve `photoUrl: null` quando isso acontece); nada promove automaticamente outra foto
+    — o usuário escolhe a próxima.
+  - **Migration de dados** (`0023_mean_lyja.sql`): todo personagem com `photo_url` já preenchido
+    (do fluxo antigo do `PhotoUploadDialog`) ganha uma linha retroativa em `character_photos` com
+    `is_profile = true`, casada por `data_url` exato pra ser idempotente — sem isso, essas fotos
+    ficariam "órfãs" (continuam valendo como avatar, mas não apareceriam na galeria unificada).
+  - `PhotoUploadDialog.tsx` foi removido; o botão de câmera no avatar do `SheetHeader` agora abre
+    a galeria (`PhotoGalleryDialog`) em vez de um diálogo de upload único. `setPhotoUrl` (mutation
+    local) passou a aceitar `string | null` (pra refletir a foto de perfil sendo limpa ao excluir
+    a foto marcada).
+- **Escopo explicitamente deixado de fora desta leva** (ver BACKLOG.md): o mesmo
+  `ImageCropDialog` ainda não foi plugado no upload do avatar da própria conta
+  (`ProfilePage`/`AvatarUpload`, que continua no recorte automático fixo); e a galeria continua
+  sendo um diálogo aberto pelo cabeçalho, não uma aba própria da ficha — esse último era um
+  pedido diferente, só parecido, registrado separadamente no backlog.
+
+### Atualização: crop no avatar da conta, e galeria virando aba da ficha
+
+Pedido de acompanhamento, respondendo aos dois itens deixados de fora acima: "faça os dois".
+
+- **Crop no avatar da própria conta**: `AvatarUpload.tsx` (`features/profile-settings`) passou a
+  usar o mesmo `ImageCropDialog` da galeria do personagem, só que travado em `aspectModes={['square']}`
+  (esconde o toggle de proporção — esse avatar sempre aparece redondo, "proporção original" não
+  faria sentido aqui). `ImageCropDialog` ganhou essa prop (`aspectModes`, default
+  `['square', 'original']`) pra servir os dois casos. Compressão feita por `cropAndCompressImage`
+  com um teto menor (`maxDim: 400, maxDataUrlLength: 150_000`) do que o da galeria — esse avatar é
+  pequeno e aparece em bem mais lugares (sidebar, etc.), não precisa do mesmo tamanho. Com isso,
+  `resizeImageToDataUrl` ficou sem nenhum uso e foi removido de `shared/lib/image.ts`.
+- **Galeria vira aba da ficha**: `PhotoGalleryDialog` (o `Popup` aberto por um botão no
+  cabeçalho) foi substituído por `FotosTab` (`pages/sheet/tabs/FotosTab.tsx`) — o mesmo
+  conteúdo/lógica (fetch lazy, upload com crop+compressão, marcar perfil, remover), só que
+  renderizado como mais uma aba (`SHEET_TABS`/`SheetTabBar`/`SheetPage`, nova entrada `fotos`
+  logo depois de `geral`, ícone `Images`) em vez de dentro de um `Popup`. O botão de câmera no
+  avatar do `SheetHeader` (que antes abria o diálogo) agora só troca pra essa aba (`onEditPhoto`
+  prop, implementada em `SheetPage` como `() => setTab('fotos')`) — `SheetHeader` não tem mais
+  nenhuma referência a foto/galeria além disso. `FotosTab` é renderizada com `key={characterId}`
+  em vez de resetar seu próprio estado num `useEffect` (que dispararia o lint
+  `react-hooks/set-state-in-effect` — setState síncrono dentro de efeito é tratado como erro
+  neste projeto): trocar de personagem já remonta a aba do zero, então o `useEffect` de fetch só
+  precisa buscar e popular, sem nenhum reset manual.
+- Confirmado com `npm run build` que isso não regrediu o cuidado de bundle do item anterior:
+  `react-easy-crop` segue fora do chunk principal — agora duplicado entre os chunks lazy de
+  `SheetPage` e `ProfilePage` (cada um só carrega quando a respectiva página abre) em vez de
+  concentrado no chunk de `sheet-sharing`, já que `PhotoGalleryDialog` (que vivia lá) não existe
+  mais.
+
+### Correção de segurança: validação de imagem por assinatura de bytes, não só pelo prefixo da string
+
+Achado de uma revisão de segurança pedida pelo usuário sobre essa mesma implementação de
+imagem: `photoBodySchema.dataUrl` (`api/_lib/validation.ts`) validava só
+`z.string().startsWith('data:image/')` — aceitava **qualquer** subtipo depois de `image/`,
+incluindo `image/svg+xml`, e não verificava se o conteúdo decodificado era de fato uma imagem.
+Um request forjado direto na API (sem passar pela UI, que nunca oferece `.svg` como opção)
+podia gravar um SVG com `<script>`/`onload` na galeria disfarçado de foto. Navegadores bloqueiam
+a execução de script de um SVG renderizado via `<img>` (como `FotosTab`/`AvatarUpload` sempre
+fazem), mas o script roda se esse data URL for aberto diretamente (ex.: "abrir imagem em nova
+guia") — então a correção fecha isso na própria validação do servidor, em vez de depender de
+como cada consumidor atual (e futuro) decide renderizar o valor.
+
+- **`imageDataUrl(maxLength)`** (`api/_lib/validation.ts`): substitui o `startsWith` solto por
+  (1) um regex restringindo o subtipo declarado a `png|jpe?g|gif|webp` (a mesma lista de extensão
+  aceita no cliente) e (2) `hasKnownImageSignature`, que decodifica o base64 e checa os **bytes
+  reais** contra a assinatura binária de cada um desses 4 formatos (magic number) — não confia no
+  subtipo que a própria string declara, que é controlado inteiramente por quem monta o request.
+  Um payload `data:image/png;base64,<qualquer coisa que não comece com a assinatura PNG>` agora é
+  rejeitado, mesmo que a string pareça válida à primeira vista.
+- Usada em **dois** lugares: `photoBodySchema.dataUrl` (upload na galeria) e
+  `characterBodySchema.photoUrl` (o campo espelhado, que até então só tinha `z.string().nullable()`
+  sem validação alguma — podia ser preenchido com literalmente qualquer string via
+  `PATCH /api/characters/:id`, já que esse endpoint nunca passou pelo `photoBodySchema`).
+- Testes novos em `api/_lib/validation.test.ts` cobrindo: aceita PNG/JPEG/GIF/WEBP genuínos;
+  rejeita `image/svg+xml` de cara (subtipo fora da lista); rejeita conteúdo rotulado
+  `image/png` cujos bytes não são realmente um PNG; rejeita URL não-`data:` e string vazia.
+- Sem migração de banco — é só uma mudança na camada de validação de entrada, não no schema.
+
+### Varredura de segurança/code-review pedida pelo usuário em todo o código (não só esta PR)
+
+Usuário pediu explicitamente, depois da correção acima: reiniciar a branch a partir da `main`
+(feito — ver nota de recuperação abaixo), e um `/code-review` + `/security-review` completos em
+**todo** o código já escrito até agora, não só o diff desta PR. Três achados adicionais, todos
+corrigidos nesta mesma leva:
+
+- **`api/_lib/routes/user.ts` — `avatarUrl` do avatar da própria conta sem validação alguma**
+  (achado pelo `/code-review`): era `z.string().max(500_000).nullable().optional()`, sem
+  nenhuma checagem de formato — nem o `startsWith` fraco que o `photoBodySchema` já tinha antes
+  da correção acima. Esse avatar é mostrado a todo admin (`UsersManagementPanel`) e a qualquer
+  usuário escolhido em `SharePickerDialog`, ou seja, alcance pelo menos tão amplo quanto o da
+  galeria. Corrigido reaproveitando o mesmo `imageDataUrl` (agora exportado de `validation.ts`);
+  o schema (`updateUserSchema`, que vivia solto em `user.ts`) foi movido para `validation.ts`
+  como `updateProfileBodySchema`, seguindo o padrão do resto do arquivo (todo schema de request
+  mora lá, não espalhado pelos arquivos de rota).
+- **`db/migrations/0023_mean_lyja.sql` — backfill não respeitava o novo limite de 3 fotos**
+  (achado pelo `/code-review`): um personagem que já tivesse 3+ fotos na galeria de antes desta
+  PR (o limite antigo era 60) e um `photo_url` legado que não coincidisse com nenhuma delas
+  passava a ter mais de 3 linhas em `character_photos` depois do backfill — violando a premissa
+  que `FotosTab`/`addCharacterPhotoHandler` agora assumem em todo lugar. Corrigido com mais uma
+  condição no `WHERE` do `INSERT` (`COUNT(*) < 3`): nesse caso raro, o personagem mantém o
+  `photo_url` antigo funcionando como avatar, só não aparece como uma das 3 fotos da galeria
+  unificada até o dono liberar uma vaga. Como a PR que introduz essa migration ainda não tinha
+  sido mergeada, editar o arquivo da migration diretamente (em vez de uma migration nova) foi
+  seguro — nenhum ambiente real rodou essa versão ainda.
+- **`api/_lib/routes/auth.ts` — canal de tempo (timing side-channel) no login permitia enumerar
+  nomes de usuário** (achado na varredura de segurança adicional, fora do que os dois comandos
+  acima cobriram): `if (!user || !(await verifyPassword(...)))` faz curto-circuito — quando o
+  usuário não existe, o `await verifyPassword` (bcrypt, ~50-100ms) nunca roda, então a resposta
+  sai bem mais rápida do que quando o usuário existe mas a senha está errada. Um atacante medindo
+  o tempo de resposta conseguia distinguir "esse username não existe" de "existe, senha errada"
+  sem nenhuma mensagem de erro diferente — um passo de reconhecimento antes de um brute-force
+  (ainda limitado pelo rate limit por usuário, mas a enumeração em si já é um vazamento de
+  informação). Corrigido: `verifyPassword` agora roda sempre, incondicionalmente, comparando
+  contra um hash bcrypt fixo/descartável (`DUMMY_PASSWORD_HASH`) quando o usuário não existe — o
+  custo de CPU do bcrypt fica igual nos dois casos.
+
+Não foi uma auditoria mecânica de 100% do repositório: a varredura priorizou as áreas de maior
+superfície de ataque (autenticação/sessão, rotas de admin, CRUD de personagem + compartilhamento,
+uploads de imagem, bootstrap, escrita na biblioteca compartilhada) e não encontrou mais nada com
+confiança alta o suficiente pra reportar — SQL em todo lugar via query builder parametrizado do
+Drizzle (sem `sql` bruto fora dos pontos já revisados), sem `dangerouslySetInnerHTML` em lugar
+nenhum, Markdown renderizado sem plugin de HTML bruto (`rehype-raw` não está instalado, então
+`<script>` digitado em "História"/"Anotações adicionais" renderiza como texto, não como HTML),
+sessão com token de 256 bits (`randomBytes(32)`) e cookie `httpOnly`/`secure`/`sameSite=lax`,
+senha com bcrypt (nunca um hash rápido), tiers de admin/master bem isolados (admin comum não
+promove ninguém a admin, não toca na conta master, não vê/restaura lixeira de outro usuário).

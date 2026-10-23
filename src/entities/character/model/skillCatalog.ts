@@ -77,6 +77,7 @@ export interface MultiSkillCategory {
  * many as their character actually has (e.g. "Ofícios (Ferreiro)", "Apresentação (Dança)"). */
 export const MULTI_SKILL_CATEGORIES: MultiSkillCategory[] = [
   { categoryKey: 'apresentacao', label: 'Apresentação', ability: 'cha', trainedOnly: false },
+  { categoryKey: 'conhecimento', label: 'Conhecimento', ability: 'int', trainedOnly: true },
   { categoryKey: 'oficios', label: 'Ofícios', ability: 'int', trainedOnly: false },
   { categoryKey: 'profissao', label: 'Profissão', ability: 'wis', trainedOnly: false },
 ];

@@ -9,6 +9,7 @@ import { QuickStats } from '@/widgets/quick-stats';
 import { FeatureTag } from '@/shared/ui/atoms/FeatureTag';
 import { SheetTabBar } from './SheetTabBar';
 import { GeralTab } from './tabs/GeralTab';
+import { FotosTab } from './tabs/FotosTab';
 import { CombateTab } from './tabs/CombateTab';
 import { PericiasTab } from './tabs/PericiasTab';
 import { MagiasTab } from './tabs/MagiasTab';
@@ -21,6 +22,7 @@ import { HistoricoTab } from './tabs/HistoricoTab';
 function isSheetTabId(value: string): value is SheetTabId {
   return (
     value === 'geral' ||
+    value === 'fotos' ||
     value === 'combate' ||
     value === 'pericias' ||
     value === 'magias' ||
@@ -59,6 +61,7 @@ export function SheetPage() {
       <SheetHeader
         characterId={characterId}
         onBack={() => navigate(routes.characters(character.systemId))}
+        onEditPhoto={() => setTab('fotos')}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
@@ -69,10 +72,13 @@ export function SheetPage() {
 
           <h2 className="font-display flex items-center gap-2 text-lg text-neutral-100">
             {SHEET_TABS.find((t) => t.id === tab)?.label}
-            {(tab === 'criaturas' || tab === 'plano') && <FeatureTag status="em-desenvolvimento" />}
+            {(tab === 'fotos' || tab === 'criaturas' || tab === 'plano') && (
+              <FeatureTag status="em-desenvolvimento" />
+            )}
           </h2>
 
           {tab === 'geral' && <GeralTab characterId={characterId} />}
+          {tab === 'fotos' && <FotosTab key={characterId} characterId={characterId} />}
           {tab === 'combate' && (
             <CombateTab characterId={characterId} systemId={character.systemId} />
           )}
