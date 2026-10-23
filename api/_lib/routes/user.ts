@@ -1,23 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, asc, eq, ne } from 'drizzle-orm';
-import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { sessions, users } from '../../../db/schema.js';
 import { requireUserId, hashPassword, verifyPassword, usernameEquals } from '../auth.js';
-import { passwordChangeBodySchema } from '../validation.js';
+import { passwordChangeBodySchema, updateProfileBodySchema } from '../validation.js';
 import { toRosterUser, toUserProfile } from '../mappers.js';
 import { withErrorHandling } from '../handler.js';
 import { checkRateLimit } from '../rateLimit.js';
 import { logAudit } from '../audit.js';
 import { createSession, setSessionCookie } from '../session.js';
-
-const updateUserSchema = z.object({
-  name: z.string().min(1),
-  username: z.string().min(3),
-  // A data: URL for a client-resized avatar image; capped well above what a small
-  // compressed JPEG/PNG needs, to keep an abusive payload from reaching the database.
-  avatarUrl: z.string().max(500_000).nullable().optional(),
-});
 
 /** PATCH /api/user — updates the caller's own name/username/avatar. */
 export const updateProfileHandler = withErrorHandling(async function handler(
@@ -32,7 +23,7 @@ export const updateProfileHandler = withErrorHandling(async function handler(
   const userId = await requireUserId(req, res);
   if (!userId) return;
 
-  const parsed = updateUserSchema.safeParse(req.body);
+  const parsed = updateProfileBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;

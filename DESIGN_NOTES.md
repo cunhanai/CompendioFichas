@@ -1302,3 +1302,52 @@ como cada consumidor atual (e futuro) decide renderizar o valor.
   rejeita `image/svg+xml` de cara (subtipo fora da lista); rejeita conteúdo rotulado
   `image/png` cujos bytes não são realmente um PNG; rejeita URL não-`data:` e string vazia.
 - Sem migração de banco — é só uma mudança na camada de validação de entrada, não no schema.
+
+### Varredura de segurança/code-review pedida pelo usuário em todo o código (não só esta PR)
+
+Usuário pediu explicitamente, depois da correção acima: reiniciar a branch a partir da `main`
+(feito — ver nota de recuperação abaixo), e um `/code-review` + `/security-review` completos em
+**todo** o código já escrito até agora, não só o diff desta PR. Três achados adicionais, todos
+corrigidos nesta mesma leva:
+
+- **`api/_lib/routes/user.ts` — `avatarUrl` do avatar da própria conta sem validação alguma**
+  (achado pelo `/code-review`): era `z.string().max(500_000).nullable().optional()`, sem
+  nenhuma checagem de formato — nem o `startsWith` fraco que o `photoBodySchema` já tinha antes
+  da correção acima. Esse avatar é mostrado a todo admin (`UsersManagementPanel`) e a qualquer
+  usuário escolhido em `SharePickerDialog`, ou seja, alcance pelo menos tão amplo quanto o da
+  galeria. Corrigido reaproveitando o mesmo `imageDataUrl` (agora exportado de `validation.ts`);
+  o schema (`updateUserSchema`, que vivia solto em `user.ts`) foi movido para `validation.ts`
+  como `updateProfileBodySchema`, seguindo o padrão do resto do arquivo (todo schema de request
+  mora lá, não espalhado pelos arquivos de rota).
+- **`db/migrations/0023_mean_lyja.sql` — backfill não respeitava o novo limite de 3 fotos**
+  (achado pelo `/code-review`): um personagem que já tivesse 3+ fotos na galeria de antes desta
+  PR (o limite antigo era 60) e um `photo_url` legado que não coincidisse com nenhuma delas
+  passava a ter mais de 3 linhas em `character_photos` depois do backfill — violando a premissa
+  que `FotosTab`/`addCharacterPhotoHandler` agora assumem em todo lugar. Corrigido com mais uma
+  condição no `WHERE` do `INSERT` (`COUNT(*) < 3`): nesse caso raro, o personagem mantém o
+  `photo_url` antigo funcionando como avatar, só não aparece como uma das 3 fotos da galeria
+  unificada até o dono liberar uma vaga. Como a PR que introduz essa migration ainda não tinha
+  sido mergeada, editar o arquivo da migration diretamente (em vez de uma migration nova) foi
+  seguro — nenhum ambiente real rodou essa versão ainda.
+- **`api/_lib/routes/auth.ts` — canal de tempo (timing side-channel) no login permitia enumerar
+  nomes de usuário** (achado na varredura de segurança adicional, fora do que os dois comandos
+  acima cobriram): `if (!user || !(await verifyPassword(...)))` faz curto-circuito — quando o
+  usuário não existe, o `await verifyPassword` (bcrypt, ~50-100ms) nunca roda, então a resposta
+  sai bem mais rápida do que quando o usuário existe mas a senha está errada. Um atacante medindo
+  o tempo de resposta conseguia distinguir "esse username não existe" de "existe, senha errada"
+  sem nenhuma mensagem de erro diferente — um passo de reconhecimento antes de um brute-force
+  (ainda limitado pelo rate limit por usuário, mas a enumeração em si já é um vazamento de
+  informação). Corrigido: `verifyPassword` agora roda sempre, incondicionalmente, comparando
+  contra um hash bcrypt fixo/descartável (`DUMMY_PASSWORD_HASH`) quando o usuário não existe — o
+  custo de CPU do bcrypt fica igual nos dois casos.
+
+Não foi uma auditoria mecânica de 100% do repositório: a varredura priorizou as áreas de maior
+superfície de ataque (autenticação/sessão, rotas de admin, CRUD de personagem + compartilhamento,
+uploads de imagem, bootstrap, escrita na biblioteca compartilhada) e não encontrou mais nada com
+confiança alta o suficiente pra reportar — SQL em todo lugar via query builder parametrizado do
+Drizzle (sem `sql` bruto fora dos pontos já revisados), sem `dangerouslySetInnerHTML` em lugar
+nenhum, Markdown renderizado sem plugin de HTML bruto (`rehype-raw` não está instalado, então
+`<script>` digitado em "História"/"Anotações adicionais" renderiza como texto, não como HTML),
+sessão com token de 256 bits (`randomBytes(32)`) e cookie `httpOnly`/`secure`/`sameSite=lax`,
+senha com bcrypt (nunca um hash rápido), tiers de admin/master bem isolados (admin comum não
+promove ninguém a admin, não toca na conta master, não vê/restaura lixeira de outro usuário).

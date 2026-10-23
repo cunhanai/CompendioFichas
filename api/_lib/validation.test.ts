@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { photoBodySchema } from './validation.js';
+import { photoBodySchema, updateProfileBodySchema } from './validation.js';
 
 function dataUrl(mime: string, bytes: number[] | string): string {
   const buf = typeof bytes === 'string' ? Buffer.from(bytes, 'utf8') : Buffer.from(bytes);
@@ -47,5 +47,29 @@ describe('photoBodySchema', () => {
 
   it('rejects an empty string', () => {
     expect(photoBodySchema.safeParse({ dataUrl: '' }).success).toBe(false);
+  });
+});
+
+describe('updateProfileBodySchema', () => {
+  const base = { name: 'Ana', username: 'ana' };
+
+  it('accepts a null avatarUrl', () => {
+    expect(updateProfileBodySchema.safeParse({ ...base, avatarUrl: null }).success).toBe(true);
+  });
+
+  it('accepts an omitted avatarUrl', () => {
+    expect(updateProfileBodySchema.safeParse(base).success).toBe(true);
+  });
+
+  it('accepts a genuine PNG avatarUrl', () => {
+    const url = dataUrl('png', [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0]);
+    expect(updateProfileBodySchema.safeParse({ ...base, avatarUrl: url }).success).toBe(true);
+  });
+
+  it('rejects an svg+xml avatarUrl, same as the character photo fields', () => {
+    const url = `data:image/svg+xml;base64,${Buffer.from(
+      '<svg onload="alert(document.cookie)"></svg>',
+    ).toString('base64')}`;
+    expect(updateProfileBodySchema.safeParse({ ...base, avatarUrl: url }).success).toBe(false);
   });
 });

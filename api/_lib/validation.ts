@@ -84,9 +84,11 @@ function hasKnownImageSignature(bytes: Buffer): boolean {
 
 /** A `data:` URL holding one of PNG/JPEG/GIF/WEBP, verified against the decoded bytes' own magic
  * number (see `hasKnownImageSignature`) rather than just the string's declared MIME type. Used
- * everywhere an image gets persisted: the character photo gallery and the profile/avatar
- * `photoUrl` mirrored from it. */
-function imageDataUrl(maxLength: number) {
+ * everywhere an image gets persisted: the character photo gallery, the character's mirrored
+ * `photoUrl`, and the account avatar (`updateProfileBodySchema.avatarUrl` below) — exported so
+ * every one of those call sites shares the same check instead of each inventing (or skipping)
+ * its own. */
+export function imageDataUrl(maxLength: number) {
   return z
     .string()
     .min(1)
@@ -100,6 +102,17 @@ function imageDataUrl(maxLength: number) {
 
 export const photoBodySchema = z.object({
   dataUrl: imageDataUrl(MAX_PHOTO_DATA_URL_LENGTH),
+});
+
+/** PATCH /api/user — self-service profile update. `avatarUrl` goes through the same
+ * `imageDataUrl` check as every other persisted image (previously `z.string().max(500_000)`,
+ * with no content validation at all — this account avatar is shown to every admin in
+ * `UsersManagementPanel` and to anyone picked in `SharePickerDialog`, so a forged payload here
+ * had the same reach as the character photo gap this file's `imageDataUrl` was built to close). */
+export const updateProfileBodySchema = z.object({
+  name: z.string().min(1),
+  username: z.string().min(3),
+  avatarUrl: imageDataUrl(500_000).nullable().optional(),
 });
 
 export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
