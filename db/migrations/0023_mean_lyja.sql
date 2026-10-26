@@ -24,3 +24,22 @@ WHERE c.photo_url IS NOT NULL
     WHERE cp.character_id = c.id AND cp.data_url = c.photo_url
   )
   AND (SELECT COUNT(*) FROM "character_photos" cp WHERE cp.character_id = c.id) < 3;
+
+-- The other half of the backfill: a character whose photo_url happens to exactly match a row
+-- already in character_photos (both old flows could independently end up with the identical
+-- data URL) hits the NOT EXISTS guard above and gets no new row inserted — but without this,
+-- that existing row was never flagged is_profile, so the gallery would show no star at all even
+-- though photo_url is set and matches one of the visible photos. Picks the lowest sort_order
+-- match per character so this stays deterministic (and a no-op on re-run) even in the unlikely
+-- case of more than one identical-byte duplicate.
+UPDATE "character_photos" cp
+SET is_profile = true
+WHERE cp.id = (
+  SELECT cp2.id
+  FROM "character_photos" cp2
+  INNER JOIN "characters" c ON c.id = cp2.character_id
+  WHERE cp2.character_id = cp.character_id
+    AND cp2.data_url = c.photo_url
+  ORDER BY cp2.sort_order
+  LIMIT 1
+);

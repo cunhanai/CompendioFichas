@@ -23,8 +23,8 @@ export interface ImageCropDialogProps {
  * rectangle, so "crop" here means choosing one of two aspect presets and framing the shot within
  * it: "Quadrada" (how every avatar is displayed app-wide) or "Original" (the source image's own
  * proportions, for a gallery photo that shouldn't be forced square). `onConfirm` hands back the
- * crop region in source-image pixel coordinates; the caller (PhotoGalleryDialog) runs it through
- * `cropAndCompressImage`.
+ * crop region in source-image pixel coordinates; the caller (FotosTab, AvatarUpload) runs it
+ * through `cropAndCompressImage`.
  *
  * Deliberately not re-exported from organisms/index.ts: that barrel is imported bare (no
  * subpath) from App.tsx/AppDataProvider.tsx, which load eagerly, so anything in it ships in the

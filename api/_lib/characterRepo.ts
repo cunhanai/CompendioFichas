@@ -970,13 +970,19 @@ function buildInserts(character: Character): BatchQuery[] {
   return queries;
 }
 
+// Deliberately excludes `photoUrl`: that column is owned exclusively by the photo endpoints
+// now (setCharacterPhotoProfileHandler sets it, removeCharacterPhotoHandler clears it) — a
+// create leaves it at its column default (null, matching createBlankCharacter), and an update
+// never overwrites whatever those endpoints last set, regardless of what photoUrl value the
+// client resent as part of its "whole character every PATCH" contract. See the comment on
+// `photoUrl` in characterSnapshotDataSchema (api/_lib/validation.ts) for why that value isn't
+// even strictly validated at this boundary: it's parsed but never written from here.
 function coreRowValues(character: Character, userId: string) {
   return {
     id: character.id,
     userId,
     systemId: character.systemId,
     name: character.name,
-    photoUrl: character.photoUrl,
     favorited: character.favorited,
     active: character.active,
     raca: character.identity.raca,

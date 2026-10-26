@@ -37,7 +37,11 @@ export const shareBodySchema = z.object({ userId: uuid });
 // MAX_CHARACTER_JSON_LENGTH below, just scoped to one photo instead of the whole character.
 export const MAX_PHOTO_DATA_URL_LENGTH = 2_000_000;
 
-const BASE64_IMAGE_DATA_URL_RE = /^data:image\/(png|jpe?g|gif|webp);base64,([A-Za-z0-9+/]+=*)$/i;
+// No /i flag: every real producer (canvas.toDataURL, every browser's <input type="file"> data
+// URL) emits this prefix lowercase, and the old `.startsWith('data:image/')` this replaces was
+// case-sensitive too — matching case-insensitively here would just accept casings (e.g.
+// `DATA:IMAGE/PNG;BASE64,`) that were rejected before, for no real benefit.
+const BASE64_IMAGE_DATA_URL_RE = /^data:image\/(png|jpeg|jpg|gif|webp);base64,([A-Za-z0-9+/]+=*)$/;
 
 /** Magic-byte signatures for the four raster formats the app actually produces and accepts (see
  * the client-side extension allowlists and `shared/lib/image.ts`), checked against the
@@ -297,7 +301,15 @@ const characterSnapshotDataSchema = z.object({
   id: uuid,
   systemId: z.string().min(1),
   name: z.string(),
-  photoUrl: imageDataUrl(MAX_PHOTO_DATA_URL_LENGTH).nullable(),
+  // Not re-validated with imageDataUrl here on purpose: characterRepo's coreRowValues no longer
+  // writes this field at all (see the comment there) — createCharacter/updateCharacterOwned
+  // leave characters.photo_url exactly as it is, so the only two writers are the already-strictly
+  // -validated photo endpoints (setCharacterPhotoProfileHandler, removeCharacterPhotoHandler).
+  // The client still resends whatever photoUrl it last loaded on every PATCH (same
+  // "send the whole character every time" contract as every other field), so strictly
+  // re-validating a value this endpoint never persists would only block legacy data (anything
+  // saved before this PR's image-signature check existed) from ever being edited again.
+  photoUrl: z.string().nullable(),
   favorited: z.boolean(),
   active: z.boolean(),
   identity: identitySchema,

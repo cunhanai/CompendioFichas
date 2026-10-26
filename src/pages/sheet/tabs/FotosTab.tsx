@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ImagePlus, Star, Trash2, Upload } from 'lucide-react';
 import type { Area } from 'react-easy-crop';
 import { useCharacter } from '@/app/providers';
+import { MAX_CHARACTER_PHOTOS } from '@/entities/character/model/photoLimits';
 import { setPhotoUrl } from '@/features/sheet-sharing';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { ImageCropDialog } from '@/shared/ui/organisms/ImageCropDialog';
@@ -16,7 +17,6 @@ import type { CharacterPhoto } from '@/entities/character/model/types';
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
-const MAX_PHOTOS = 3;
 
 /**
  * A character's photo gallery — capped at 3 photos, one of which doubles as the profile picture
@@ -61,6 +61,16 @@ export function FotosTab({ characterId }: { characterId: string }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]);
+
+  // Revokes the pending crop's blob URL whenever it's replaced by a new one, and on unmount —
+  // cancelCrop/handleCropConfirm already revoke it on their own explicit paths, but neither runs
+  // if the tab unmounts (e.g. switching characters) while a crop is still pending, which would
+  // otherwise leak the blob for the rest of the page's lifetime.
+  useEffect(() => {
+    return () => {
+      if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
+    };
+  }, [pendingObjectUrl]);
 
   const cancelCrop = () => {
     if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
@@ -134,7 +144,7 @@ export function FotosTab({ characterId }: { characterId: string }) {
   };
 
   const viewing = viewingIndex !== null ? (photos?.[viewingIndex] ?? null) : null;
-  const atLimit = (photos?.length ?? 0) >= MAX_PHOTOS;
+  const atLimit = (photos?.length ?? 0) >= MAX_CHARACTER_PHOTOS;
 
   return (
     <SectionCard>
@@ -254,7 +264,7 @@ export function FotosTab({ characterId }: { characterId: string }) {
             <p className="text-center text-[11px] text-neutral-600">
               {atLimit
                 ? 'Limite de 3 fotos atingido — remova uma para adicionar outra.'
-                : `${photos.length} de ${MAX_PHOTOS} fotos. Marque uma com a estrela para usá-la como foto de perfil.`}
+                : `${photos.length} de ${MAX_CHARACTER_PHOTOS} fotos. Marque uma com a estrela para usá-la como foto de perfil.`}
             </p>
           )}
         </div>

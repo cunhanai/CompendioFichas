@@ -1351,3 +1351,69 @@ nenhum, Markdown renderizado sem plugin de HTML bruto (`rehype-raw` não está i
 sessão com token de 256 bits (`randomBytes(32)`) e cookie `httpOnly`/`secure`/`sameSite=lax`,
 senha com bcrypt (nunca um hash rápido), tiers de admin/master bem isolados (admin comum não
 promove ninguém a admin, não toca na conta master, não vê/restaura lixeira de outro usuário).
+
+### `/code-review high --fix` em todo o código — mais 5 achados, todos corrigidos
+
+Rodada seguinte pedida pelo usuário (`/code-review high --fix`, múltiplos agentes em ângulos
+paralelos — reuso/simplificação/eficiência, altitude/convenções, line-by-line diff,
+comportamento removido). Achados reais, todos corrigidos nesta leva (descartados: um achado
+"nenhum problema" de verificação de colisão de chave da categoria `conhecimento`, que já estava
+correto):
+
+- **Condição de corrida em `setCharacterPhotoProfileHandler`** (achado mais sério desta rodada):
+  o "limpa a flag antiga, depois marca a nova" em duas `UPDATE`s separadas dentro do mesmo
+  `db.batch` é atômico só *dentro* de uma requisição. Duas chamadas concorrentes marcando fotos
+  diferentes como perfil do mesmo personagem (duas abas, duplo clique) podiam terminar com
+  **duas** linhas com `is_profile = true` ao mesmo tempo — o passo de limpar só reavalia a linha
+  específica que ficou bloqueada esperando lock, nunca re-escaneia por uma linha que a outra
+  transação acabou de marcar como `true` enquanto esperava. Corrigido: uma única `UPDATE` que
+  decide `is_profile` pra **todas** as linhas do personagem numa expressão booleana só
+  (`is_profile = (id = :photoId)`), em vez de duas `UPDATE`s com condições diferentes — assim
+  duas chamadas concorrentes só disputam lock entre si e quem commita por último simplesmente
+  vence, sempre com exatamente uma linha `true` no final.
+- **A correção de segurança anterior (`imageDataUrl` em `characterBodySchema.photoUrl`) travava
+  a edição de personagens com dado legado inválido**: como o app sempre reenvia a ficha inteira
+  em todo `PATCH /api/characters/:id` ("send the whole character every time"), validar
+  estritamente um `photoUrl` que já estava salvo (de antes dessa correção existir, ou qualquer
+  valor histórico que nunca tenha sido exatamente um PNG/JPEG/GIF/WEBP) faz **toda** edição
+  futura daquele personagem falhar com 400, pra sempre — mesmo mudando um campo completamente
+  não relacionado. Corrigido na raiz: `characters.photo_url` passa a ser escrito **exclusivamente**
+  pelos dois endpoints dedicados de foto (`setCharacterPhotoProfileHandler`,
+  `removeCharacterPhotoHandler`) — `coreRowValues` (`characterRepo.ts`) não inclui mais
+  `photoUrl` no `INSERT`/`UPDATE` genérico, então o valor que o cliente reenvia no PATCH é
+  analisado só pelo formato (ainda precisa ser string ou null) mas nunca mais escrito a partir
+  daí. Isso fecha o bug sem reabrir a vulnerabilidade original: um payload forjado nesse campo
+  simplesmente não tem efeito algum, já que nada mais o persiste.
+- **Backfill da migration 0023 não estrelava uma foto já existente que batesse com `photo_url`**:
+  quando o `photo_url` legado já coincidia exatamente com uma linha já presente em
+  `character_photos` (o guard `NOT EXISTS` pulava o `INSERT`), aquela linha nunca ganhava
+  `is_profile = true` — a galeria ficava sem nenhuma estrela, mesmo com o avatar funcionando
+  normalmente. Adicionado um `UPDATE` complementar (determinístico por `sort_order`, idempotente)
+  cobrindo esse caso.
+- **Vazamento de Blob URL ao desmontar com um crop pendente**: `pendingObjectUrl`
+  (`URL.createObjectURL`) só era revogado nos caminhos explícitos de cancelar/confirmar — se o
+  componente desmontasse enquanto um crop estava pendente (trocar de personagem, navegar pra
+  outra tela), a blob nunca era liberada. Corrigido com um `useEffect` de limpeza em
+  `FotosTab.tsx` e `AvatarUpload.tsx`, revogando a URL tanto na troca por uma nova quanto no
+  desmonte.
+- **Limite de 3 fotos duplicado entre cliente e servidor**: `MAX_PHOTOS` (`FotosTab.tsx`) e
+  `MAX_PHOTOS_PER_CHARACTER` (`characters.ts`) eram duas constantes `= 3` independentes — exatamente
+  o tipo de coisa que já tinha desincronizado uma vez nesta mesma PR (o limite mudou de 60 pra 3).
+  Unificadas em `MAX_CHARACTER_PHOTOS`, num arquivo novo e deliberadamente sem imports
+  (`entities/character/model/photoLimits.ts`): `constants.ts` não serve pra isso porque importa
+  de `types.ts`/`calculations.ts` sem extensão `.js` (convenção do frontend), o que quebra assim
+  que algo em `api/**` importa esse arquivo sob a resolução NodeNext do backend — um arquivo-folha
+  sem nada pra resolver evita o problema inteiro.
+
+Achados menores corrigidos de passagem: o regex de validação de imagem tinha um `/i` (case
+-insensitive) desnecessário sobre o prefixo inteiro, aceitando casings como `DATA:IMAGE/PNG;BASE64,`
+que o `startsWith` antigo (case-sensitive) rejeitava — removido; um comentário em
+`ImageCropDialog.tsx` ainda citava `PhotoGalleryDialog`, removido da própria PR — atualizado pra
+`FotosTab`/`AvatarUpload`.
+
+Achados registrados mas **não** corrigidos nesta leva (refatorações de melhoria, não bugs):
+reaproveitar a lógica de estado "arquivo pendente de crop" (hoje duplicada entre `FotosTab.tsx` e
+`AvatarUpload.tsx`) num hook compartilhado; `compressCanvasToDataUrl` sempre redesenha num
+segundo canvas mesmo quando a imagem já está no tamanho certo (redundante no caso comum). Ambos
+são limpeza/eficiência, sem impacto de correção ou segurança — ficam pra uma próxima leva se
+valer a pena.

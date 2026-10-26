@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import type { Area } from 'react-easy-crop';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
@@ -25,6 +25,16 @@ export function AvatarUpload({ src, onChange }: AvatarUploadProps) {
     setPendingFile(file);
     setPendingObjectUrl(URL.createObjectURL(file));
   };
+
+  // Revokes the pending crop's blob URL whenever it's replaced by a new one, and on unmount —
+  // cancelCrop/handleCropConfirm already revoke it on their own explicit paths, but neither runs
+  // if this component unmounts while a crop is still pending, which would otherwise leak the
+  // blob for the rest of the page's lifetime.
+  useEffect(() => {
+    return () => {
+      if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
+    };
+  }, [pendingObjectUrl]);
 
   const cancelCrop = () => {
     if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
