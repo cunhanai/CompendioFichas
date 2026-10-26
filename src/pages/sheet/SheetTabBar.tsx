@@ -4,6 +4,7 @@ import {
   Backpack,
   BookUser,
   History,
+  Images,
   Map,
   PawPrint,
   Sparkles,
@@ -15,6 +16,7 @@ import { cn } from '@/shared/lib/cn';
 
 const ICONS: Record<SheetTabId, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   geral: BookUser,
+  fotos: Images,
   combate: Swords,
   pericias: Sparkles,
   magias: Wand2,
@@ -34,7 +36,7 @@ export interface SheetTabBarProps {
  * (see SheetPage.tsx), not in the tab bar itself. */
 export function SheetTabBar({ active, onChange }: SheetTabBarProps) {
   return (
-    <div className="grid grid-cols-5 gap-0.5 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1 sm:grid-cols-9">
+    <div className="grid grid-cols-5 gap-0.5 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1 sm:grid-cols-10">
       {SHEET_TABS.map((t) => {
         const Icon = ICONS[t.id];
         const isActive = t.id === active;

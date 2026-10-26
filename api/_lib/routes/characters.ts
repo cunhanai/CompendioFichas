@@ -20,6 +20,7 @@ import {
   shareBodySchema,
 } from '../validation.js';
 import type { Character } from '../../../src/entities/character/model/types.js';
+import { MAX_CHARACTER_PHOTOS } from '../../../src/entities/character/model/photoLimits.js';
 
 /** POST /api/characters — creates a character owned by the caller. */
 export const createCharacterHandler = withErrorHandling(async function handler(
@@ -255,7 +256,11 @@ export const unshareCharacterHandler = withErrorHandling(async function handler(
 
 async function listPhotos(characterId: string) {
   return db
-    .select({ id: characterPhotos.id, dataUrl: characterPhotos.dataUrl })
+    .select({
+      id: characterPhotos.id,
+      dataUrl: characterPhotos.dataUrl,
+      isProfile: characterPhotos.isProfile,
+    })
     .from(characterPhotos)
     .where(eq(characterPhotos.characterId, characterId))
     .orderBy(asc(characterPhotos.sortOrder));
@@ -293,11 +298,6 @@ async function canView(characterId: string, userId: string): Promise<boolean> {
     .limit(1);
   return !!shared;
 }
-
-// Not a real-world gallery size — a generous ceiling against a runaway upload loop or abuse,
-// consistent with how MAX_CHARACTER_JSON_LENGTH/MAX_PHOTO_DATA_URL_LENGTH cap the other
-// dimensions of this same concern.
-const MAX_PHOTOS_PER_CHARACTER = 60;
 
 /** GET /api/characters/:id/photos — a character's photo gallery. Loaded lazily, only when the
  * gallery is actually opened, specifically so it never rides along with bootstrap or an ordinary
@@ -359,11 +359,11 @@ export const addCharacterPhotoHandler = withErrorHandling(async function handler
     INSERT INTO ${characterPhotos} (${characterPhotos.id}, ${characterPhotos.characterId}, ${characterPhotos.dataUrl}, ${characterPhotos.sortOrder})
     SELECT ${crypto.randomUUID()}, ${id}, ${parsed.data.dataUrl},
       COALESCE((SELECT MAX(${characterPhotos.sortOrder}) + 1 FROM ${characterPhotos} WHERE ${characterPhotos.characterId} = ${id}), 0)
-    WHERE (SELECT COUNT(*) FROM ${characterPhotos} WHERE ${characterPhotos.characterId} = ${id}) < ${MAX_PHOTOS_PER_CHARACTER}
+    WHERE (SELECT COUNT(*) FROM ${characterPhotos} WHERE ${characterPhotos.characterId} = ${id}) < ${MAX_CHARACTER_PHOTOS}
     RETURNING ${characterPhotos.id}
   `);
   if (inserted.rows.length === 0) {
-    res.status(400).json({ error: `Limite de ${MAX_PHOTOS_PER_CHARACTER} fotos por personagem.` });
+    res.status(400).json({ error: `Limite de ${MAX_CHARACTER_PHOTOS} fotos por personagem.` });
     return;
   }
 
@@ -390,9 +390,72 @@ export const removeCharacterPhotoHandler = withErrorHandling(async function hand
     return;
   }
 
-  await db
+  const [deleted] = await db
     .delete(characterPhotos)
-    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)));
+    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)))
+    .returning({ isProfile: characterPhotos.isProfile });
 
-  res.status(200).json({ photos: await listPhotos(id) });
+  // The deleted photo was the profile one — clears the mirrored characters.photoUrl too, rather
+  // than leaving it pointing at a dataUrl that no longer exists in the gallery. The user picks a
+  // new profile photo from whatever's left (or uploads a new one); nothing promotes automatically.
+  if (deleted?.isProfile) {
+    await db.update(characters).set({ photoUrl: null }).where(eq(characters.id, id));
+  }
+
+  res
+    .status(200)
+    .json({ photos: await listPhotos(id), photoUrl: deleted?.isProfile ? null : undefined });
+});
+
+/** POST /api/characters/:id/photos/:photoId/profile — marks one gallery photo as the character's
+ * profile picture (unmarking any previous one) and mirrors its dataUrl onto characters.photoUrl,
+ * so every cheap read path (bootstrap, CharCard, SheetHeader) keeps reading that column instead
+ * of joining into the lazily-loaded gallery. Owner-only. */
+export const setCharacterPhotoProfileHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+  photoId: string,
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  if (!(await isOwner(id, userId))) {
+    res.status(404).json({ error: 'Personagem não encontrado.' });
+    return;
+  }
+
+  const [photo] = await db
+    .select({ dataUrl: characterPhotos.dataUrl })
+    .from(characterPhotos)
+    .where(and(eq(characterPhotos.id, photoId), eq(characterPhotos.characterId, id)))
+    .limit(1);
+  if (!photo) {
+    res.status(404).json({ error: 'Foto não encontrada.' });
+    return;
+  }
+
+  // One UPDATE touching every row for this character, not a separate "clear the old true row"
+  // + "set the new one" pair: two concurrent profile-set requests for the same character (two
+  // tabs, a double-submit) could otherwise each run their own clear-then-set pair under
+  // READ COMMITTED and leave *two* rows with isProfile=true — the clear step only re-checks the
+  // specific row it was blocked on when it unblocks, it never re-scans for a row the other
+  // transaction turned true in the meantime. Setting isProfile from a single boolean expression
+  // closes that: every row for this character gets decided in the same statement, so whichever
+  // of two concurrent calls commits last simply wins outright, with exactly one row ending up
+  // true either way.
+  await db.batch([
+    db
+      .update(characterPhotos)
+      .set({ isProfile: sql`${characterPhotos.id} = ${photoId}` })
+      .where(eq(characterPhotos.characterId, id)),
+    db.update(characters).set({ photoUrl: photo.dataUrl }).where(eq(characters.id, id)),
+  ]);
+
+  res.status(200).json({ photos: await listPhotos(id), photoUrl: photo.dataUrl });
 });

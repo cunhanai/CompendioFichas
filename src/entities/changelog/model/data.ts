@@ -13,6 +13,18 @@ import type { ChangelogEntry } from './types';
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: '2026.10.20-beta',
+    date: '2026-10-20',
+    title: 'Nova especialização de Conhecimento, e galeria de fotos com corte e foto de perfil',
+    changes: [
+      'Agora dá para adicionar quantas especializações de Conhecimento quiser na aba Perícias, digitando o nome (ex: "Conhecimento (criaturas das sombras)") — igual já funcionava com Apresentação, Ofícios e Profissão, além das 10 especializações fixas que já existiam.',
+      'A galeria de fotos do personagem agora deixa cortar e enquadrar a imagem (com zoom) antes de enviar, e comprime mais as fotos para não pesar no banco de dados.',
+      'A galeria e a foto de perfil do personagem se uniram: a galeria tem limite de 3 fotos, e qualquer uma delas pode ser marcada com uma estrela para virar a foto de perfil mostrada em toda a ficha.',
+      'A galeria de fotos agora é uma aba própria da ficha ("Fotos"), em vez de um botão separado no cabeçalho.',
+      'O corte de imagem também chegou no upload da foto de perfil da sua própria conta, na tela de Perfil.',
+    ],
+  },
+  {
     version: '2026.10.16-beta',
     date: '2026-10-16',
     title: 'Anotações adicionais na aba Combate, e exclusão de ficha',

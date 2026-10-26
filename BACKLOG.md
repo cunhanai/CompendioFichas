@@ -73,24 +73,8 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
-- **Cortar/posicionar a imagem ao adicionar foto de perfil (do usuário) ou de perfil do
-  personagem** — hoje `resizeImageToDataUrl` só faz um recorte automático num quadrado central
-  fixo (256×256), sem o usuário escolher a área/posição do recorte. Pedido explícito: permitir
-  cortar e posicionar manualmente a imagem antes de salvar. Precisa de um componente de crop
-  interativo (ex.: uma lib como `react-easy-crop`) substituindo o recorte automático, usado tanto
-  no upload do avatar do usuário (`ProfilePage`) quanto no avatar do personagem
-  (`PhotoUploadDialog`).
-- **Galeria de fotos do personagem vira uma aba da ficha, com seleção de foto de perfil a partir
-  dela, e compressão das imagens adicionadas** — três pedidos relacionados, sobre a mesma
-  funcionalidade de galeria implementada nesta leva:
-  - A galeria deixa de ser só um diálogo aberto por um botão no cabeçalho (`SheetHeader`) e passa
-    a ser mais uma aba da ficha, junto de Geral/Combate/Perícias/etc. (`PillTabs`/`SheetPage`).
-  - Poder escolher uma foto já existente na galeria (`character_photos`) pra virar a foto de
-    perfil do personagem (`photoUrl`) — hoje avatar e galeria são fluxos de upload totalmente
-    separados, sem nenhuma ligação entre eles.
-  - Comprimir mais as imagens ao adicionar na galeria — `resizeImageKeepingAspect` já redimensiona
-    (corta o lado maior a 1280px) mas vale revisar a qualidade de compressão usada no
-    `canvas.toDataURL`/`toBlob` pra reduzir o tamanho final do arquivo.
+(nenhum no momento — os últimos itens desta categoria, crop do avatar da conta e galeria virar
+aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
@@ -128,3 +112,20 @@ resolvidos" abaixo)
 - **[feito]** Exclusão de ficha de personagem (soft delete), com lixeira pro dono (botão em
   `CharactersPage`) e pro usuário master (aba "Fichas excluídas" em Gestão de usuários) —
   retenção de 90 dias, sem rotina de limpeza automática.
+- **[feito]** Nova especialização de perícia livre "Conhecimento" (junto de
+  Apresentação/Ofícios/Profissão em `MULTI_SKILL_CATEGORIES`), além das 10 especializações fixas
+  já existentes.
+- **[feito]** Galeria de fotos do personagem: diálogo de crop interativo (`ImageCropDialog`,
+  `react-easy-crop`, com pan/zoom e opção de proporção quadrada ou original) antes de qualquer
+  upload; compressão revisada (`cropAndCompressImage`, reduz dimensão e qualidade JPEG até caber
+  num limite de tamanho, em vez de só redimensionar); galeria e foto de perfil do personagem
+  unificadas — a galeria agora tem limite de 3 fotos e qualquer uma delas pode ser marcada (⭐)
+  como foto de perfil, espelhada em `characters.photo_url`; `PhotoUploadDialog` (upload de avatar
+  separado da galeria) foi removido, a edição de foto do personagem passa a ser só pela galeria.
+- **[feito]** A galeria de fotos do personagem virou uma aba própria da ficha (`FotosTab`, junto
+  de Geral/Combate/Perícias/etc.) em vez de só um diálogo aberto por um botão no cabeçalho —
+  `PhotoGalleryDialog` foi removido, o botão de câmera no avatar agora leva direto pra essa aba.
+- **[feito]** O mesmo diálogo de crop (`ImageCropDialog`) agora também é usado no upload do
+  avatar da própria conta (`ProfilePage`/`AvatarUpload`), travado em proporção quadrada — antes
+  só o avatar/galeria do personagem tinha corte interativo, a conta ainda usava o recorte
+  automático fixo (`resizeImageToDataUrl`, removido por ter ficado sem nenhum uso).
