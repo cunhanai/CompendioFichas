@@ -1065,22 +1065,34 @@ export async function updateCharacterOwned(
   character: Character,
   userId: string,
 ): Promise<boolean> {
-  const core = coreRowValues(character, userId);
-  // The ownership (and non-deleted-ness) check and the `characters` row write happen as one
-  // round trip — not a separate preliminary SELECT followed by a batch — specifically to close
-  // most of the race where a character gets soft-deleted between a check and a write: child-table
-  // deletes/inserts below only ever run once this confirms a live, owned row actually matched,
-  // instead of being queued unconditionally alongside a write that might silently affect 0 rows.
-  const [updated] = await db
-    .update(characters)
-    .set(core)
+  // A preliminary ownership check, not merged into the core UPDATE's own WHERE, so that the
+  // core row write and every child-table delete/insert below can go back to running as ONE
+  // db.batch call (same all-or-nothing atomicity as createCharacter) instead of two separate
+  // round trips. Merging the check into the core UPDATE (a prior fix) closed the narrow race
+  // where a character gets soft-deleted between this check and the write below, but at the cost
+  // of a worse failure mode: with the core write and the children batch as two sequential calls,
+  // ANY transient failure of the second call (a dropped connection, a timeout — no concurrent
+  // request needed) left the character's core fields committed with the new values while every
+  // child table (classes, skills, weapons, feats, spellbooks, abilities, equipment, ...) stayed
+  // on stale pre-edit data — a guaranteed corrupted hybrid, not just a possible one. That's the
+  // worse bug to leave in place, so this reverts to the single-batch shape and accepts the
+  // narrower concurrent-soft-delete race back (the core UPDATE below still re-checks ownership
+  // in its own WHERE as a second layer, even though this preliminary check already gates it).
+  const [owned] = await db
+    .select({ id: characters.id })
+    .from(characters)
     .where(and(eq(characters.id, id), eq(characters.userId, userId), CHARACTER_NOT_DELETED))
-    .returning({ id: characters.id });
-  if (!updated) return false;
+    .limit(1);
+  if (!owned) return false;
 
-  await db.batch([...buildDeletes(id), ...buildInserts(character)] as [
-    BatchQuery,
-    ...BatchQuery[],
-  ]);
+  const core = coreRowValues(character, userId);
+  await db.batch([
+    db
+      .update(characters)
+      .set(core)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId), CHARACTER_NOT_DELETED)),
+    ...buildDeletes(id),
+    ...buildInserts(character),
+  ] as [BatchQuery, ...BatchQuery[]]);
   return true;
 }

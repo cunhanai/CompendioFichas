@@ -1417,3 +1417,31 @@ reaproveitar a lógica de estado "arquivo pendente de crop" (hoje duplicada entr
 segundo canvas mesmo quando a imagem já está no tamanho certo (redundante no caso comum). Ambos
 são limpeza/eficiência, sem impacto de correção ou segurança — ficam pra uma próxima leva se
 valer a pena.
+
+### `/code-review pr#29 --fix` — `updateCharacterOwned` perdeu atomicidade entre o core e os filhos
+
+Achado numa rodada de `/code-review` apontada separadamente pelo usuário para a PR #29 **já
+mergeada** (não parte desta PR até este commit) — mas corrigido aqui, no mesmo branch, por ser
+código ativo em produção agora: a correção da rodada 2/3 de code-review da própria PR #29 (ver
+entrada acima, "updateCharacterOwned: funde o SELECT de posse prévio no próprio UPDATE") fechou a
+corrida entre o checar posse e escrever o personagem, mas como efeito colateral passou a rodar o
+`UPDATE characters SET core ...` e o `db.batch([...buildDeletes, ...buildInserts])` das tabelas
+filhas como **duas chamadas separadas**, não mais atômicas entre si — antes dessa correção, as
+duas rodavam dentro do mesmo `db.batch`.
+
+- **Falha concreta**: qualquer falha transitória (timeout, blip de rede do Neon) entre essas duas
+  chamadas — sem precisar de nenhuma requisição concorrente — deixa o personagem com os campos
+  centrais (identidade, HP, dinheiro, etc.) já salvos com os valores novos, enquanto **toda**
+  tabela filha (classes, perícias, armas, talentos, grimórios, habilidades, equipamento, ...)
+  continua com os dados antigos — um híbrido corrompido, não uma possibilidade rara.
+- **Correção**: voltou a ser um `SELECT` prévio de posse (como era antes da correção da PR #29)
+  seguido de **um só** `db.batch` com o `UPDATE` do personagem e todos os deletes/inserts das
+  tabelas filhas juntos — mesmo padrão de atomicidade que `createCharacter` já usa. Isso reabre a
+  janela estreita que a correção da PR #29 tinha fechado (uma ficha podia ser excluída
+  exatamente entre o `SELECT` e o `db.batch`), mas é a troca certa: aquela janela exige uma
+  segunda requisição concorrente bem cronometrada pra sequer existir; esta corrupção acontecia
+  com uma falha transitória comum, sem concorrência nenhuma. O `UPDATE` do personagem dentro do
+  batch mantém a mesma condição de posse no `WHERE` como uma segunda camada de defesa.
+- **Importante**: como a PR #29 já está em `main`, esse bug está ativo em produção agora — a
+  correção só chega lá quando esta PR (#30) for mergeada. Se preferir, posso aplicar essa mesma
+  correção direto em `main` antes disso, em vez de esperar.
