@@ -29,6 +29,7 @@ export interface AppDataContextValue {
   shareCharacter: (characterId: string, userId: string) => void;
   unshareCharacter: (characterId: string, userId: string) => void;
   dismissSecurityAlert: (id: string) => void;
+  dismissChangelogNotice: (version: string) => void;
   updateUser: (updater: (u: UserProfile) => UserProfile) => void;
   /** Syncs local state with a profile already confirmed saved by the server — unlike
    * `updateUser`, this never itself calls the API (the caller already did, and needs the local

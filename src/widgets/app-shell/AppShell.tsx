@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { SecurityAlertBanner } from '@/features/user-management';
+import { ChangelogNotificationBanner } from '@/features/changelog-notice';
 import { Sidebar } from './Sidebar';
 import { BottomBar } from './BottomBar';
 
@@ -10,6 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
         <SecurityAlertBanner />
+        <ChangelogNotificationBanner />
         {children}
       </div>
       <BottomBar />

@@ -13,6 +13,14 @@ import type { ChangelogEntry } from './types';
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: '2026.11.03-beta',
+    date: '2026-11-03',
+    title: 'Aviso de novidades',
+    changes: [
+      'Agora aparece um aviso no topo do app quando tem novidade nova nesta página — some ao tocar nele (te leva pra cá) ou ao dispensar, e não volta a aparecer até a próxima novidade.',
+    ],
+  },
+  {
     version: '2026.10.20-beta',
     date: '2026-10-20',
     title: 'Nova especialização de Conhecimento, e galeria de fotos com corte e foto de perfil',

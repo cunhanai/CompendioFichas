@@ -32,6 +32,14 @@ const int4 = z.number().int().min(-2147483648).max(2147483647);
 
 export const shareBodySchema = z.object({ userId: uuid });
 
+// Matches ChangelogEntry['version'] (src/entities/changelog/model/types.ts) — "AAAA.MM.DD-beta".
+// The client sends its own bundled CURRENT_VERSION rather than the server hardcoding "the
+// latest", so a user on a slightly stale bundle (mid-deploy) can't mark a version newer than
+// what they actually saw as seen.
+export const changelogSeenBodySchema = z.object({
+  version: z.string().min(1).max(50),
+});
+
 // A single resized/compressed photo comfortably fits in a few hundred KB as a data URL; this is
 // a generous ceiling against abuse, not a real-world size — same reasoning as
 // MAX_CHARACTER_JSON_LENGTH below, just scoped to one photo instead of the whole character.

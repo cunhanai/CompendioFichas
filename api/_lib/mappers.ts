@@ -14,6 +14,7 @@ export function toUserProfile(row: UserRow): UserProfile {
     isAdmin: row.isAdmin,
     isMaster: row.isMaster,
     mustChangePassword: row.mustChangePassword,
+    lastSeenChangelogVersion: row.lastSeenChangelogVersion,
   };
 }
 

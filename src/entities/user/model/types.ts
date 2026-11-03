@@ -6,6 +6,7 @@ export interface UserProfile {
   isAdmin: boolean;
   isMaster: boolean;
   mustChangePassword: boolean;
+  lastSeenChangelogVersion: string | null;
 }
 
 /** Lightweight listing of another account — used by the character-sharing user picker, never

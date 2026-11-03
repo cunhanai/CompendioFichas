@@ -61,15 +61,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
   campos compartilhados? Depende da decisão do item anterior (biblioteca editável) pra fazer
   sentido por completo.
-- **Notificação de "o que foi adicionado, arrumado ou corrigido"** (parte do pedido de
-  2026-10-13 de "Sistema de changelog/novidades" — a página de atualizações e as tags já foram
-  feitas, ver "Já resolvidos") — o app já tem um componente genérico de notificação
-  (`NotificationBanner`, `shared/ui/organisms`, hoje usado só por `SecurityAlertBanner` para
-  alertas de segurança — ver `DESIGN_NOTES.md`, "Notificações viraram um componente genérico"),
-  construído de propósito para outros tipos de notificação no futuro; é um candidato natural a
-  reaproveitar aqui, mas o conteúdo (lista de mudanças por release) e o gatilho de quando mostrar
-  pra cada usuário (uma vez só? toda vez que loga depois de um deploy novo?) precisam de
-  definição.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
@@ -129,3 +120,9 @@ resolvidos" abaixo)
   avatar da própria conta (`ProfilePage`/`AvatarUpload`), travado em proporção quadrada — antes
   só o avatar/galeria do personagem tinha corte interativo, a conta ainda usava o recorte
   automático fixo (`resizeImageToDataUrl`, removido por ter ficado sem nenhum uso).
+- **[feito]** Notificação de "o que foi corrigido/adicionado": banner dispensável
+  (`ChangelogNotificationBanner`) aparece em toda tela quando há uma entrada de changelog mais
+  nova do que a última vista pelo usuário, reaproveitando o conteúdo de `CHANGELOG_ENTRIES` e o
+  componente genérico `NotificationBanner`; a marca de "visto" é salva no banco
+  (`users.last_seen_changelog_version`), não só no navegador, pelo mesmo motivo do alerta de
+  segurança.

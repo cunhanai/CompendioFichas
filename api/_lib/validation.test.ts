@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { photoBodySchema, updateProfileBodySchema } from './validation.js';
+import { changelogSeenBodySchema, photoBodySchema, updateProfileBodySchema } from './validation.js';
 
 function dataUrl(mime: string, bytes: number[] | string): string {
   const buf = typeof bytes === 'string' ? Buffer.from(bytes, 'utf8') : Buffer.from(bytes);
@@ -80,5 +80,19 @@ describe('updateProfileBodySchema', () => {
       '<svg onload="alert(document.cookie)"></svg>',
     ).toString('base64')}`;
     expect(updateProfileBodySchema.safeParse({ ...base, avatarUrl: url }).success).toBe(false);
+  });
+});
+
+describe('changelogSeenBodySchema', () => {
+  it('accepts a well-formed version string', () => {
+    expect(changelogSeenBodySchema.safeParse({ version: '2026.11.03-beta' }).success).toBe(true);
+  });
+
+  it('rejects an empty version', () => {
+    expect(changelogSeenBodySchema.safeParse({ version: '' }).success).toBe(false);
+  });
+
+  it('rejects a missing version', () => {
+    expect(changelogSeenBodySchema.safeParse({}).success).toBe(false);
   });
 });

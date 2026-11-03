@@ -1445,3 +1445,26 @@ duas rodavam dentro do mesmo `db.batch`.
 - **Importante**: como a PR #29 já está em `main`, esse bug está ativo em produção agora — a
   correção só chega lá quando esta PR (#30) for mergeada. Se preferir, posso aplicar essa mesma
   correção direto em `main` antes disso, em vez de esperar.
+
+## Notificação de "o que foi corrigido/adicionado"
+
+Item do `BACKLOG.md` ("precisam de decisão ou são grandes o suficiente para valer uma conversa
+antes"); as duas lacunas que o item deixava abertas (conteúdo e gatilho de exibição) foram
+decididas assim, reaproveitando infraestrutura já existente em vez de criar algo novo:
+
+- **Conteúdo**: reaproveita `CHANGELOG_ENTRIES` (o mesmo registro já mantido pela regra de
+  processo de `/novidades`, já em linguagem de jogador) — não um conteúdo separado. O banner
+  mostra só o título da entrada mais recente (`CHANGELOG_ENTRIES[0]`), mesmo que o usuário tenha
+  ficado de fora por mais de uma entrada; tocar nele abre `/novidades` inteira pro resto.
+- **Gatilho**: banner aparece quando `user.lastSeenChangelogVersion !== CURRENT_VERSION` — cobre
+  tanto "nunca viu nenhum" (`null`) quanto "viu uma versão mais antiga". Persistido no banco
+  (`users.last_seen_changelog_version`, migration `0024`), não em `localStorage`: mesmo raciocínio
+  do alerta de segurança (`security_alerts`) já documentado acima — precisa sobreviver a
+  logout/login e aparecer igual em qualquer dispositivo, não só no navegador onde foi dispensado.
+  Dispensar o banner grava a versão atual via `PATCH /api/user/changelog-seen` (endpoint novo,
+  dedicado — não reaproveita o `PATCH /api/user` de perfil porque esse só aceita
+  name/username/avatarUrl).
+- **UI**: `ChangelogNotificationBanner` (feature nova, `features/changelog-notice/`), construído
+  sobre o mesmo `NotificationBanner` genérico que já serve o `SecurityAlertBanner` — mesmo
+  posicionamento em `AppShell.tsx` (abaixo do alerta de segurança, que é mais crítico quando os
+  dois coincidem), tom `violet` pra não ser confundido com o `rose` de segurança.

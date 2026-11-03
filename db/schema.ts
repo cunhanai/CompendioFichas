@@ -30,6 +30,11 @@ export const users = pgTable(
     isMaster: boolean('is_master').notNull().default(false),
     /** Forces the change-password screen on next load — set when an admin resets this account's password. */
     mustChangePassword: boolean('must_change_password').notNull().default(false),
+    /** The changelog version (ChangelogEntry['version'], e.g. "2026.11.03-beta") this account has
+     * already seen the notification banner for — null means never seen one. Persisted here
+     * (rather than localStorage) so it survives logout/login and shows consistently across
+     * devices, same reasoning as security_alerts below. */
+    lastSeenChangelogVersion: text('last_seen_changelog_version'),
     active: boolean('active').notNull().default(true),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

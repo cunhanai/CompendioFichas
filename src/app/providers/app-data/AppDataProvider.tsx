@@ -330,6 +330,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const dismissChangelogNotice: AppDataContextValue['dismissChangelogNotice'] = (version) => {
+    const previous = data.user;
+    setData((d) => (d ? { ...d, user: { ...d.user, lastSeenChangelogVersion: version } } : d));
+    api.patch('/user/changelog-seen', { version }).catch((err: unknown) => {
+      console.error('Failed to dismiss changelog notice', err);
+      setData((d) => (d ? { ...d, user: previous } : d));
+    });
+  };
+
   const value: AppDataContextValue = {
     user: data.user,
     systems: data.systems,
@@ -341,6 +350,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     shareCharacter,
     unshareCharacter,
     dismissSecurityAlert,
+    dismissChangelogNotice,
     updateUser,
     setUser,
     updateCharacter,

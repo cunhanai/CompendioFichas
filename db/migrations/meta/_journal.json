@@ -169,6 +169,13 @@
       "when": 1792522892357,
       "tag": "0023_mean_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793735431082,
+      "tag": "0024_magical_callisto",
+      "breakpoints": true
     }
   ]
 }
