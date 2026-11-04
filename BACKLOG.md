@@ -16,6 +16,17 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   tenta redefinir a senha de outra conta (tela de Gestão de usuários) e não funciona. Ainda sem
   diagnóstico: não se sabe se é erro silencioso, 500, senha não aplicada de fato, ou outra coisa.
   Precisa reproduzir e investigar antes de corrigir.
+- **Dispensar o alerta de segurança ("N tentativas de login falhas...") some da tela, mas volta
+  ao atualizar a página** (reportado em 2026-11-04) — problema antigo, ainda não resolvido
+  (diferente do bug já corrigido em 2026-10-13, de um alerta quase idêntico reaparecer na hora —
+  ver "Já resolvidos"; este aqui é especificamente sobre sobreviver a um F5). A UI
+  (`SecurityAlertBanner`/`dismissSecurityAlert` em `AppDataProvider.tsx`) remove o alerta da tela
+  na hora (otimista) e chama `PATCH /api/admin/users/security-alerts/:id`; pelo código lido até
+  agora (`dismissSecurityAlertHandler`, `api/_lib/routes/adminUsers.ts`), o UPDATE e o filtro de
+  `GET /api/bootstrap` por `dismissed = false` parecem corretos à primeira vista — não foi
+  reproduzido nem investigado de fato (sem acesso a rodar a aplicação neste ambiente), só uma
+  leitura rápida do código. Precisa reproduzir com o Network aberto pra ver se o PATCH está
+  falhando silenciosamente, devolvendo erro, ou se é outra causa.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
