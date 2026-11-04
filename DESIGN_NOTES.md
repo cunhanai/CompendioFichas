@@ -1529,3 +1529,17 @@ decisão do usuário antes de codar — perguntados e decididos assim:
   criação daqui pra frente.
 - **Escopo explicitamente fora desta leva**: suporte PT/EN por item da biblioteca e modificadores
   de atributo variáveis continuam como itens separados do `BACKLOG.md`, sem relação com esta leva.
+
+**Correção logo em seguida**: a primeira versão do `onSubmit` de criação em `LibraryPage` (magias,
+armas, talentos, habilidades) chamava a função genérica `addLibraryItem` — que só aceita
+`{name, desc}` e preenche o resto com valores em branco — em vez das funções dedicadas
+(`addSpellToLibrary`/`addWeaponToLibrary`/`addFeatToLibrary`/`addSpecialToLibrary`, já existentes
+no contexto, usadas pela ficha). O TypeScript não acusa isso porque o terceiro parâmetro passado
+era uma variável, não um objeto literal, então a checagem de propriedades em excesso não se
+aplica. Efeito prático: criar uma magia/arma/habilidade nova pela Biblioteca salvaria só
+nome+descrição, descartando escola/círculo/dano/tipo/usos/etc. do formulário rico; para talentos
+nem isso — `addLibraryItem` nunca teve um `case 'talentos'` (gap que já existia antes desta leva,
+do tempo em que todo "Novo item" passava pelo formulário genérico), então a criação seria um
+no-op silencioso. Corrigido trocando as quatro chamadas de criação pelas funções dedicadas,
+gerando o `id` no cliente (`crypto.randomUUID()`) como as próprias funções dedicadas esperam. A
+edição (`updateLibraryItem`) nunca teve esse problema — sempre manda o item inteiro.

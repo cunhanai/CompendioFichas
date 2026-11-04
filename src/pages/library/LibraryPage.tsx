@@ -48,8 +48,18 @@ export function LibraryPage() {
 }
 
 function LibraryPageContent({ systemId }: { systemId: string }) {
-  const { user, systems, libraries, addLibraryItem, updateLibraryItem, removeLibraryItem } =
-    useAppData();
+  const {
+    user,
+    systems,
+    libraries,
+    addLibraryItem,
+    addSpellToLibrary,
+    addWeaponToLibrary,
+    addFeatToLibrary,
+    addSpecialToLibrary,
+    updateLibraryItem,
+    removeLibraryItem,
+  } = useAppData();
   const navigate = useNavigate();
   const toast = useAppToast();
   const [tab, setTab] = useState<LibraryCategory>('magias');
@@ -245,7 +255,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
           initial={editingItem as SharedLibrary['magias'][number] | undefined}
           onSubmit={(spell) => {
             if (editingId) updateLibraryItem(systemId, 'magias', { ...spell, id: editingId });
-            else addLibraryItem(systemId, 'magias', spell);
+            else addSpellToLibrary(systemId, { ...spell, id: crypto.randomUUID() });
             setFormOpen(false);
           }}
         />
@@ -259,7 +269,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
           addToSheet={false}
           onSubmit={(weapon) => {
             if (editingId) updateLibraryItem(systemId, 'armas', { ...weapon, id: editingId });
-            else addLibraryItem(systemId, 'armas', weapon);
+            else addWeaponToLibrary(systemId, { ...weapon, id: crypto.randomUUID() });
             setFormOpen(false);
           }}
         />
@@ -273,7 +283,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
           addToSheet={false}
           onSubmit={(feat) => {
             if (editingId) updateLibraryItem(systemId, 'talentos', { ...feat, id: editingId });
-            else addLibraryItem(systemId, 'talentos', feat);
+            else addFeatToLibrary(systemId, { ...feat, id: crypto.randomUUID() });
             setFormOpen(false);
           }}
         />
@@ -287,7 +297,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
           onSubmit={(special) => {
             if (editingId)
               updateLibraryItem(systemId, 'habilidades', { ...special, id: editingId });
-            else addLibraryItem(systemId, 'habilidades', special);
+            else addSpecialToLibrary(systemId, { ...special, id: crypto.randomUUID() });
             setFormOpen(false);
           }}
         />
