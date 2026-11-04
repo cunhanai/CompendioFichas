@@ -8,11 +8,18 @@ import { Button } from '@/shared/ui/atoms/Button';
 export interface SpecialFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-fills the form for editing an existing LIBRARY item (from LibraryPage) — the caller
-   * should remount this component (e.g. `key={editing?.id ?? 'new'}`) when switching which item
-   * is being edited. Never set from the sheet's own "criar nova habilidade" flow, which always
-   * creates fresh (see `showShareToggle` below). */
+  /** Pre-fills the form — from LibraryPage, either editing an existing library item in place, or
+   * (see `editing` below) pre-filling a new translation from an existing one. Never set from the
+   * sheet's own "criar nova habilidade" flow, which always creates fresh (see `showShareToggle`
+   * below). */
   initial?: Omit<SpecialLibraryItem, 'id' | 'locale' | 'groupId'>;
+  /** Whether `initial` (when given) means "editing this row in place" (title/button read
+   * accordingly) as opposed to "prefilled starting point for a brand-new row" (LibraryPage's
+   * add-translation flow also passes `initial`, but submitting there creates a new item, not an
+   * edit) — kept as an explicit flag rather than inferred from `initial !== undefined` so the
+   * two cases can't be confused. Defaults to `initial !== undefined` for callers that only ever
+   * use `initial` for real edits. */
+  editing?: boolean;
   /** True from the sheet's "criar nova habilidade" flow (TalentosTab/SpecialPickDialog), which
    * shows the "Compartilhar na biblioteca" switch and reports the player's choice back via
    * `onSubmit`'s second argument. False from LibraryPage, which has no character to add to and
@@ -43,12 +50,12 @@ export function SpecialFormDialog({
   open,
   onOpenChange,
   initial,
+  editing = initial !== undefined,
   showShareToggle = false,
   onSubmit,
 }: SpecialFormDialogProps) {
   const [form, setForm] = useState(initial ?? blank);
   const [shareToLibrary, setShareToLibrary] = useState(true);
-  const editing = initial !== undefined;
   const set = <K extends keyof typeof blank>(key: K, value: (typeof blank)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 

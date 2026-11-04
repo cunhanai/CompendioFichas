@@ -1,4 +1,4 @@
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import type { Character } from '@/entities/character/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
 import { resolveLibraryLocale } from '@/entities/library-item/model/locale';
@@ -52,5 +52,8 @@ export function useCharacter(id: string) {
 export function useLibrary(systemId: string): SharedLibrary | undefined {
   const { user, libraries } = useAppData();
   const library = libraries[systemId];
-  return library ? resolveLibraryLocale(library, user.libraryLocale) : undefined;
+  return useMemo(
+    () => (library ? resolveLibraryLocale(library, user.libraryLocale) : undefined),
+    [library, user.libraryLocale],
+  );
 }

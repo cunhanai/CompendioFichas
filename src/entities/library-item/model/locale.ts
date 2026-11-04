@@ -1,5 +1,16 @@
 import type { LibraryItemLocale, LibraryItemLocaleFields, SharedLibrary } from './types';
 
+/** Builds the `id`/`locale`/`groupId` triple for a brand-new, standalone library item (its own
+ * group of one) — the repeated shape every "create" path (LibraryPage, TalentosTab, CombateTab)
+ * needs alongside the category-specific fields. A translation of an EXISTING item doesn't use
+ * this: it reuses that item's own `groupId` instead of generating a new one, so it joins the
+ * same group rather than starting its own. */
+export function freshLibraryItemIdentity(locale: LibraryItemLocale): LibraryItemLocaleFields & {
+  id: string;
+} {
+  return { id: crypto.randomUUID(), locale, groupId: crypto.randomUUID() };
+}
+
 /** Groups a category array by `groupId`, preserving the order each group first appears in.
  * Exported for `LibraryPage`'s translation-management UI, which needs every language variant of
  * each group (to show a PT/EN toggle, offer "add translation", etc.) rather than the one-per-

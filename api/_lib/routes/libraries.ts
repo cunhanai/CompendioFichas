@@ -16,8 +16,7 @@ import {
 import {
   isLibraryCategory,
   loadDeletedLibraryItems,
-  restoreLibraryItem,
-  softDeleteLibraryItem,
+  setLibraryItemDeleted,
 } from '../../../db/library.js';
 import type { LibraryCategory } from '../../../src/entities/library-item/model/types.js';
 import { requireAdminId, requireUserId } from '../auth.js';
@@ -166,7 +165,13 @@ export const addLibraryItemHandler = withErrorHandling(async function handler(
  * body shape (keeps this area at one Vercel function per the Hobby-plan function cap this
  * project already hit once — see CLAUDE.md — instead of a new path segment per action):
  * `{ id, restore: true }` restores a soft-deleted item (admin-only); any other body is a full
- * replace of an existing item's fields (any authenticated user — same openness as POST/create). */
+ * replace of an existing item's fields (any authenticated user — same openness as POST/create).
+ * The full-replace branch validates `locale`/`groupId` (they're part of each category's zod
+ * schema, since POST needs them) but deliberately never writes them — `locale`/`groupId` aren't
+ * user-editable fields, they're bookkeeping that only `setLibraryItemDeleted`'s restore path and
+ * the "add translation" create path are allowed to set. Letting a generic edit move an item into
+ * a different group, or collide two rows on the same (groupId, locale), would silently corrupt
+ * `resolveLibraryLocale`'s one-per-group assumption. */
 export const updateLibraryItemHandler = withErrorHandling(async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -178,6 +183,8 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
 
   const category = categoryFromQuery(req, res);
   if (!category) return;
+
+  const systemId = req.query.systemId as string;
 
   if (
     req.body &&
@@ -193,9 +200,16 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
       return;
     }
 
-    const restored = await restoreLibraryItem(category, parsedId.data.id);
-    if (!restored) {
+    const result = await setLibraryItemDeleted(category, systemId, parsedId.data.id, false);
+    if (result === 'not_found') {
       res.status(404).json({ error: 'Item não encontrado na lixeira.' });
+      return;
+    }
+    if (result === 'conflict') {
+      res.status(409).json({
+        error:
+          'Já existe outro item ativo neste mesmo idioma para este grupo — não é possível restaurar.',
+      });
       return;
     }
     res.status(200).json({ ok: true });
@@ -205,13 +219,11 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
   const userId = await requireUserId(req, res);
   if (!userId) return;
 
-  const systemId = req.query.systemId as string;
-
   switch (category) {
     case 'magias': {
       const parsed = spellItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(librarySpells)
         .set(fields)
@@ -224,7 +236,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'armas': {
       const parsed = weaponItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryWeapons)
         .set(fields)
@@ -237,7 +249,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'habilidades': {
       const parsed = specialItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(librarySpecialAbilities)
         .set(fields)
@@ -252,7 +264,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'talentos': {
       const parsed = featItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryFeats)
         .set(fields)
@@ -265,7 +277,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'pericias': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(librarySkills)
         .set(fields)
@@ -278,7 +290,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'idiomas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryLanguages)
         .set(fields)
@@ -291,7 +303,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'criaturas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryCreatures)
         .set(fields)
@@ -304,7 +316,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'classes': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryClasses)
         .set(fields)
@@ -317,7 +329,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'racas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryRaces)
         .set(fields)
@@ -330,7 +342,7 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'tipos': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, ...fields } = parsed.data;
+      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
       const [row] = await db
         .update(libraryCreatureTypes)
         .set(fields)
@@ -361,14 +373,15 @@ export const deleteLibraryItemHandler = withErrorHandling(async function handler
   const category = categoryFromQuery(req, res);
   if (!category) return;
 
+  const systemId = req.query.systemId as string;
   const parsed = libraryItemIdSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Dados inválidos.' });
     return;
   }
 
-  const deleted = await softDeleteLibraryItem(category, parsed.data.id);
-  if (!deleted) {
+  const result = await setLibraryItemDeleted(category, systemId, parsed.data.id, true);
+  if (result === 'not_found') {
     res.status(404).json({ error: 'Item não encontrado.' });
     return;
   }

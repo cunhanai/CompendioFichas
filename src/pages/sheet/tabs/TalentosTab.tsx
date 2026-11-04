@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
+import { freshLibraryItemIdentity } from '@/entities/library-item/model/locale';
 import {
   FeatDetailDialog,
   FeatLibraryAddDialog,
@@ -112,8 +113,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         open={newFeatOpen}
         onOpenChange={setNewFeatOpen}
         onSubmit={(feat) => {
-          const id = crypto.randomUUID();
-          const fullFeat = { ...feat, id, locale: user.libraryLocale, groupId: id };
+          const fullFeat = { ...feat, ...freshLibraryItemIdentity(user.libraryLocale) };
           addFeatToLibrary(systemId, fullFeat);
           update((c) => addFeatFromLibrary(c, fullFeat));
           setNewFeatOpen(false);
@@ -138,8 +138,7 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         onOpenChange={setNewSpecialOpen}
         showShareToggle
         onSubmit={(special, shareToLibrary) => {
-          const id = crypto.randomUUID();
-          const item = { ...special, id, locale: user.libraryLocale, groupId: id };
+          const item = { ...special, ...freshLibraryItemIdentity(user.libraryLocale) };
           if (shareToLibrary) addSpecialToLibrary(systemId, item);
           update((c) => addSpecialFromLibrary(c, item));
           setNewSpecialOpen(false);

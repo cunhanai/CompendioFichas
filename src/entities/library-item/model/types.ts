@@ -90,3 +90,10 @@ export interface SharedLibrary {
   racas: LibraryItem[];
   tipos: LibraryItem[];
 }
+
+/** Any library item regardless of which category it's from — i.e. `SharedLibrary[LibraryCategory][number]`,
+ * spelled out because `library?.[category]` with a non-literal `category` widens to a union of
+ * array types too wide for some generic helpers (e.g. `groupLibraryItems`, ./locale.ts) to infer
+ * against directly; callers needing "any item" cast to this instead. */
+export type AnyLibraryItem =
+  LibraryItem | SpellLibraryItem | WeaponLibraryItem | SpecialLibraryItem | FeatLibraryItem;

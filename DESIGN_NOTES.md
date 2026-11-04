@@ -1595,3 +1595,64 @@ assim antes de começar:
   `LibraryValuePickerDialog`, `LanguagesDialog`) continua passando só `{name, desc}` e herdando o
   padrão (`locale` da conta, `groupId` novo); só a `LibraryPage` passa os dois explicitamente, ao
   criar uma tradução de um item dessas categorias.
+
+## Revisão de código da leva PT/EN (`/code-review xhigh --fix`)
+
+Revisão completa do diff do branch contra `main` depois da leva de PT/EN acima. Achados reais
+corrigidos:
+
+- **`softDeleteLibraryItem`/`restoreLibraryItem` não eram escopados por `systemId`** —
+  qualquer admin de qualquer sistema conseguia soft-delete/restore de um item de biblioteca de
+  outro sistema só sabendo o `id`. Substituídas por uma única função
+  `setLibraryItemDeleted(category, systemId, id, deleted)` (`db/library.ts`) que exige o
+  `systemId` em todo caminho — consolidando o que eram dois switches de 10 casos (delete,
+  restore) num só conjunto de 10 funções por categoria, cada uma cuidando das duas direções via
+  um parâmetro booleano. (Uma tentativa de generalizar essas 10 funções num helper genérico sobre
+  `PgTable` não compila — o Drizzle exige o tipo concreto da tabela em `.update()/.select()`,
+  não uma interface estrutural — então ficou com as 10 explícitas, igual ao padrão que
+  `api/_lib/routes/libraries.ts` já usava pros handlers de POST/PATCH.)
+- **Restaurar um item apagado podia criar duas linhas ativas no mesmo `(groupId, locale)`** —
+  ex.: apagar o PT de um grupo, criar uma tradução PT nova pro mesmo grupo, depois restaurar o PT
+  antigo da lixeira: `resolveLibraryLocale` não tem como escolher entre as duas.
+  `setLibraryItemDeleted` agora checa por um conflito ativo antes de restaurar e devolve
+  `'conflict'` (409 na rota) em vez de restaurar silenciosamente.
+- **PATCH de edição genérica podia mover um item pra outro grupo/idioma** — o schema de
+  validação aceita `locale`/`groupId` (porque o POST de criação precisa deles), mas o PATCH de
+  edição estava passando o corpo inteiro pro `.set()`, então um client malicioso ou um bug no
+  form podia reatribuir esses dois campos de um item existente. Agora `locale`/`groupId` são
+  explicitamente excluídos do que a edição genérica persiste — só o fluxo de criar
+  tradução/duplicar grupo (que não passa por esse branch) pode setá-los.
+- **Editar um item das ~6 categorias simples (`PLAIN_CATEGORIES`) apagava a `tag`** —
+  `LibraryPage` mandava `tag: ''` fixo em toda edição em vez da tag existente do item.
+- **Diálogo de "adicionar tradução" mostrava texto de edição** (título "Editar item", botão
+  "Salvar alterações") — os 5 diálogos de formulário de categoria ganharam um prop `editing`
+  explícito (default `initial !== undefined`, mantendo o comportamento de quem só edita) pra
+  `LibraryPage` poder passar `editing={formTarget?.mode === 'edit'}` e diferenciar "editar" de
+  "traduzir" (que também usa `initial` pra pré-preencher, mas cria uma linha nova).
+- **Diálogo de formulário da `LibraryPage` ficava com rascunho de uma edição/tradução anterior**
+  ao reabrir pra outro item — estava sempre montado, só alternando a prop `open` (com uma `key`
+  pra forçar reset, que não funciona: trocar só a prop `open` no mesmo componente montado não
+  reseta `useState` interno). Trocado pro padrão já usado pelos diálogos de detalhe da ficha
+  (`{algumId && <Dialog ... />}`, ex. `FeatDetailDialog` na `TalentosTab`) — montagem
+  condicional de verdade, que desmonta e remonta o componente (resetando seu estado) a cada
+  abertura.
+- **`freshLibraryItemIdentity()` extraída** (`entities/library-item/model/locale.ts`) — o
+  trio `{id, locale, groupId}` de um item novo e autônomo (grupo de um) estava duplicado em
+  `LibraryPage`, `TalentosTab` e `CombateTab`, cada um gerando o `id` à mão e dois deles usando
+  `groupId: id` (mesmo valor) em vez de um uuid novo pro grupo — inconsistente mas inofensivo
+  (um grupo de uma linha não depende de `groupId !== id`), unificado mesmo assim por clareza.
+- **`AccountCard`: toggle de idioma da biblioteca não resincronizava ao reabrir o modo de
+  edição** — cancelar depois de trocar o idioma deixava o `useState` local decorado com a
+  escolha não salva; reabrir "Editar dados" mostrava esse valor velho em vez do
+  `user.libraryLocale` real. Corrigido resincronizando no próprio toggle de editar.
+- **`useLibrary()` recalculava `resolveLibraryLocale` em toda renderização** — agora memoizado
+  (`useMemo`, chave `[library, user.libraryLocale]`), já que esse hook roda em todo picker da
+  ficha.
+
+Achados considerados e **não corrigidos** nesta leva (escopo/risco não justificavam):
+- Um `CHECK` de banco pra `locale`/`library_locale` (hoje só validado na camada zod, igual a
+  outros enums do schema) — defesa em profundidade de baixo valor pra uma migration nova.
+- Três implementações repetidas de "escolher um de N, destacar o selecionado" (toggle de idioma
+  em `AccountCard`, seletor de idioma por item na `LibraryPage`, etc.) que poderiam compartilhar
+  um componente — risco de regressão visual sem um browser disponível pra confirmar lado a lado,
+  deixado como está.

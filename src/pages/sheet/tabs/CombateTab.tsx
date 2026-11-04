@@ -3,6 +3,7 @@ import { Plus, ShieldCheck, Swords, Zap } from 'lucide-react';
 import { DragDropProvider } from '@dnd-kit/react';
 import type { DragEndEvent } from '@dnd-kit/react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
+import { freshLibraryItemIdentity } from '@/entities/library-item/model/locale';
 import {
   computeAc,
   computeAllAbilities,
@@ -249,8 +250,7 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
         open={popup?.kind === 'weaponLibraryAdd'}
         onOpenChange={(o) => !o && close()}
         onSubmit={(weapon) => {
-          const id = crypto.randomUUID();
-          const fullWeapon = { ...weapon, id, locale: user.libraryLocale, groupId: id };
+          const fullWeapon = { ...weapon, ...freshLibraryItemIdentity(user.libraryLocale) };
           addWeaponToLibrary(systemId, fullWeapon);
           update((c) => addWeaponFromLibrary(c, fullWeapon));
           close();

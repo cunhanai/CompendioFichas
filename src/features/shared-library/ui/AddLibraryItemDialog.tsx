@@ -6,10 +6,14 @@ import { Button } from '@/shared/ui/atoms/Button';
 export interface AddLibraryItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-fills the form for editing an existing item instead of creating a new one — the
-   * caller should remount this component (e.g. `key={editing?.id ?? 'new'}`) when switching
-   * which item is being edited, so the form's local state re-syncs. */
+  /** Pre-fills the form — editing an existing item in place, or (see `editing` below) a starting
+   * point for a brand-new translation of one. */
   initial?: { name: string; desc: string };
+  /** Whether `initial` means "editing this row in place" vs. "prefilled starting point for a new
+   * row" (LibraryPage's add-translation flow also passes `initial`, but submitting there creates
+   * a new item) — explicit rather than inferred from `initial !== undefined` so the two can't be
+   * confused. Defaults to `initial !== undefined` for callers that only ever edit. */
+  editing?: boolean;
   onSubmit: (values: { name: string; desc: string }) => void;
 }
 
@@ -19,11 +23,11 @@ export function AddLibraryItemDialog({
   open,
   onOpenChange,
   initial,
+  editing = initial !== undefined,
   onSubmit,
 }: AddLibraryItemDialogProps) {
   const [name, setName] = useState(initial?.name ?? '');
   const [desc, setDesc] = useState(initial?.desc ?? '');
-  const editing = initial !== undefined;
 
   const handleSubmit = () => {
     if (!name.trim()) return;

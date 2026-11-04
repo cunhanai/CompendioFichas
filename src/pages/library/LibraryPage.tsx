@@ -6,17 +6,14 @@ import { routes } from '@/shared/lib/routes';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppToast } from '@/shared/ui/organisms';
 import type {
-  FeatLibraryItem,
+  AnyLibraryItem,
   LibraryCategory,
   LibraryItem,
   LibraryItemLocale,
   SharedLibrary,
-  SpecialLibraryItem,
-  SpellLibraryItem,
-  WeaponLibraryItem,
 } from '@/entities/library-item/model/types';
 import { toDisplayItems, type DisplayItem } from '@/entities/library-item/model/selectors';
-import { groupLibraryItems } from '@/entities/library-item/model/locale';
+import { freshLibraryItemIdentity, groupLibraryItems } from '@/entities/library-item/model/locale';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
@@ -47,13 +44,6 @@ const PLAIN_CATEGORIES = new Set<LibraryCategory>([
   'racas',
   'tipos',
 ]);
-
-/** `library?.[tab]` indexes a `SharedLibrary` with a non-literal `category`, so TS widens it to
- * the union of every category's array type — too wide for `groupLibraryItems`'s generic to
- * infer against directly. Every member shares `id`/`locale`/`groupId` though, so this union
- * (not `library?.[tab]`'s own inferred type) is what gets passed to it instead. */
-type AnyLibraryItem =
-  LibraryItem | SpellLibraryItem | WeaponLibraryItem | SpecialLibraryItem | FeatLibraryItem;
 
 const LOCALE_LABEL: Record<LibraryItemLocale, string> = { pt: 'PT', en: 'EN' };
 const otherLocale = (locale: LibraryItemLocale): LibraryItemLocale =>
@@ -170,10 +160,10 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
     setFormTarget({ mode: 'translate', sourceId, locale });
     setFormOpen(true);
   };
-
-  const formKey = formTarget
-    ? `${formTarget.mode}-${formTarget.mode === 'edit' ? formTarget.id : formTarget.sourceId}`
-    : 'new';
+  const closeForm = () => {
+    setFormOpen(false);
+    setFormTarget(null);
+  };
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 md:px-10 md:py-10">
@@ -341,12 +331,17 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
         </div>
       )}
 
-      {tab === 'magias' && (
+      {/* Each dialog is only mounted while `formOpen` — unlike toggling `open` on an
+          always-mounted instance, this guarantees a real unmount/remount every time the form is
+          reopened (matching the sheet's own `{id && <Dialog />}` pattern elsewhere), so a
+          canceled, half-typed edit/translation never lingers as stale state the next time the
+          same item is reopened. */}
+      {formOpen && tab === 'magias' && (
         <SpellLibraryFormDialog
-          key={formKey}
-          open={formOpen}
-          onOpenChange={setFormOpen}
+          open
+          onOpenChange={(open) => !open && closeForm()}
           initial={sourceItem as SharedLibrary['magias'][number] | undefined}
+          editing={formTarget?.mode === 'edit'}
           onSubmit={(spell) => {
             if (formTarget?.mode === 'edit' && sourceItem)
               updateLibraryItem(systemId, 'magias', {
@@ -358,28 +353,24 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
             else if (formTarget?.mode === 'translate' && sourceItem)
               addSpellToLibrary(systemId, {
                 ...spell,
-                id: crypto.randomUUID(),
-                locale: formTarget.locale,
+                ...freshLibraryItemIdentity(formTarget.locale),
                 groupId: sourceItem.groupId,
               });
             else
               addSpellToLibrary(systemId, {
                 ...spell,
-                id: crypto.randomUUID(),
-                locale: user.libraryLocale,
-                groupId: crypto.randomUUID(),
+                ...freshLibraryItemIdentity(user.libraryLocale),
               });
-            setFormTarget(null);
-            setFormOpen(false);
+            closeForm();
           }}
         />
       )}
-      {tab === 'armas' && (
+      {formOpen && tab === 'armas' && (
         <WeaponLibraryAddDialog
-          key={formKey}
-          open={formOpen}
-          onOpenChange={setFormOpen}
+          open
+          onOpenChange={(open) => !open && closeForm()}
           initial={sourceItem as SharedLibrary['armas'][number] | undefined}
+          editing={formTarget?.mode === 'edit'}
           addToSheet={false}
           onSubmit={(weapon) => {
             if (formTarget?.mode === 'edit' && sourceItem)
@@ -392,28 +383,24 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
             else if (formTarget?.mode === 'translate' && sourceItem)
               addWeaponToLibrary(systemId, {
                 ...weapon,
-                id: crypto.randomUUID(),
-                locale: formTarget.locale,
+                ...freshLibraryItemIdentity(formTarget.locale),
                 groupId: sourceItem.groupId,
               });
             else
               addWeaponToLibrary(systemId, {
                 ...weapon,
-                id: crypto.randomUUID(),
-                locale: user.libraryLocale,
-                groupId: crypto.randomUUID(),
+                ...freshLibraryItemIdentity(user.libraryLocale),
               });
-            setFormTarget(null);
-            setFormOpen(false);
+            closeForm();
           }}
         />
       )}
-      {tab === 'talentos' && (
+      {formOpen && tab === 'talentos' && (
         <FeatLibraryAddDialog
-          key={formKey}
-          open={formOpen}
-          onOpenChange={setFormOpen}
+          open
+          onOpenChange={(open) => !open && closeForm()}
           initial={sourceItem as SharedLibrary['talentos'][number] | undefined}
+          editing={formTarget?.mode === 'edit'}
           addToSheet={false}
           onSubmit={(feat) => {
             if (formTarget?.mode === 'edit' && sourceItem)
@@ -426,28 +413,24 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
             else if (formTarget?.mode === 'translate' && sourceItem)
               addFeatToLibrary(systemId, {
                 ...feat,
-                id: crypto.randomUUID(),
-                locale: formTarget.locale,
+                ...freshLibraryItemIdentity(formTarget.locale),
                 groupId: sourceItem.groupId,
               });
             else
               addFeatToLibrary(systemId, {
                 ...feat,
-                id: crypto.randomUUID(),
-                locale: user.libraryLocale,
-                groupId: crypto.randomUUID(),
+                ...freshLibraryItemIdentity(user.libraryLocale),
               });
-            setFormTarget(null);
-            setFormOpen(false);
+            closeForm();
           }}
         />
       )}
-      {tab === 'habilidades' && (
+      {formOpen && tab === 'habilidades' && (
         <SpecialFormDialog
-          key={formKey}
-          open={formOpen}
-          onOpenChange={setFormOpen}
+          open
+          onOpenChange={(open) => !open && closeForm()}
           initial={sourceItem as SharedLibrary['habilidades'][number] | undefined}
+          editing={formTarget?.mode === 'edit'}
           onSubmit={(special) => {
             if (formTarget?.mode === 'edit' && sourceItem)
               updateLibraryItem(systemId, 'habilidades', {
@@ -459,33 +442,29 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
             else if (formTarget?.mode === 'translate' && sourceItem)
               addSpecialToLibrary(systemId, {
                 ...special,
-                id: crypto.randomUUID(),
-                locale: formTarget.locale,
+                ...freshLibraryItemIdentity(formTarget.locale),
                 groupId: sourceItem.groupId,
               });
             else
               addSpecialToLibrary(systemId, {
                 ...special,
-                id: crypto.randomUUID(),
-                locale: user.libraryLocale,
-                groupId: crypto.randomUUID(),
+                ...freshLibraryItemIdentity(user.libraryLocale),
               });
-            setFormTarget(null);
-            setFormOpen(false);
+            closeForm();
           }}
         />
       )}
-      {PLAIN_CATEGORIES.has(tab) && (
+      {formOpen && PLAIN_CATEGORIES.has(tab) && (
         <AddLibraryItemDialog
-          key={formKey}
-          open={formOpen}
-          onOpenChange={setFormOpen}
+          open
+          onOpenChange={(open) => !open && closeForm()}
           initial={sourceItem as { name: string; desc: string } | undefined}
+          editing={formTarget?.mode === 'edit'}
           onSubmit={(values) => {
             if (formTarget?.mode === 'edit' && sourceItem)
               updateLibraryItem(systemId, tab, {
                 ...values,
-                tag: '',
+                tag: (sourceItem as LibraryItem).tag,
                 id: formTarget.id,
                 locale: sourceItem.locale,
                 groupId: sourceItem.groupId,
@@ -497,8 +476,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
                 groupId: sourceItem.groupId,
               });
             else addLibraryItem(systemId, tab, values);
-            setFormTarget(null);
-            setFormOpen(false);
+            closeForm();
           }}
         />
       )}

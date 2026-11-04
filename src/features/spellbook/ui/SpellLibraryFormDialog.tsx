@@ -8,9 +8,14 @@ import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 export interface SpellLibraryFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-fills the form for editing an existing library item — the caller should remount this
-   * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
+  /** Pre-fills the form — editing an existing item in place, or (see `editing` below) a starting
+   * point for a brand-new translation of one. */
   initial?: Omit<SpellLibraryItem, 'id' | 'locale' | 'groupId'>;
+  /** Whether `initial` means "editing this row in place" vs. "prefilled starting point for a new
+   * row" (LibraryPage's add-translation flow also passes `initial`, but submitting there creates
+   * a new item) — explicit rather than inferred from `initial !== undefined` so the two can't be
+   * confused. Defaults to `initial !== undefined` for callers that only ever edit. */
+  editing?: boolean;
   onSubmit: (spell: Omit<SpellLibraryItem, 'id' | 'locale' | 'groupId'>) => void;
 }
 
@@ -35,10 +40,10 @@ export function SpellLibraryFormDialog({
   open,
   onOpenChange,
   initial,
+  editing = initial !== undefined,
   onSubmit,
 }: SpellLibraryFormDialogProps) {
   const [form, setForm] = useState(initial ?? blank);
-  const editing = initial !== undefined;
   const set = <K extends keyof typeof blank>(key: K, value: (typeof blank)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 

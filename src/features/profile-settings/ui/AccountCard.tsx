@@ -94,7 +94,10 @@ export function AccountCard({ user, onSaved }: AccountCardProps) {
         action={
           <EditToggleButton
             editing={editing}
-            onToggle={() => setEditing((e) => !e)}
+            onToggle={() => {
+              setEditing((e) => !e);
+              setLibraryLocale(user.libraryLocale);
+            }}
             label="Editar dados"
           />
         }
