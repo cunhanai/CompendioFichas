@@ -176,6 +176,13 @@
       "when": 1793735431082,
       "tag": "0024_magical_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793801156314,
+      "tag": "0025_tiresome_mother_askani",
+      "breakpoints": true
     }
   ]
 }

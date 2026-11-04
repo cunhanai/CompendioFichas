@@ -10,6 +10,13 @@ Os itens abaixo foram registrados originalmente a partir de um pedido em lote de
 (branch `claude/reported-bugs-batch-3`); quatro itens pequenos dessa leva já foram resolvidos na
 hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
+## Bugs reportados — ainda não investigados
+
+- **Redefinir senha de outro usuário não está funcionando** (reportado em 2026-11-04) — admin
+  tenta redefinir a senha de outra conta (tela de Gestão de usuários) e não funciona. Ainda sem
+  diagnóstico: não se sabe se é erro silencioso, 500, senha não aplicada de fato, ou outra coisa.
+  Precisa reproduzir e investigar antes de corrigir.
+
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
 - **Itens da biblioteca compartilhada com versão em português e em inglês, cadastradas pelos
@@ -30,37 +37,42 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   uma definição de quais tipos de modificador existem (temporário, classe, racial, seria outros?),
   como cada tipo empilha/soma, e o layout novo do popup (`AbilityDialog` ou equivalente). Não dá
   pra implementar sem alinhar isso.
-- **Ao adicionar um item direto na tela da Biblioteca compartilhada, abrir o mesmo popup usado
-  para adicionar aquele tipo de item a partir da ficha** — hoje `LibraryPage` usa um formulário
-  genérico (`AddLibraryItemDialog`, nome+descrição) pra toda categoria, enquanto a ficha usa
-  diálogos específicos por categoria em alguns casos (ex.: talentos). Unificar significa levar o
-  diálogo "rico" de cada categoria pra fora da ficha também — um refactor que toca todas as ~8
-  categorias da biblioteca, não uma mudança pequena.
 - **Criptografar todos os dados das fichas no banco** — decisão de arquitetura grande: que tipo de
   criptografia (nível de coluna com `pgcrypto`, nível de aplicação com uma chave em variável de
   ambiente, etc.), quais tabelas/colunas exatamente (a ficha inteira é ~22 tabelas), e como isso
   interage com buscas/filtros que hoje são feitos direto no banco. Precisa de conversa antes de
   qualquer código.
-- **Todo item da biblioteca compartilhada deve ser editável e removível** (hoje só dá pra
-  adicionar) — toca todas as ~8 categorias: cada uma precisa de endpoint de PATCH/DELETE, e a UI
-  de cada categoria (na tela de Biblioteca e dentro da ficha) precisa de botões de editar/remover
-  além dos de adicionar/escolher. Relacionado ao item de habilidades especiais abaixo.
-- **Habilidades especiais criadas na ficha devem estar atreladas à biblioteca, não "avulsas"** —
-  confirmado pelo usuário que os dois fluxos (avulsa e puxada da biblioteca) devem continuar
-  existindo como hoje; o que fica pendente aqui é só a decisão de design abaixo, não os dois
-  fluxos em si. O bug de criação que existia nesse fluxo (`SpecialPickDialog` não impedia
-  adicionar a mesma habilidade duas vezes, diferente de `FeatPickDialog`) **já foi corrigido**
-  (ver `DESIGN_NOTES.md`). `addCustomSpecial` (`features/feats-and-abilities/model/mutations.ts`)
-  cria o item só na ficha, sem passar pela biblioteca (diferente de talentos, que desde a leva de
-  Pré-requisito/Benefício usa `addFeatToLibrary` ao cadastrar um novo). Note que habilidades
-  especiais **puxadas** da biblioteca já existente (`addSpecialFromLibrary`) e já
-  editáveis/removíveis na ficha (`SpecialDetailDialog`) não têm esse problema — é só o fluxo de
-  criar uma nova do zero que não grava na biblioteca. Precisa decidir:
-  quando a descrição/incremento for específico só daquele personagem (o usuário menciona esse
-  caso explicitamente), como isso convive com "a habilidade também está na biblioteca" — a ficha
-  guarda uma cópia customizada, ou a biblioteca precisa suportar campos "por personagem" além dos
-  campos compartilhados? Depende da decisão do item anterior (biblioteca editável) pra fazer
-  sentido por completo.
+- **Papel de "mantenedor" da biblioteca compartilhada + hierarquia de roles extensível**
+  (pedido em 2026-11-04) — hoje qualquer usuário autenticado pode adicionar/editar a biblioteca
+  (ver itens de biblioteca editável/removível acima, implementados nesta mesma leva); o pedido é
+  criar um papel dedicado só pra isso, deixando usuários comuns apenas visualizar e puxar itens
+  pra ficha, nunca editar/excluir/criar diretamente. Hierarquia desejada: `master > admin >
+mantenedor > usuário comum`, cumulativa (cada papel acima tem tudo que os de baixo têm, mais o
+  que é exclusivo dele) — e a modelagem precisa já deixar margem pra hierarquias não-lineares no
+  futuro (ex.: duas roles distintas e mutuamente exclusivas entre si, ambas derivadas da mesma
+  role-base, cada uma com permissões próprias além da base comum). Isso é uma mudança de
+  modelagem de permissões bem maior que o `isAdmin`/`isMaster` booleano atual (`users` table) —
+  precisa de desenho antes de codar. **Falta decidir o nome do papel** ("mantenedor" foi só um
+  nome de rascunho do próprio pedido) antes de implementar.
+- **Página genérica de "Solicitações"** (pedido em 2026-11-04, acompanha o item acima) — usuários
+  comuns (que no desenho acima deixam de poder editar a biblioteca direto) precisam de um jeito
+  de pedir uma adição/edição/exclusão de item, e isso vira uma solicitação revisável por quem tem
+  o papel de mantenedor (ou acima). Pedido explícito pra ser **genérica desde o início** — não
+  "solicitações da biblioteca", mas uma tela com index no menu principal reutilizável por
+  qualquer contexto futuro que precise de um fluxo de pedido→revisão. Campos obrigatórios que já
+  foram especificados: sistema, tipo de solicitação (aqui: adição/edição/exclusão de item da
+  biblioteca), um subtipo descritivo (ex.: "adicionar talento"), descrição da ação pedida, um
+  campo de texto livre do solicitante (máx. 500 caracteres), autor, role de destino (inferida
+  automaticamente pelo sistema — nesse caso "mantenedor e acima", não escolhida à mão), data/hora,
+  e — só quando for edição/exclusão — referência a qual item da biblioteca a solicitação se
+  refere. Regras de acesso já definidas: o autor pode ver qualquer solicitação (sua ou de
+  terceiros), mas só pode cancelar/marcar como resolvida **a própria**; qualquer um pode comentar
+  (comentário datado) na própria solicitação; mantenedor+ pode agir em **qualquer** solicitação —
+  comentar, recusar, marcar como resolvida, "e talvez mais alguma coisa, ainda não pensamos quais
+  outras ações fariam sentido". Precisa de busca, filtros e ordenação na listagem. O próprio
+  usuário classificou essa tela como "quase uma tela de suporte" e **ainda mal definida** — fica
+  pra uma conversa de design futura antes de qualquer código, não só pelo tamanho mas porque o
+  próprio escopo de ações/estados ainda está em aberto.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
@@ -69,8 +81,13 @@ aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
-(nenhum no momento — os últimos itens desta categoria foram resolvidos em 2026-10-13, ver "Já
-resolvidos" abaixo)
+- **Listagem de sistemas e de personagens: cards no desktop, lista no mobile** (pedido em
+  2026-11-04) — hoje `SystemsPage` e `CharactersPage` mostram tudo como lista (linha com
+  avatar/ícone + texto), inclusive no desktop. Pedido: no mobile continuar em lista (mais fácil de
+  visualizar na tela estreita); no desktop, virar cards — como o card "sistema favorito" que já
+  existe na tela inicial (`DashboardPage`, a seção "Seus sistemas"). O padrão visual do card já
+  existe pronto pra copiar; o trabalho é responsivo (breakpoint mobile/desktop) nas duas telas de
+  listagem, não um componente novo do zero.
 
 ## Itens já resolvidos — **[feito]**
 
@@ -126,3 +143,22 @@ resolvidos" abaixo)
   componente genérico `NotificationBanner`; a marca de "visto" é salva no banco
   (`users.last_seen_changelog_version`), não só no navegador, pelo mesmo motivo do alerta de
   segurança.
+- **[feito]** Itens da biblioteca compartilhada agora são editáveis (qualquer usuário autenticado,
+  mesma abertura que já existia pra adicionar) e excluíveis (admin-only, com lixeira — soft
+  delete, `deleted_at` em todas as 10 tabelas de biblioteca, restaurável por um botão "Lixeira"
+  admin-only em `LibraryPage`). Excluir/editar um item da biblioteca nunca afeta um personagem
+  que já tenha puxado aquele item pra ficha — cada cópia na ficha é independente desde a própria
+  arquitetura original (nunca uma referência).
+- **[feito]** "Novo item" na Biblioteca compartilhada agora abre o mesmo formulário rico usado na
+  ficha por categoria (`FeatLibraryAddDialog`/`WeaponLibraryAddDialog`, generalizados pra
+  suportar edição e um modo "sem ficha"; `SpellLibraryFormDialog` novo, pois magias nunca tiveram
+  formulário de criação nenhum antes) em vez do formulário genérico nome+descrição — esse
+  continua existindo só pras ~6 categorias cujo formato já era só nome+descrição (perícias,
+  idiomas, criaturas, classes, raças, tipos).
+- **[feito]** Habilidades especiais: o fluxo confuso de "criar avulsa" (botão separado, sem
+  explicar onde os dados iam parar) foi substituído por um único formulário
+  (`SpecialFormDialog`, `features/feats-and-abilities`) com um interruptor "Compartilhar na
+  biblioteca" (ligado por padrão) — desligado, funciona como a avulsa antiga (só na ficha);
+  ligado, funciona como Talentos (salva na biblioteca e na ficha). O mesmo formulário também
+  serve pra criar/editar direto na Biblioteca compartilhada (sem o interruptor, que só faz
+  sentido quando há uma ficha envolvida). `addCustomSpecial` foi removido.

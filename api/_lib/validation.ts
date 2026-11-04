@@ -438,3 +438,7 @@ export const featItemSchema = z.object({
   fonte: z.string(),
   desc: z.string(),
 });
+
+// Shared by the library item PATCH (update, "id" + the rest validated per-category against the
+// schemas above) and DELETE (soft-delete, "id" only) handlers, api/_lib/routes/libraries.ts.
+export const libraryItemIdSchema = z.object({ id: uuid });

@@ -1468,3 +1468,64 @@ decididas assim, reaproveitando infraestrutura já existente em vez de criar alg
   sobre o mesmo `NotificationBanner` genérico que já serve o `SecurityAlertBanner` — mesmo
   posicionamento em `AppShell.tsx` (abaixo do alerta de segurança, que é mais crítico quando os
   dois coincidem), tom `violet` pra não ser confundido com o `rose` de segurança.
+
+## Biblioteca compartilhada: editar/excluir itens, formulário rico na `LibraryPage` e redesenho de Habilidades especiais
+
+Três itens do `BACKLOG.md` resolvidos juntos nesta leva, por tocarem a mesma área e dependerem
+uns dos outros (edição/exclusão é pré-requisito de boa parte do resto). Três pontos precisavam de
+decisão do usuário antes de codar — perguntados e decididos assim:
+
+- **Exclusão de item da biblioteca: lixeira com restauração**, não exclusão definitiva —
+  mesmo padrão já usado pra fichas de personagem (soft delete). Toda tabela de biblioteca
+  (`library_spells`, `library_weapons`, `library_special_abilities`, `library_feats`,
+  `library_skills`, `library_languages`, `library_creatures`, `library_classes`,
+  `library_races`, `library_creature_types`) ganhou uma coluna `deleted_at` (migration `0025`,
+  idempotente, `ADD COLUMN IF NOT EXISTS`). Diferente da lixeira de fichas (por usuário, com uma
+  aba dedicada em Gestão de usuários), a lixeira da biblioteca é só admin, **uma por
+  sistema+categoria**, acessada por um botão "Lixeira" dentro da própria `LibraryPage` (não uma
+  tela separada) — já que o conteúdo muda conforme o sistema/categoria sendo navegado ali.
+  Excluir ou restaurar nunca afeta um personagem que já tenha puxado aquele item pra ficha: desde
+  a arquitetura original, toda cópia na ficha (`addFeatFromLibrary`, `addSpecialFromLibrary`,
+  `addWeaponFromLibrary`, etc.) é independente — nunca uma referência ao registro da biblioteca —
+  então apagar/restaurar o original não precisa (e não pode) propagar pra nada.
+- **Permissão: editar é aberto a qualquer usuário autenticado (mesmo nível que adicionar já
+  tinha); excluir é admin-only.** Assimetria deliberada do usuário: adicionar/editar continuam
+  livres pra qualquer jogador (characteristic de biblioteca colaborativa), mas remover algo que
+  todo mundo vê é reservado a admins. Reforça com `requireAdminId` no handler de DELETE e no de
+  restaurar (não é só UI — o backend 403 pra um não-admin mesmo que a tela escondesse o botão).
+- **Backend**: `api/libraries/[systemId]/[category].ts` virou um dispatcher fino (seguindo o
+  padrão já estabelecido em `CLAUDE.md` que esse arquivo específico ainda não seguia) despachando
+  pra `api/_lib/routes/libraries.ts`. Um detalhe de design: **PATCH carrega duas ações diferentes
+  no mesmo verbo+caminho**, distinguidas pelo formato do corpo (`{ id, restore: true }` restaura,
+  admin-only; qualquer outro corpo é um replace completo dos campos, aberto) — em vez de um novo
+  segmento de rota por ação, pra não estourar o limite de 12 funções do plano Hobby da Vercel que
+  este projeto já bateu uma vez (ver `CLAUDE.md`). `db/library.ts` ganhou
+  `softDeleteLibraryItem`/`restoreLibraryItem`/`loadDeletedLibraryItems`, com switch explícito por
+  categoria (não um loop genérico sobre `LIBRARY_TABLES`) — tentei a versão genérica primeiro e o
+  TypeScript não consegue unificar os tipos de coluna do Drizzle entre as 10 tabelas uma vez que
+  `.update()`/`.where()` entram em cena (a mesma razão, aliás, pela qual o handler de POST
+  original já usava um switch explícito em vez de `LIBRARY_TABLES` para o insert).
+- **"Novo item" na `LibraryPage` agora abre o formulário rico de cada categoria**, não só o
+  genérico nome+descrição: `FeatLibraryAddDialog` e `WeaponLibraryAddDialog` (usados também pela
+  ficha) ganharam um modo de edição (`initial?`) e um prop `addToSheet` que troca só o texto/rótulo
+  do botão quando chamados sem ficha nenhuma por perto (a `LibraryPage` nunca adiciona o item a um
+  personagem). `SpellLibraryFormDialog` é um componente **novo**: magias nunca tiveram nenhum
+  formulário de criação rico em lugar nenhum — o `SpellPickDialog` da ficha só escolhe um item já
+  existente na biblioteca. As ~6 categorias de forma simples (perícias, idiomas, criaturas,
+  classes, raças, tipos) continuam no `AddLibraryItemDialog` genérico (agora também com modo de
+  edição) — não ganharam formulário dedicado porque já eram só nome+descrição mesmo na ficha.
+- **Habilidades especiais: fim do fluxo "avulsa" confuso.** O usuário relatou explicitamente não
+  gostar de como funcionava (dois botões — "puxar da biblioteca" vs. "criar avulsa" — sem
+  explicar pra onde os dados de cada um iam) e pediu uma ideia melhor, topando reestruturar o
+  código desde que sem perda de dados. Substituído por um único formulário
+  (`SpecialFormDialog`, `features/feats-and-abilities/ui/`) com um interruptor "Compartilhar na
+  biblioteca" (ligado por padrão): desligado, o resultado é idêntico à avulsa antiga (só na
+  ficha); ligado, idêntico ao fluxo de Talentos (salva na biblioteca e na ficha). O mesmo
+  componente serve os dois contextos — da ficha (`TalentosTab`, com o interruptor visível) e da
+  `LibraryPage` (sem o interruptor, que não faz sentido sem uma ficha por perto). `addCustomSpecial`
+  (`features/feats-and-abilities/model/mutations.ts`) foi removido — nada mais cria uma habilidade
+  em branco pra depois abrir em modo de edição, o formulário novo já coleta tudo de uma vez.
+  Nenhuma habilidade "avulsa" já existente em fichas foi tocada — a mudança é só no fluxo de
+  criação daqui pra frente.
+- **Escopo explicitamente fora desta leva**: suporte PT/EN por item da biblioteca e modificadores
+  de atributo variáveis continuam como itens separados do `BACKLOG.md`, sem relação com esta leva.

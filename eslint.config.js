@@ -30,7 +30,13 @@ export default tseslint.config(
     plugins: { prettier },
     rules: {
       'prettier/prettier': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        // ignoreRestSiblings: a destructured prop pulled out solely to exclude it from `...rest`
+        // (e.g. `const { deletedAt, ...item } = row` so `item` matches a type that has no
+        // deletedAt field) isn't a real unused-variable bug.
+        { argsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
   },
 );

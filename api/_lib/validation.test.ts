@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { changelogSeenBodySchema, photoBodySchema, updateProfileBodySchema } from './validation.js';
+import {
+  changelogSeenBodySchema,
+  libraryItemIdSchema,
+  photoBodySchema,
+  updateProfileBodySchema,
+} from './validation.js';
 
 function dataUrl(mime: string, bytes: number[] | string): string {
   const buf = typeof bytes === 'string' ? Buffer.from(bytes, 'utf8') : Buffer.from(bytes);
@@ -94,5 +99,21 @@ describe('changelogSeenBodySchema', () => {
 
   it('rejects a missing version', () => {
     expect(changelogSeenBodySchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('libraryItemIdSchema', () => {
+  it('accepts a well-formed uuid', () => {
+    expect(
+      libraryItemIdSchema.safeParse({ id: '123e4567-e89b-12d3-a456-426614174000' }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a non-uuid string', () => {
+    expect(libraryItemIdSchema.safeParse({ id: 'not-a-uuid' }).success).toBe(false);
+  });
+
+  it('rejects a missing id', () => {
+    expect(libraryItemIdSchema.safeParse({}).success).toBe(false);
   });
 });

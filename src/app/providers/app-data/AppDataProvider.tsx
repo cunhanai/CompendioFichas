@@ -237,6 +237,39 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .catch((err: unknown) => console.error('Failed to save library item', err));
   };
 
+  const updateLibraryItem: AppDataContextValue['updateLibraryItem'] = (
+    systemId,
+    category,
+    item,
+  ) => {
+    setData((d) => {
+      if (!d) return d;
+      const lib = d.libraries[systemId];
+      if (!lib) return d;
+      const nextLib = {
+        ...lib,
+        [category]: lib[category].map((i) => (i.id === item.id ? item : i)),
+      };
+      return { ...d, libraries: { ...d.libraries, [systemId]: nextLib } };
+    });
+    api
+      .patch(`/libraries/${systemId}/${category}`, item)
+      .catch((err: unknown) => console.error('Failed to update library item', err));
+  };
+
+  const removeLibraryItem: AppDataContextValue['removeLibraryItem'] = (systemId, category, id) => {
+    setData((d) => {
+      if (!d) return d;
+      const lib = d.libraries[systemId];
+      if (!lib) return d;
+      const nextLib = { ...lib, [category]: lib[category].filter((i) => i.id !== id) };
+      return { ...d, libraries: { ...d.libraries, [systemId]: nextLib } };
+    });
+    api
+      .delete(`/libraries/${systemId}/${category}`, { id })
+      .catch((err: unknown) => console.error('Failed to delete library item', err));
+  };
+
   const addLibraryItem: AppDataContextValue['addLibraryItem'] = (
     systemId,
     category,
@@ -297,6 +330,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const addFeatToLibrary: AppDataContextValue['addFeatToLibrary'] = (systemId, feat) =>
     postLibraryItem(systemId, 'talentos', feat);
+
+  const addSpellToLibrary: AppDataContextValue['addSpellToLibrary'] = (systemId, spell) =>
+    postLibraryItem(systemId, 'magias', spell);
 
   const toggleSystemFavorite: AppDataContextValue['toggleSystemFavorite'] = (systemId) => {
     setData((d) => {
@@ -361,6 +397,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     addWeaponToLibrary,
     addSpecialToLibrary,
     addFeatToLibrary,
+    addSpellToLibrary,
+    updateLibraryItem,
+    removeLibraryItem,
     toggleSystemFavorite,
   };
 

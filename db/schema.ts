@@ -646,6 +646,11 @@ const librarySystemId = () =>
     .notNull()
     .references(() => systems.id, { onDelete: 'cascade' });
 
+/** Soft-delete marker shared by every library category table — same `deletedAt`-timestamp
+ * pattern as `characters.deletedAt`, but with no per-user trash (library items have no owner;
+ * delete/restore are admin-only, see api/_lib/routes/libraries.ts). */
+const libraryDeletedAt = () => timestamp('deleted_at', { withTimezone: true });
+
 export const librarySpells = pgTable('library_spells', {
   id: uuid('id').primaryKey(),
   systemId: librarySystemId(),
@@ -657,6 +662,7 @@ export const librarySpells = pgTable('library_spells', {
   duration: text('duration').notNull(),
   resistance: text('resistance').notNull(),
   desc: text('desc').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryWeapons = pgTable('library_weapons', {
@@ -671,6 +677,7 @@ export const libraryWeapons = pgTable('library_weapons', {
   desc: text('desc').notNull(),
   hasAmmo: boolean('has_ammo').notNull().default(false),
   ammoMax: integer('ammo_max').notNull().default(0),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const librarySpecialAbilities = pgTable('library_special_abilities', {
@@ -682,6 +689,7 @@ export const librarySpecialAbilities = pgTable('library_special_abilities', {
   resumo: text('resumo').notNull().default(''),
   fonte: text('fonte').notNull().default(''),
   desc: text('desc').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryFeats = pgTable('library_feats', {
@@ -694,6 +702,7 @@ export const libraryFeats = pgTable('library_feats', {
   prerequisite: text('prerequisite').notNull().default(''),
   benefit: text('benefit').notNull().default(''),
   fonte: text('fonte').notNull().default(''),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const librarySkills = pgTable('library_skills', {
@@ -702,6 +711,7 @@ export const librarySkills = pgTable('library_skills', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryLanguages = pgTable('library_languages', {
@@ -710,6 +720,7 @@ export const libraryLanguages = pgTable('library_languages', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryCreatures = pgTable('library_creatures', {
@@ -718,6 +729,7 @@ export const libraryCreatures = pgTable('library_creatures', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryClasses = pgTable('library_classes', {
@@ -726,6 +738,7 @@ export const libraryClasses = pgTable('library_classes', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryRaces = pgTable('library_races', {
@@ -734,6 +747,7 @@ export const libraryRaces = pgTable('library_races', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });
 
 export const libraryCreatureTypes = pgTable('library_creature_types', {
@@ -742,4 +756,5 @@ export const libraryCreatureTypes = pgTable('library_creature_types', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  deletedAt: libraryDeletedAt(),
 });

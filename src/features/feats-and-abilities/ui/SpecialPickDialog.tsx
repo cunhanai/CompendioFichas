@@ -10,7 +10,7 @@ export interface SpecialPickDialogProps {
   specials: SpecialLibraryItem[];
   addedNames: string[];
   onPick: (special: SpecialLibraryItem) => void;
-  onCreateCustom: () => void;
+  onCreateNew: () => void;
 }
 
 export function SpecialPickDialog({
@@ -19,7 +19,7 @@ export function SpecialPickDialog({
   specials,
   addedNames,
   onPick,
-  onCreateCustom,
+  onCreateNew,
 }: SpecialPickDialogProps) {
   const [query, setQuery] = useState('');
   const filtered = specials.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()));
@@ -33,11 +33,11 @@ export function SpecialPickDialog({
       footer={
         <button
           type="button"
-          onClick={onCreateCustom}
+          onClick={onCreateNew}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-800 py-2.5 text-sm font-medium text-amber-400 transition hover:bg-neutral-700"
         >
           <Plus className="h-4 w-4" strokeWidth={2} />
-          Não achei — criar habilidade avulsa
+          Não achei — criar nova habilidade
         </button>
       }
     >

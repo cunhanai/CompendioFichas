@@ -7,10 +7,16 @@ import { Button } from '@/shared/ui/atoms/Button';
 export interface FeatLibraryAddDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-fills the form for editing an existing library item — the caller should remount this
+   * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
+  initial?: Omit<FeatLibraryItem, 'id'>;
+  /** False from LibraryPage, where there's no character to add the new talento to — only
+   * changes the copy/button label, not what gets saved. Default true (the sheet's own flow). */
+  addToSheet?: boolean;
   onSubmit: (feat: Omit<FeatLibraryItem, 'id'>) => void;
 }
 
-const initial = {
+const blank = {
   name: '',
   tag: 'Talento',
   resumo: '',
@@ -20,38 +26,51 @@ const initial = {
   desc: '',
 };
 
-/** "Cadastrar novo talento na biblioteca" — unlike the other categories' generic
- * AddLibraryItemDialog (name+desc only), talentos need their own form: tag, prerequisite and
- * benefit are talento-specific fields, same reasoning as WeaponLibraryAddDialog/SpecialPickDialog's
- * own dedicated add forms for their categories. */
-export function FeatLibraryAddDialog({ open, onOpenChange, onSubmit }: FeatLibraryAddDialogProps) {
-  const [form, setForm] = useState(initial);
-  const set = <K extends keyof typeof initial>(key: K, value: (typeof initial)[K]) =>
+/** "Cadastrar novo talento na biblioteca" (or "Editar talento", when `initial` is given) —
+ * unlike the other categories' generic AddLibraryItemDialog (name+desc only), talentos need
+ * their own form: tag, prerequisite and benefit are talento-specific fields, same reasoning as
+ * WeaponLibraryAddDialog/SpecialFormDialog's own dedicated forms for their categories. */
+export function FeatLibraryAddDialog({
+  open,
+  onOpenChange,
+  initial,
+  addToSheet = true,
+  onSubmit,
+}: FeatLibraryAddDialogProps) {
+  const [form, setForm] = useState(initial ?? blank);
+  const editing = initial !== undefined;
+  const set = <K extends keyof typeof blank>(key: K, value: (typeof blank)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = () => {
     if (!form.name.trim()) return;
     onSubmit({ ...form, name: form.name.trim() });
-    setForm(initial);
+    if (!editing) setForm(blank);
   };
 
   return (
     <Popup
       open={open}
       onOpenChange={onOpenChange}
-      title="Novo talento na biblioteca"
+      title={editing ? 'Editar talento' : 'Novo talento na biblioteca'}
       size="md"
       footer={
         <Button className="w-full" onClick={handleSubmit}>
-          Salvar na biblioteca e adicionar à ficha
+          {editing
+            ? 'Salvar alterações'
+            : addToSheet
+              ? 'Salvar na biblioteca e adicionar à ficha'
+              : 'Salvar na biblioteca'}
         </Button>
       }
     >
       <div className="flex flex-col gap-3">
-        <p className="text-[11px] text-neutral-600">
-          O talento fica disponível para todos os jogadores na biblioteca compartilhada e é
-          adicionado à sua ficha.
-        </p>
+        {!editing && (
+          <p className="text-[11px] text-neutral-600">
+            O talento fica disponível para todos os jogadores na biblioteca compartilhada
+            {addToSheet && ' e é adicionado à sua ficha'}.
+          </p>
+        )}
         <TextField
           label="Nome"
           placeholder="Ex: Ataque Poderoso"

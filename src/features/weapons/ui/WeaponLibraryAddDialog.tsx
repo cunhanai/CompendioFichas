@@ -11,10 +11,16 @@ import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 export interface WeaponLibraryAddDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-fills the form for editing an existing library item — the caller should remount this
+   * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
+  initial?: Omit<WeaponLibraryItem, 'id'>;
+  /** False from LibraryPage, where there's no character to add the new arma to — only changes
+   * the copy/button label, not what gets saved. Default true (the sheet's own flow). */
+  addToSheet?: boolean;
   onSubmit: (weapon: Omit<WeaponLibraryItem, 'id'>) => void;
 }
 
-const initial = {
+const blank = {
   name: '',
   atk: '+0',
   crit: 'x2',
@@ -29,34 +35,43 @@ const initial = {
 export function WeaponLibraryAddDialog({
   open,
   onOpenChange,
+  initial,
+  addToSheet = true,
   onSubmit,
 }: WeaponLibraryAddDialogProps) {
-  const [form, setForm] = useState(initial);
-  const set = <K extends keyof typeof initial>(key: K, value: (typeof initial)[K]) =>
+  const [form, setForm] = useState(initial ?? blank);
+  const editing = initial !== undefined;
+  const set = <K extends keyof typeof blank>(key: K, value: (typeof blank)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = () => {
     onSubmit({ ...form, name: form.name.trim() || 'Nova arma' });
-    setForm(initial);
+    if (!editing) setForm(blank);
   };
 
   return (
     <Popup
       open={open}
       onOpenChange={onOpenChange}
-      title="Nova arma na biblioteca"
+      title={editing ? 'Editar arma' : 'Nova arma na biblioteca'}
       size="md"
       footer={
         <Button className="w-full" onClick={handleSubmit}>
-          Salvar na biblioteca e adicionar à ficha
+          {editing
+            ? 'Salvar alterações'
+            : addToSheet
+              ? 'Salvar na biblioteca e adicionar à ficha'
+              : 'Salvar na biblioteca'}
         </Button>
       }
     >
       <div className="flex flex-col gap-3">
-        <p className="text-[11px] text-neutral-600">
-          A arma fica disponível para todos os jogadores na biblioteca compartilhada e é adicionada
-          à sua ficha.
-        </p>
+        {!editing && (
+          <p className="text-[11px] text-neutral-600">
+            A arma fica disponível para todos os jogadores na biblioteca compartilhada
+            {addToSheet && ' e é adicionada à sua ficha'}.
+          </p>
+        )}
         <TextField
           label="Nome"
           placeholder="Ex: Besta leve"

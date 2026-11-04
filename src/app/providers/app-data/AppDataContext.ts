@@ -6,6 +6,7 @@ import type {
   LibraryCategory,
   SharedLibrary,
   SpecialLibraryItem,
+  SpellLibraryItem,
   WeaponLibraryItem,
 } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
@@ -48,6 +49,16 @@ export interface AppDataContextValue {
   addWeaponToLibrary: (systemId: string, weapon: WeaponLibraryItem) => void;
   addSpecialToLibrary: (systemId: string, special: SpecialLibraryItem) => void;
   addFeatToLibrary: (systemId: string, feat: FeatLibraryItem) => void;
+  addSpellToLibrary: (systemId: string, spell: SpellLibraryItem) => void;
+  /** Full-replace update of one existing library item (any authenticated user may edit). */
+  updateLibraryItem: <C extends LibraryCategory>(
+    systemId: string,
+    category: C,
+    item: SharedLibrary[C][number],
+  ) => void;
+  /** Soft-deletes one library item — admin-only; the backend 403s for a non-admin caller, this
+   * isn't the real guard (same reasoning as DeletedCharactersPanel). */
+  removeLibraryItem: (systemId: string, category: LibraryCategory, id: string) => void;
   toggleSystemFavorite: (systemId: string) => void;
 }
 
