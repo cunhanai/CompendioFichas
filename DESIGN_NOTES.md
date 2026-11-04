@@ -1445,3 +1445,289 @@ duas rodavam dentro do mesmo `db.batch`.
 - **Importante**: como a PR #29 já está em `main`, esse bug está ativo em produção agora — a
   correção só chega lá quando esta PR (#30) for mergeada. Se preferir, posso aplicar essa mesma
   correção direto em `main` antes disso, em vez de esperar.
+
+## Notificação de "o que foi corrigido/adicionado"
+
+Item do `BACKLOG.md` ("precisam de decisão ou são grandes o suficiente para valer uma conversa
+antes"); as duas lacunas que o item deixava abertas (conteúdo e gatilho de exibição) foram
+decididas assim, reaproveitando infraestrutura já existente em vez de criar algo novo:
+
+- **Conteúdo**: reaproveita `CHANGELOG_ENTRIES` (o mesmo registro já mantido pela regra de
+  processo de `/novidades`, já em linguagem de jogador) — não um conteúdo separado. O banner
+  mostra só o título da entrada mais recente (`CHANGELOG_ENTRIES[0]`), mesmo que o usuário tenha
+  ficado de fora por mais de uma entrada; tocar nele abre `/novidades` inteira pro resto.
+- **Gatilho**: banner aparece quando `user.lastSeenChangelogVersion !== CURRENT_VERSION` — cobre
+  tanto "nunca viu nenhum" (`null`) quanto "viu uma versão mais antiga". Persistido no banco
+  (`users.last_seen_changelog_version`, migration `0024`), não em `localStorage`: mesmo raciocínio
+  do alerta de segurança (`security_alerts`) já documentado acima — precisa sobreviver a
+  logout/login e aparecer igual em qualquer dispositivo, não só no navegador onde foi dispensado.
+  Dispensar o banner grava a versão atual via `PATCH /api/user/changelog-seen` (endpoint novo,
+  dedicado — não reaproveita o `PATCH /api/user` de perfil porque esse só aceita
+  name/username/avatarUrl).
+- **UI**: `ChangelogNotificationBanner` (feature nova, `features/changelog-notice/`), construído
+  sobre o mesmo `NotificationBanner` genérico que já serve o `SecurityAlertBanner` — mesmo
+  posicionamento em `AppShell.tsx` (abaixo do alerta de segurança, que é mais crítico quando os
+  dois coincidem), tom `violet` pra não ser confundido com o `rose` de segurança.
+
+## Biblioteca compartilhada: editar/excluir itens, formulário rico na `LibraryPage` e redesenho de Habilidades especiais
+
+Três itens do `BACKLOG.md` resolvidos juntos nesta leva, por tocarem a mesma área e dependerem
+uns dos outros (edição/exclusão é pré-requisito de boa parte do resto). Três pontos precisavam de
+decisão do usuário antes de codar — perguntados e decididos assim:
+
+- **Exclusão de item da biblioteca: lixeira com restauração**, não exclusão definitiva —
+  mesmo padrão já usado pra fichas de personagem (soft delete). Toda tabela de biblioteca
+  (`library_spells`, `library_weapons`, `library_special_abilities`, `library_feats`,
+  `library_skills`, `library_languages`, `library_creatures`, `library_classes`,
+  `library_races`, `library_creature_types`) ganhou uma coluna `deleted_at` (migration `0025`,
+  idempotente, `ADD COLUMN IF NOT EXISTS`). Diferente da lixeira de fichas (por usuário, com uma
+  aba dedicada em Gestão de usuários), a lixeira da biblioteca é só admin, **uma por
+  sistema+categoria**, acessada por um botão "Lixeira" dentro da própria `LibraryPage` (não uma
+  tela separada) — já que o conteúdo muda conforme o sistema/categoria sendo navegado ali.
+  Excluir ou restaurar nunca afeta um personagem que já tenha puxado aquele item pra ficha: desde
+  a arquitetura original, toda cópia na ficha (`addFeatFromLibrary`, `addSpecialFromLibrary`,
+  `addWeaponFromLibrary`, etc.) é independente — nunca uma referência ao registro da biblioteca —
+  então apagar/restaurar o original não precisa (e não pode) propagar pra nada.
+- **Permissão: editar é aberto a qualquer usuário autenticado (mesmo nível que adicionar já
+  tinha); excluir é admin-only.** Assimetria deliberada do usuário: adicionar/editar continuam
+  livres pra qualquer jogador (characteristic de biblioteca colaborativa), mas remover algo que
+  todo mundo vê é reservado a admins. Reforça com `requireAdminId` no handler de DELETE e no de
+  restaurar (não é só UI — o backend 403 pra um não-admin mesmo que a tela escondesse o botão).
+- **Backend**: `api/libraries/[systemId]/[category].ts` virou um dispatcher fino (seguindo o
+  padrão já estabelecido em `CLAUDE.md` que esse arquivo específico ainda não seguia) despachando
+  pra `api/_lib/routes/libraries.ts`. Um detalhe de design: **PATCH carrega duas ações diferentes
+  no mesmo verbo+caminho**, distinguidas pelo formato do corpo (`{ id, restore: true }` restaura,
+  admin-only; qualquer outro corpo é um replace completo dos campos, aberto) — em vez de um novo
+  segmento de rota por ação, pra não estourar o limite de 12 funções do plano Hobby da Vercel que
+  este projeto já bateu uma vez (ver `CLAUDE.md`). `db/library.ts` ganhou
+  `softDeleteLibraryItem`/`restoreLibraryItem`/`loadDeletedLibraryItems`, com switch explícito por
+  categoria (não um loop genérico sobre `LIBRARY_TABLES`) — tentei a versão genérica primeiro e o
+  TypeScript não consegue unificar os tipos de coluna do Drizzle entre as 10 tabelas uma vez que
+  `.update()`/`.where()` entram em cena (a mesma razão, aliás, pela qual o handler de POST
+  original já usava um switch explícito em vez de `LIBRARY_TABLES` para o insert).
+- **"Novo item" na `LibraryPage` agora abre o formulário rico de cada categoria**, não só o
+  genérico nome+descrição: `FeatLibraryAddDialog` e `WeaponLibraryAddDialog` (usados também pela
+  ficha) ganharam um modo de edição (`initial?`) e um prop `addToSheet` que troca só o texto/rótulo
+  do botão quando chamados sem ficha nenhuma por perto (a `LibraryPage` nunca adiciona o item a um
+  personagem). `SpellLibraryFormDialog` é um componente **novo**: magias nunca tiveram nenhum
+  formulário de criação rico em lugar nenhum — o `SpellPickDialog` da ficha só escolhe um item já
+  existente na biblioteca. As ~6 categorias de forma simples (perícias, idiomas, criaturas,
+  classes, raças, tipos) continuam no `AddLibraryItemDialog` genérico (agora também com modo de
+  edição) — não ganharam formulário dedicado porque já eram só nome+descrição mesmo na ficha.
+- **Habilidades especiais: fim do fluxo "avulsa" confuso.** O usuário relatou explicitamente não
+  gostar de como funcionava (dois botões — "puxar da biblioteca" vs. "criar avulsa" — sem
+  explicar pra onde os dados de cada um iam) e pediu uma ideia melhor, topando reestruturar o
+  código desde que sem perda de dados. Substituído por um único formulário
+  (`SpecialFormDialog`, `features/feats-and-abilities/ui/`) com um interruptor "Compartilhar na
+  biblioteca" (ligado por padrão): desligado, o resultado é idêntico à avulsa antiga (só na
+  ficha); ligado, idêntico ao fluxo de Talentos (salva na biblioteca e na ficha). O mesmo
+  componente serve os dois contextos — da ficha (`TalentosTab`, com o interruptor visível) e da
+  `LibraryPage` (sem o interruptor, que não faz sentido sem uma ficha por perto). `addCustomSpecial`
+  (`features/feats-and-abilities/model/mutations.ts`) foi removido — nada mais cria uma habilidade
+  em branco pra depois abrir em modo de edição, o formulário novo já coleta tudo de uma vez.
+  Nenhuma habilidade "avulsa" já existente em fichas foi tocada — a mudança é só no fluxo de
+  criação daqui pra frente.
+- **Escopo explicitamente fora desta leva**: suporte PT/EN por item da biblioteca e modificadores
+  de atributo variáveis continuam como itens separados do `BACKLOG.md`, sem relação com esta leva.
+
+**Correção logo em seguida**: a primeira versão do `onSubmit` de criação em `LibraryPage` (magias,
+armas, talentos, habilidades) chamava a função genérica `addLibraryItem` — que só aceita
+`{name, desc}` e preenche o resto com valores em branco — em vez das funções dedicadas
+(`addSpellToLibrary`/`addWeaponToLibrary`/`addFeatToLibrary`/`addSpecialToLibrary`, já existentes
+no contexto, usadas pela ficha). O TypeScript não acusa isso porque o terceiro parâmetro passado
+era uma variável, não um objeto literal, então a checagem de propriedades em excesso não se
+aplica. Efeito prático: criar uma magia/arma/habilidade nova pela Biblioteca salvaria só
+nome+descrição, descartando escola/círculo/dano/tipo/usos/etc. do formulário rico; para talentos
+nem isso — `addLibraryItem` nunca teve um `case 'talentos'` (gap que já existia antes desta leva,
+do tempo em que todo "Novo item" passava pelo formulário genérico), então a criação seria um
+no-op silencioso. Corrigido trocando as quatro chamadas de criação pelas funções dedicadas,
+gerando o `id` no cliente (`crypto.randomUUID()`) como as próprias funções dedicadas esperam. A
+edição (`updateLibraryItem`) nunca teve esse problema — sempre manda o item inteiro.
+
+## Biblioteca compartilhada em mais de um idioma (PT/EN)
+
+Item do `BACKLOG.md` que já tinha três pontos marcados como "precisa de decisão" — decididos
+assim antes de começar:
+
+- **Modelo de dados: registros linkados por grupo, não campos duplicados no mesmo registro.**
+  Cada idioma de um item é sua própria linha, na mesma tabela de sempre (ex.: duas linhas em
+  `library_feats` para "Acuidade com Arma"/"Weapon Finesse"), ligadas por um `group_id` (uuid,
+  `NOT NULL DEFAULT gen_random_uuid()`) — um item sem tradução é só "um grupo de uma linha", o
+  `group_id` não precisa ser igual ao `id`, só único o bastante pra não colidir com outro grupo.
+  Cada linha também ganhou `locale` (`text NOT NULL DEFAULT 'pt'`, migration `0026`, todas as 10
+  tabelas de biblioteca). Preferido a campos duplicados (`desc_pt`/`desc_en` etc.) porque: (a)
+  não dobra cada coluna de texto das 10 tabelas (talentos sozinho tem 6 campos de texto), (b)
+  fica pronto pra um 3º idioma no futuro sem nova migration, e (c) `locale`/`group_id` não
+  precisam de um tipo pg real (`pgEnum`) — nada mais no schema usa um, então seguiu o padrão já
+  estabelecido de validar conjuntos fixos só na camada zod (`libraryLocaleSchema = z.enum(['pt',
+  'en'])`).
+- **Escopo: todo campo de texto livre, inclusive o nome** — não só a descrição. Como cada idioma
+  é uma linha inteira (não um campo por vez), isso não exigiu nenhuma decisão por-campo em código:
+  a linha inteira varia por idioma, os campos mecânicos (círculo da magia, dano/crítico de arma,
+  usa munição, etc.) só "variam" porque tecnicamente existem nas duas linhas — na prática ficam
+  idênticos, porque o formulário de "adicionar tradução" (abaixo) já vem pré-preenchido com o
+  valor original.
+- **Seleção de idioma: preferência global da conta (`users.library_locale`, migration `0026`,
+  editável em "Dados da conta" na tela de Perfil) com alternância por item na hora, só na
+  `LibraryPage`.** `resolveLibraryLocale` (`entities/library-item/model/locale.ts`) é a peça
+  central: agrupa um array de itens por `group_id` e escolhe, por grupo, a linha no idioma
+  preferido — caindo pro que existir se faltar a tradução preferida (confirmado explicitamente
+  pelo usuário: "alguns itens... podem ter apenas um idioma que não é o idioma padrão da conta,
+  nesse caso, deve aparecer o item normalmente naquele idioma" — nunca some um item por falta de
+  tradução). **`useLibrary()`** (o hook usado por todo picker da ficha — `FeatPickDialog`,
+  `WeaponPickDialog`, `SpellPickDialog`, etc.) passou a devolver a biblioteca já resolvida por
+  esse idioma, em vez do array bruto (que pode ter 2 linhas por item) — nenhum consumidor
+  existente precisou mudar uma linha sequer, todos passaram a mostrar o idioma certo de graça.
+  Só a `LibraryPage` lê a biblioteca bruta direto (`useAppData().libraries`, não `useLibrary()`),
+  porque é a única tela que realmente precisa ver as duas versões — mostra um seletor PT/EN por
+  item quando as duas existem (`localeOverrides`, estado local da tela, nunca persistido — só a
+  preferência da conta é "de verdade") e, quando só uma existe, um botão "+ tradução" que abre o
+  mesmo formulário rico da categoria pré-preenchido com o conteúdo da versão existente, travado
+  no idioma que falta, criando uma linha nova com o mesmo `group_id`.
+- **Efeito colateral, não planejado originalmente**: como todo item passou a exigir `locale`,
+  `updateProfileBodySchema.libraryLocale` teve que ficar **opcional** (não obrigatório) —
+  `AccountCard` já faz seu próprio PATCH `/api/user` só com `{name, username}` (e `AvatarUpload`
+  só com `avatarUrl`, via `updateUser`), então exigir o campo quebraria esses dois fluxos
+  existentes. Mesmo padrão que `avatarUrl` já usava (`!== undefined` antes de incluir no
+  `.set()`).
+- **`addLibraryItem` (as ~6 categorias simples) ganhou `locale`/`groupId` opcionais** no terceiro
+  parâmetro — todo call site existente (`ClassPickerDialog`, `ClassesEditor`,
+  `LibraryValuePickerDialog`, `LanguagesDialog`) continua passando só `{name, desc}` e herdando o
+  padrão (`locale` da conta, `groupId` novo); só a `LibraryPage` passa os dois explicitamente, ao
+  criar uma tradução de um item dessas categorias.
+
+## Revisão de código da leva PT/EN (`/code-review xhigh --fix`)
+
+Revisão completa do diff do branch contra `main` depois da leva de PT/EN acima. Achados reais
+corrigidos:
+
+- **`softDeleteLibraryItem`/`restoreLibraryItem` não eram escopados por `systemId`** —
+  qualquer admin de qualquer sistema conseguia soft-delete/restore de um item de biblioteca de
+  outro sistema só sabendo o `id`. Substituídas por uma única função
+  `setLibraryItemDeleted(category, systemId, id, deleted)` (`db/library.ts`) que exige o
+  `systemId` em todo caminho — consolidando o que eram dois switches de 10 casos (delete,
+  restore) num só conjunto de 10 funções por categoria, cada uma cuidando das duas direções via
+  um parâmetro booleano. (Uma tentativa de generalizar essas 10 funções num helper genérico sobre
+  `PgTable` não compila — o Drizzle exige o tipo concreto da tabela em `.update()/.select()`,
+  não uma interface estrutural — então ficou com as 10 explícitas, igual ao padrão que
+  `api/_lib/routes/libraries.ts` já usava pros handlers de POST/PATCH.)
+- **Restaurar um item apagado podia criar duas linhas ativas no mesmo `(groupId, locale)`** —
+  ex.: apagar o PT de um grupo, criar uma tradução PT nova pro mesmo grupo, depois restaurar o PT
+  antigo da lixeira: `resolveLibraryLocale` não tem como escolher entre as duas.
+  `setLibraryItemDeleted` agora checa por um conflito ativo antes de restaurar e devolve
+  `'conflict'` (409 na rota) em vez de restaurar silenciosamente.
+- **PATCH de edição genérica podia mover um item pra outro grupo/idioma** — o schema de
+  validação aceita `locale`/`groupId` (porque o POST de criação precisa deles), mas o PATCH de
+  edição estava passando o corpo inteiro pro `.set()`, então um client malicioso ou um bug no
+  form podia reatribuir esses dois campos de um item existente. Agora `locale`/`groupId` são
+  explicitamente excluídos do que a edição genérica persiste — só o fluxo de criar
+  tradução/duplicar grupo (que não passa por esse branch) pode setá-los.
+- **Editar um item das ~6 categorias simples (`PLAIN_CATEGORIES`) apagava a `tag`** —
+  `LibraryPage` mandava `tag: ''` fixo em toda edição em vez da tag existente do item.
+- **Diálogo de "adicionar tradução" mostrava texto de edição** (título "Editar item", botão
+  "Salvar alterações") — os 5 diálogos de formulário de categoria ganharam um prop `editing`
+  explícito (default `initial !== undefined`, mantendo o comportamento de quem só edita) pra
+  `LibraryPage` poder passar `editing={formTarget?.mode === 'edit'}` e diferenciar "editar" de
+  "traduzir" (que também usa `initial` pra pré-preencher, mas cria uma linha nova).
+- **Diálogo de formulário da `LibraryPage` ficava com rascunho de uma edição/tradução anterior**
+  ao reabrir pra outro item — estava sempre montado, só alternando a prop `open` (com uma `key`
+  pra forçar reset, que não funciona: trocar só a prop `open` no mesmo componente montado não
+  reseta `useState` interno). Trocado pro padrão já usado pelos diálogos de detalhe da ficha
+  (`{algumId && <Dialog ... />}`, ex. `FeatDetailDialog` na `TalentosTab`) — montagem
+  condicional de verdade, que desmonta e remonta o componente (resetando seu estado) a cada
+  abertura.
+- **`freshLibraryItemIdentity()` extraída** (`entities/library-item/model/locale.ts`) — o
+  trio `{id, locale, groupId}` de um item novo e autônomo (grupo de um) estava duplicado em
+  `LibraryPage`, `TalentosTab` e `CombateTab`, cada um gerando o `id` à mão e dois deles usando
+  `groupId: id` (mesmo valor) em vez de um uuid novo pro grupo — inconsistente mas inofensivo
+  (um grupo de uma linha não depende de `groupId !== id`), unificado mesmo assim por clareza.
+- **`AccountCard`: toggle de idioma da biblioteca não resincronizava ao reabrir o modo de
+  edição** — cancelar depois de trocar o idioma deixava o `useState` local decorado com a
+  escolha não salva; reabrir "Editar dados" mostrava esse valor velho em vez do
+  `user.libraryLocale` real. Corrigido resincronizando no próprio toggle de editar.
+- **`useLibrary()` recalculava `resolveLibraryLocale` em toda renderização** — agora memoizado
+  (`useMemo`, chave `[library, user.libraryLocale]`), já que esse hook roda em todo picker da
+  ficha.
+
+Achados considerados e **não corrigidos** nesta leva (escopo/risco não justificavam):
+- Um `CHECK` de banco pra `locale`/`library_locale` (hoje só validado na camada zod, igual a
+  outros enums do schema) — defesa em profundidade de baixo valor pra uma migration nova.
+- Três implementações repetidas de "escolher um de N, destacar o selecionado" (toggle de idioma
+  em `AccountCard`, seletor de idioma por item na `LibraryPage`, etc.) que poderiam compartilhar
+  um componente — risco de regressão visual sem um browser disponível pra confirmar lado a lado,
+  deixado como está.
+
+## Segunda rodada de revisão (`/code-review xhigh --fix`, branch completo vs `main`)
+
+Nova rodada da revisão acima, agora sobre o branch inteiro (incluindo a primeira rodada de
+correções). Achados reais corrigidos:
+
+- **Restaurar um item da lixeira não reaparecia na lista principal sem recarregar a página** —
+  `LibraryPage.handleRestore` chamava `api.patch` direto, só atualizando a lista da lixeira
+  (`deleted`), nunca `libraries[systemId]` (o estado que a lista principal lê). O PATCH de
+  restore também só respondia `{ ok: true }`, sem o item restaurado, então nem um fix no
+  frontend teria como repor a linha sem refazer o fetch inteiro. Corrigido nos dois lados: o
+  restore agora devolve `{ item }` (`setLibraryItemDeleted`/`setDeletedX` ganharam um retorno
+  discriminado `{status, item}`, não só uma string, pra carregar a linha restaurada quando
+  `deleted: false`) e um novo `restoreLibraryItem` no `AppDataContext` (mesmo formato do já
+  existente `restoreCharacter`: aguarda o PATCH, insere o item devolvido de volta no estado
+  local) substitui a chamada direta à API em `LibraryPage`.
+- **Corrida real na checagem de conflito do restore** — o restore fazia
+  select-conflito-então-update como passos separados, não atômicos; duas restaurações
+  concorrentes pro mesmo `(groupId, locale)` podiam ambas passar a checagem antes de qualquer
+  uma gravar, recriando exatamente as duas linhas ativas que a checagem existe pra evitar.
+  Em vez de só reforçar a checagem em código (que continuaria sujeita à mesma corrida),
+  adicionado um índice único parcial em cada uma das 10 tabelas — `UNIQUE (system_id, group_id,
+  locale) WHERE deleted_at IS NULL` (migration `0027`, mesmo padrão de
+  `security_alerts_one_active` em `db/schema.ts`) — que torna duas linhas ativas no mesmo slot
+  impossível no banco, não só verificado em código. O `UPDATE` final de cada `setDeletedX` agora
+  também captura uma eventual violação desse índice (`code 23505`) e devolve `'conflict'` em vez
+  de deixar virar um 500 genérico, pro caso raro da corrida realmente acontecer.
+- **PATCH de edição genérica não excluía itens na lixeira** — o `.where()` de cada categoria
+  filtrava por `id`+`systemId`, mas não por `deletedAt IS NULL`; um item soft-deleted podia ser
+  editado por esse endpoint sem precisar ser restaurado primeiro, mudando campos dele enquanto
+  ainda escondido da listagem principal. Adicionado `isNull(deletedAt)` ao `where` de cada uma
+  das 10 categorias.
+- **Traduzir um item das categorias simples também apagava a `tag`** — o mesmo bug já corrigido
+  no fluxo de edição (`tag: ''` fixo) também existia no fluxo de "adicionar tradução", que nem
+  tinha como passar a tag adiante (`addLibraryItem` não aceitava esse campo). Adicionado `tag?`
+  opcional à assinatura de `addLibraryItem` (default `''`, igual a um item novo de verdade) e
+  `LibraryPage` agora passa `tag: sourceItem.tag` também na tradução.
+- **O mesmo bug de "formulário sempre montado, só alternando `open`"** corrigido na `LibraryPage`
+  na rodada anterior também existia em três diálogos usados direto pela ficha —
+  `FeatLibraryAddDialog`/`SpecialFormDialog` na `TalentosTab`, `WeaponLibraryAddDialog` na
+  `CombateTab` — cujos `onSubmit` esta mesma leva de PT/EN já tinha reescrito. Trocados pro
+  mesmo padrão de montagem condicional.
+- **`WeaponLibraryAddDialog` não tinha a validação de nome vazio que todo diálogo irmão tem** —
+  em vez de bloquear o submit como `FeatLibraryAddDialog`/`AddLibraryItemDialog`/
+  `SpecialFormDialog`/`SpellLibraryFormDialog` fazem, ele preenchia um nome vazio com "Nova
+  arma". Inofensivo enquanto só criava armas novas, mas agora que o mesmo diálogo também edita
+  (prop `editing`), limpar o nome e salvar renomeava silenciosamente a arma existente. Corrigido
+  pro mesmo padrão dos irmãos.
+- **`addLibraryItem` (`AppDataProvider`) ainda usava `groupId: groupId ?? id`** — a mesma
+  inconsistência que a extração de `freshLibraryItemIdentity()` (rodada anterior) corrigiu em
+  `LibraryPage`/`TalentosTab`/`CombateTab` continuava aqui, a única função que não passou por
+  essa limpeza. Trocado pro mesmo `groupId` aleatório de verdade.
+- **`'pt' | 'en'` repetido como literal** em vez de importar `LibraryItemLocale` —
+  `api/_lib/mappers.ts` e `entities/user/model/types.ts` cada um escrevia a união à mão; trocado
+  pra importar o tipo já existente.
+- **`locale`/`groupId` excluídos do PATCH com o mesmo trecho copiado em 10 casos** — diferente
+  das chamadas `.update()`/`.select()` (que não unificam entre tabelas do Drizzle), essa exclusão
+  é só desestruturação de objeto antes de qualquer chamada ao Drizzle, então uma função
+  `omitLocaleIdentity()` comum não bate no mesmo limite de tipos — extraída pros 10 casos do
+  PATCH de `api/_lib/routes/libraries.ts`.
+
+Achados considerados e **não corrigidos** nesta leva:
+- O prop `editing` (booleano) nos 5 diálogos de categoria colapsa a distinção real de 3 modos
+  que `LibraryPage` já modela (`FormTarget`: `'edit' | 'translate'` + criar) — cada diálogo não
+  tem como saber que está "traduzindo" (mostra o mesmo texto genérico de "criar"). Um prop
+  `mode` em vez de um booleano resolveria na raiz, mas são 5 componentes pra mudar e uma escolha
+  de copy/produto (o que o diálogo de tradução deveria dizer) melhor deixada pra quando o
+  produto realmente pedir esse texto.
+- Os 4 blocos de `onSubmit` quase idênticos da `LibraryPage` (editar/traduzir/criar por
+  magias/armas/talentos/habilidades) poderiam compartilhar um helper — não extraído por
+  enquanto; cada bloco chama uma função `addXToLibrary` com assinatura própria, e consolidar
+  isso com segurança de tipos exigiria mais do que a mudança mecânica que cabe num `--fix`.
+- Uma versão por closures (em vez de genérica sobre `PgTable`) dos 10 `setDeletedX` foi sugerida
+  como possível redução de duplicação, mas não verificada se compila/mantém o comportamento —
+  não implementada sem essa verificação.

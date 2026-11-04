@@ -3,6 +3,7 @@ import { Plus, ShieldCheck, Swords, Zap } from 'lucide-react';
 import { DragDropProvider } from '@dnd-kit/react';
 import type { DragEndEvent } from '@dnd-kit/react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
+import { freshLibraryItemIdentity } from '@/entities/library-item/model/locale';
 import {
   computeAc,
   computeAllAbilities,
@@ -54,7 +55,7 @@ const NOTAS_PREVIEW_THRESHOLD = 220;
 
 export function CombateTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
-  const { addWeaponToLibrary } = useAppData();
+  const { user, addWeaponToLibrary } = useAppData();
   const library = useLibrary(systemId);
   const [popup, setPopup] = useState<Popup>(null);
   const close = () => setPopup(null);
@@ -245,16 +246,18 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
         }}
         onCreateNew={() => setPopup({ kind: 'weaponLibraryAdd' })}
       />
-      <WeaponLibraryAddDialog
-        open={popup?.kind === 'weaponLibraryAdd'}
-        onOpenChange={(o) => !o && close()}
-        onSubmit={(weapon) => {
-          const id = crypto.randomUUID();
-          addWeaponToLibrary(systemId, { ...weapon, id });
-          update((c) => addWeaponFromLibrary(c, { ...weapon, id }));
-          close();
-        }}
-      />
+      {popup?.kind === 'weaponLibraryAdd' && (
+        <WeaponLibraryAddDialog
+          open
+          onOpenChange={(o) => !o && close()}
+          onSubmit={(weapon) => {
+            const fullWeapon = { ...weapon, ...freshLibraryItemIdentity(user.libraryLocale) };
+            addWeaponToLibrary(systemId, fullWeapon);
+            update((c) => addWeaponFromLibrary(c, fullWeapon));
+            close();
+          }}
+        />
+      )}
       <NotasAdicionaisDialog
         open={popup?.kind === 'notas'}
         onOpenChange={(o) => !o && close()}

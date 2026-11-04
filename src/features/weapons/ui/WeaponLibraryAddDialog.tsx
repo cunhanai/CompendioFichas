@@ -11,10 +11,21 @@ import { parseNumberInput } from '@/shared/lib/parseNumberInput';
 export interface WeaponLibraryAddDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (weapon: Omit<WeaponLibraryItem, 'id'>) => void;
+  /** Pre-fills the form — editing an existing item in place, or (see `editing` below) a starting
+   * point for a brand-new translation of one. */
+  initial?: Omit<WeaponLibraryItem, 'id' | 'locale' | 'groupId'>;
+  /** Whether `initial` means "editing this row in place" vs. "prefilled starting point for a new
+   * row" (LibraryPage's add-translation flow also passes `initial`, but submitting there creates
+   * a new item) — explicit rather than inferred from `initial !== undefined` so the two can't be
+   * confused. Defaults to `initial !== undefined` for callers that only ever edit. */
+  editing?: boolean;
+  /** False from LibraryPage, where there's no character to add the new arma to — only changes
+   * the copy/button label, not what gets saved. Default true (the sheet's own flow). */
+  addToSheet?: boolean;
+  onSubmit: (weapon: Omit<WeaponLibraryItem, 'id' | 'locale' | 'groupId'>) => void;
 }
 
-const initial = {
+const blank = {
   name: '',
   atk: '+0',
   crit: 'x2',
@@ -29,34 +40,44 @@ const initial = {
 export function WeaponLibraryAddDialog({
   open,
   onOpenChange,
+  initial,
+  editing = initial !== undefined,
+  addToSheet = true,
   onSubmit,
 }: WeaponLibraryAddDialogProps) {
-  const [form, setForm] = useState(initial);
-  const set = <K extends keyof typeof initial>(key: K, value: (typeof initial)[K]) =>
+  const [form, setForm] = useState(initial ?? blank);
+  const set = <K extends keyof typeof blank>(key: K, value: (typeof blank)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = () => {
-    onSubmit({ ...form, name: form.name.trim() || 'Nova arma' });
-    setForm(initial);
+    if (!form.name.trim()) return;
+    onSubmit({ ...form, name: form.name.trim() });
+    if (!editing) setForm(blank);
   };
 
   return (
     <Popup
       open={open}
       onOpenChange={onOpenChange}
-      title="Nova arma na biblioteca"
+      title={editing ? 'Editar arma' : 'Nova arma na biblioteca'}
       size="md"
       footer={
         <Button className="w-full" onClick={handleSubmit}>
-          Salvar na biblioteca e adicionar à ficha
+          {editing
+            ? 'Salvar alterações'
+            : addToSheet
+              ? 'Salvar na biblioteca e adicionar à ficha'
+              : 'Salvar na biblioteca'}
         </Button>
       }
     >
       <div className="flex flex-col gap-3">
-        <p className="text-[11px] text-neutral-600">
-          A arma fica disponível para todos os jogadores na biblioteca compartilhada e é adicionada
-          à sua ficha.
-        </p>
+        {!editing && (
+          <p className="text-[11px] text-neutral-600">
+            A arma fica disponível para todos os jogadores na biblioteca compartilhada
+            {addToSheet && ' e é adicionada à sua ficha'}.
+          </p>
+        )}
         <TextField
           label="Nome"
           placeholder="Ex: Besta leve"

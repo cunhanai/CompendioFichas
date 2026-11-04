@@ -1,6 +1,7 @@
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import type { Character } from '@/entities/character/model/types';
 import type { SharedLibrary } from '@/entities/library-item/model/types';
+import { resolveLibraryLocale } from '@/entities/library-item/model/locale';
 import { AppDataContext, type AppDataContextValue } from './AppDataContext';
 
 export function useAppData(): AppDataContextValue {
@@ -42,6 +43,17 @@ export function useCharacter(id: string) {
   };
 }
 
+/** The system's shared library, resolved to one item per language group (see
+ * `resolveLibraryLocale`) in the caller's own `libraryLocale` preference — every consumer of
+ * this hook (sheet pickers, etc.) automatically sees the right language without needing to know
+ * an item might have translations at all. `LibraryPage`'s own translation-management UI is the
+ * one place that needs every language variant, so it reads `useAppData().libraries` directly
+ * instead of going through this hook. */
 export function useLibrary(systemId: string): SharedLibrary | undefined {
-  return useAppData().libraries[systemId];
+  const { user, libraries } = useAppData();
+  const library = libraries[systemId];
+  return useMemo(
+    () => (library ? resolveLibraryLocale(library, user.libraryLocale) : undefined),
+    [library, user.libraryLocale],
+  );
 }

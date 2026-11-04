@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAppData, useCharacter, useLibrary } from '@/app/providers';
+import { freshLibraryItemIdentity } from '@/entities/library-item/model/locale';
 import {
   FeatDetailDialog,
   FeatLibraryAddDialog,
   FeatPickDialog,
   SpecialDetailDialog,
+  SpecialFormDialog,
   SpecialPickDialog,
-  addCustomSpecial,
   addFeatFromLibrary,
   addSpecialFromLibrary,
 } from '@/features/feats-and-abilities';
@@ -15,14 +16,14 @@ import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCar
 
 export function TalentosTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
-  const { addFeatToLibrary } = useAppData();
+  const { user, addFeatToLibrary, addSpecialToLibrary } = useAppData();
   const library = useLibrary(systemId);
   const [featPickOpen, setFeatPickOpen] = useState(false);
   const [specialPickOpen, setSpecialPickOpen] = useState(false);
   const [newFeatOpen, setNewFeatOpen] = useState(false);
+  const [newSpecialOpen, setNewSpecialOpen] = useState(false);
   const [featDetailId, setFeatDetailId] = useState<string | null>(null);
   const [specialDetailId, setSpecialDetailId] = useState<string | null>(null);
-  const [justCreatedSpecialId, setJustCreatedSpecialId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -108,16 +109,18 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           setNewFeatOpen(true);
         }}
       />
-      <FeatLibraryAddDialog
-        open={newFeatOpen}
-        onOpenChange={setNewFeatOpen}
-        onSubmit={(feat) => {
-          const id = crypto.randomUUID();
-          addFeatToLibrary(systemId, { ...feat, id });
-          update((c) => addFeatFromLibrary(c, { ...feat, id }));
-          setNewFeatOpen(false);
-        }}
-      />
+      {newFeatOpen && (
+        <FeatLibraryAddDialog
+          open
+          onOpenChange={(open) => !open && setNewFeatOpen(false)}
+          onSubmit={(feat) => {
+            const fullFeat = { ...feat, ...freshLibraryItemIdentity(user.libraryLocale) };
+            addFeatToLibrary(systemId, fullFeat);
+            update((c) => addFeatFromLibrary(c, fullFeat));
+            setNewFeatOpen(false);
+          }}
+        />
+      )}
       <SpecialPickDialog
         open={specialPickOpen}
         onOpenChange={setSpecialPickOpen}
@@ -127,14 +130,24 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           update((c) => addSpecialFromLibrary(c, sp));
           setSpecialPickOpen(false);
         }}
-        onCreateCustom={() => {
-          const newId = crypto.randomUUID();
-          update((c) => addCustomSpecial(c, newId));
+        onCreateNew={() => {
           setSpecialPickOpen(false);
-          setJustCreatedSpecialId(newId);
-          setSpecialDetailId(newId);
+          setNewSpecialOpen(true);
         }}
       />
+      {newSpecialOpen && (
+        <SpecialFormDialog
+          open
+          onOpenChange={(open) => !open && setNewSpecialOpen(false)}
+          showShareToggle
+          onSubmit={(special, shareToLibrary) => {
+            const item = { ...special, ...freshLibraryItemIdentity(user.libraryLocale) };
+            if (shareToLibrary) addSpecialToLibrary(systemId, item);
+            update((c) => addSpecialFromLibrary(c, item));
+            setNewSpecialOpen(false);
+          }}
+        />
+      )}
 
       {featDetailId && (
         <FeatDetailDialog
@@ -148,16 +161,10 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
       {specialDetailId && (
         <SpecialDetailDialog
           open
-          onOpenChange={(o) => {
-            if (!o) {
-              setSpecialDetailId(null);
-              setJustCreatedSpecialId(null);
-            }
-          }}
+          onOpenChange={(o) => !o && setSpecialDetailId(null)}
           specialId={specialDetailId}
           character={character}
           update={update}
-          startEditing={specialDetailId === justCreatedSpecialId}
         />
       )}
     </div>

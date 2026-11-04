@@ -3,11 +3,13 @@ import { getPathSegments } from '../_lib/request.js';
 import {
   updateProfileHandler,
   changePasswordHandler,
+  markChangelogSeenHandler,
   listRosterHandler,
 } from '../_lib/routes/user.js';
 
 /**
- * One function serving /api/user (PATCH), /api/user/password (PATCH), /api/user/roster (GET).
+ * One function serving /api/user (PATCH), /api/user/password (PATCH),
+ * /api/user/changelog-seen (PATCH), /api/user/roster (GET).
  *
  * Path segments come from `getPathSegments()` (api/_lib/request.ts), NOT `req.query.path` — see
  * the doc comment in api/admin/users/[...path].ts for why: Vercel forwards this dynamic route's
@@ -24,6 +26,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (segments.length === 1 && segments[0] === 'password') {
     return changePasswordHandler(req, res);
+  }
+  if (segments.length === 1 && segments[0] === 'changelog-seen') {
+    return markChangelogSeenHandler(req, res);
   }
   if (segments.length === 1 && segments[0] === 'roster') {
     return listRosterHandler(req, res);

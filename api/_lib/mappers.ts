@@ -1,4 +1,5 @@
 import type { users } from '../../db/schema.js';
+import type { LibraryItemLocale } from '../../src/entities/library-item/model/types.js';
 import type { RosterUser, UserProfile } from '../../src/entities/user/model/types.js';
 import type { AdminUserView } from '../../src/features/user-management/model/types.js';
 
@@ -14,6 +15,8 @@ export function toUserProfile(row: UserRow): UserProfile {
     isAdmin: row.isAdmin,
     isMaster: row.isMaster,
     mustChangePassword: row.mustChangePassword,
+    lastSeenChangelogVersion: row.lastSeenChangelogVersion,
+    libraryLocale: row.libraryLocale as LibraryItemLocale,
   };
 }
 

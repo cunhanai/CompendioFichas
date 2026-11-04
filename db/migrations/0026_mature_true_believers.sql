@@ -1,0 +1,21 @@
+ALTER TABLE "library_classes" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_classes" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_creature_types" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_creature_types" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_creatures" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_creatures" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_feats" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_feats" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_languages" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_languages" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_races" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_races" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_skills" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_skills" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_special_abilities" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_special_abilities" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_spells" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_spells" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_weapons" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;--> statement-breakpoint
+ALTER TABLE "library_weapons" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "library_locale" text DEFAULT 'pt' NOT NULL;

@@ -3,7 +3,11 @@ import { and, asc, eq, ne } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import { sessions, users } from '../../../db/schema.js';
 import { requireUserId, hashPassword, verifyPassword, usernameEquals } from '../auth.js';
-import { passwordChangeBodySchema, updateProfileBodySchema } from '../validation.js';
+import {
+  changelogSeenBodySchema,
+  passwordChangeBodySchema,
+  updateProfileBodySchema,
+} from '../validation.js';
 import { toRosterUser, toUserProfile } from '../mappers.js';
 import { withErrorHandling } from '../handler.js';
 import { checkRateLimit } from '../rateLimit.js';
@@ -28,7 +32,7 @@ export const updateProfileHandler = withErrorHandling(async function handler(
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;
   }
-  const { name, username, avatarUrl } = parsed.data;
+  const { name, username, avatarUrl, libraryLocale } = parsed.data;
 
   const [conflict] = await db
     .select({ id: users.id })
@@ -42,7 +46,12 @@ export const updateProfileHandler = withErrorHandling(async function handler(
 
   const [user] = await db
     .update(users)
-    .set({ name, username, ...(avatarUrl !== undefined && { avatarUrl }) })
+    .set({
+      name,
+      username,
+      ...(avatarUrl !== undefined && { avatarUrl }),
+      ...(libraryLocale !== undefined && { libraryLocale }),
+    })
     .where(eq(users.id, userId))
     .returning();
 
@@ -94,6 +103,35 @@ export const changePasswordHandler = withErrorHandling(async function handler(
   setSessionCookie(res, token);
 
   await logAudit({ id: user.id, username: user.username }, 'user.password_change');
+
+  res.status(200).json({ ok: true });
+});
+
+/** PATCH /api/user/changelog-seen — records that the caller has seen the changelog notification
+ * up to a given version, so the banner (ChangelogNotificationBanner) stops showing for it on
+ * every device/login, not just this browser. */
+export const markChangelogSeenHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+) {
+  if (req.method !== 'PATCH') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const userId = await requireUserId(req, res);
+  if (!userId) return;
+
+  const parsed = changelogSeenBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({ lastSeenChangelogVersion: parsed.data.version })
+    .where(eq(users.id, userId));
 
   res.status(200).json({ ok: true });
 });

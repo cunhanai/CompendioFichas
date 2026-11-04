@@ -1,175 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../../db/client.js';
 import {
-  libraryClasses,
-  libraryCreatures,
-  libraryCreatureTypes,
-  libraryFeats,
-  libraryLanguages,
-  libraryRaces,
-  librarySkills,
-  librarySpecialAbilities,
-  librarySpells,
-  libraryWeapons,
-} from '../../../db/schema.js';
-import { isLibraryCategory } from '../../../db/library.js';
-import { requireUserId } from '../../_lib/auth.js';
-import { withErrorHandling } from '../../_lib/handler.js';
-import {
-  featItemSchema,
-  genericLibraryItemSchema,
-  spellItemSchema,
-  specialItemSchema,
-  weaponItemSchema,
-} from '../../_lib/validation.js';
+  addLibraryItemHandler,
+  updateLibraryItemHandler,
+  deleteLibraryItemHandler,
+  listDeletedLibraryItemsHandler,
+} from '../../_lib/routes/libraries.js';
 
-/** Adds one item to a system's shared library. Any authenticated user may edit the shared catalog. */
-export default withErrorHandling(async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+/** One function serving every verb on /api/libraries/:systemId/:category — see
+ * api/_lib/routes/libraries.ts for what each verb does (create/update-or-restore/soft-delete/
+ * list-deleted) and why PATCH carries two actions instead of a new path segment. */
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  switch (req.method) {
+    case 'GET':
+      return listDeletedLibraryItemsHandler(req, res);
+    case 'POST':
+      return addLibraryItemHandler(req, res);
+    case 'PATCH':
+      return updateLibraryItemHandler(req, res);
+    case 'DELETE':
+      return deleteLibraryItemHandler(req, res);
+    default:
+      res.status(405).json({ error: 'Method not allowed' });
   }
-
-  const userId = await requireUserId(req, res);
-  if (!userId) return;
-
-  const systemId = req.query.systemId as string;
-  const category = req.query.category as string;
-  if (!isLibraryCategory(category)) {
-    res.status(404).json({ error: 'Categoria de biblioteca inválida.' });
-    return;
-  }
-
-  switch (category) {
-    case 'magias': {
-      const parsed = spellItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(librarySpells)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'armas': {
-      const parsed = weaponItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryWeapons)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'habilidades': {
-      const parsed = specialItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(librarySpecialAbilities)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'talentos': {
-      const parsed = featItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryFeats)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'pericias': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(librarySkills)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'idiomas': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryLanguages)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'criaturas': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryCreatures)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'classes': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryClasses)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'racas': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryRaces)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-    case 'tipos': {
-      const parsed = genericLibraryItemSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: 'Dados inválidos.' });
-        return;
-      }
-      const [row] = await db
-        .insert(libraryCreatureTypes)
-        .values({ ...parsed.data, systemId })
-        .returning();
-      res.status(201).json({ item: row });
-      return;
-    }
-  }
-});
+}

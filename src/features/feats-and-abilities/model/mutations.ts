@@ -43,27 +43,6 @@ export function addSpecialFromLibrary(
   };
 }
 
-export function addCustomSpecial(
-  character: Character,
-  id: string = crypto.randomUUID(),
-): Character {
-  return {
-    ...character,
-    specials: [
-      ...character.specials,
-      {
-        id,
-        name: 'Nova habilidade',
-        subtitle: 'Avulsa',
-        uses: '',
-        resumo: '',
-        fonte: '',
-        desc: '',
-      },
-    ],
-  };
-}
-
 export function updateFeat(
   character: Character,
   id: string,
