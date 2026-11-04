@@ -7,8 +7,9 @@ import {
 } from '../../_lib/routes/libraries.js';
 
 /** One function serving every verb on /api/libraries/:systemId/:category — see
- * api/_lib/routes/libraries.ts for what each verb does (create/update-or-restore/soft-delete/
- * list-deleted) and why PATCH carries two actions instead of a new path segment. */
+ * api/_lib/routes/libraries.ts for what each verb does (create/update-or-restore/soft-or-hard-
+ * delete/list-deleted) and why PATCH and DELETE each carry two actions instead of a new path
+ * segment per action. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   switch (req.method) {
     case 'GET':

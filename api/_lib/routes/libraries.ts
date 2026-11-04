@@ -14,12 +14,13 @@ import {
   libraryWeapons,
 } from '../../../db/schema.js';
 import {
+  hardDeleteLibraryItem,
   isLibraryCategory,
   loadDeletedLibraryItems,
   setLibraryItemDeleted,
 } from '../../../db/library.js';
 import type { LibraryCategory } from '../../../src/entities/library-item/model/types.js';
-import { requireAdminId, requireUserId } from '../auth.js';
+import { requireAdminId, requireAdminUser, requireUserId } from '../auth.js';
 import { withErrorHandling } from '../handler.js';
 import {
   featItemSchema,
@@ -440,13 +441,45 @@ export const deleteLibraryItemHandler = withErrorHandling(async function handler
     return;
   }
 
-  const adminId = await requireAdminId(req, res);
-  if (!adminId) return;
-
   const category = categoryFromQuery(req, res);
   if (!category) return;
 
   const systemId = req.query.systemId as string;
+
+  // `{ id, permanent: true }` hard-deletes an item already in the trash — master-only, same
+  // overloaded-by-body-shape pattern as the PATCH restore branch above (one path segment, no new
+  // Vercel function — see CLAUDE.md's Hobby-plan function cap note). Any other body is the
+  // ordinary soft-delete (admin-only, unchanged).
+  if (
+    req.body &&
+    typeof req.body === 'object' &&
+    (req.body as Record<string, unknown>).permanent === true
+  ) {
+    const caller = await requireAdminUser(req, res);
+    if (!caller) return;
+    if (!caller.isMaster) {
+      res.status(403).json({ error: 'Apenas o usuário master pode fazer isso.' });
+      return;
+    }
+
+    const parsed = libraryItemIdSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Dados inválidos.' });
+      return;
+    }
+
+    const deletedForGood = await hardDeleteLibraryItem(category, systemId, parsed.data.id);
+    if (!deletedForGood) {
+      res.status(404).json({ error: 'Item não encontrado na lixeira.' });
+      return;
+    }
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  const adminId = await requireAdminId(req, res);
+  if (!adminId) return;
+
   const parsed = libraryItemIdSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Dados inválidos.' });

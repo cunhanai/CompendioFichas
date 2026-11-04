@@ -23,10 +23,10 @@ Escala de prioridade em uso (definida pelo usuário em 2026-11-04):
 
 - **P0** — bugs reportados. Sempre primeiro, por padrão, sem precisar perguntar de novo a cada
   novo bug.
-- **P1** — próximo depois dos bugs, nesta ordem explícita: prévia da história renderizar
-  markdown, depois listagem responsiva de sistemas/personagens.
-- **P2** — depois do P1: botão de exclusão permanente (lixeira, master-only), depois
-  visualização de item da lixeira.
+- **P1** — prévia da história renderizar markdown, listagem responsiva de sistemas/personagens
+  — já implementados, ver "Já resolvidos".
+- **P2** — botão de exclusão permanente (lixeira, master-only), visualização de item da lixeira
+  — já implementados, ver "Já resolvidos".
 - **Sem prioridade definida** — todo o resto; precisa de conversa com o usuário antes de entrar
   numa dessas faixas (a maioria também precisa de decisão de design antes de qualquer código,
   ver campo "Pronto pra começar" de cada um).
@@ -69,36 +69,32 @@ admin/users/security-alerts/:id` → `dismissSecurityAlertHandler` em `adminUser
 - **Tamanho:** P (uma vez que haja reprodução concreta)
 - **Prioridade:** P0
 
-## P2 — Lixeira: hard delete e visualização (registrados agora, não implementados ainda)
+### Erro ao exibir a aba de fotos do personagem
 
-### Botão de exclusão permanente na lixeira, master-only
-
-- **Resumo:** hoje restaurar é a única ação da lixeira (soft delete sem rotina de limpeza
-  automática — fichas e itens de biblioteca). Pedido: um botão visível só pro usuário master
-  pra apagar um item da lixeira **definitivamente** (hard delete), em vez de só restaurar.
-- **Estado atual:** não iniciado.
-- **Pronto para começar:** Sim — bem definido (quem pode ver o botão, o que ele faz), não
-  depende do menu de Configurações nem da lixeira genérica (pode entrar na UI de lixeira atual,
-  tanto `TrashDialog`/fichas quanto a lixeira de `LibraryPage`, e mudar de lugar depois se/quando
-  o submenu de Configurações for desenhado).
-- **Tamanho:** M (toca dois lugares — lixeira de fichas e de biblioteca — e exige endpoint
-  novo de hard delete admin-only em cada um)
-- **Prioridade:** P2
-
-### Visualizar o conteúdo de um item da lixeira ao clicar nele
-
-- **Resumo:** hoje a lixeira (fichas e biblioteca) só lista nome + metadado + botão de
-  restaurar — não dá pra ver o conteúdo completo do item antes de decidir restaurar ou apagar.
-  Pedido: clicar no item abre uma visualização (provavelmente somente leitura) do conteúdo
-  dele.
-- **Estado atual:** não iniciado.
-- **Pronto para começar:** Sim — bem definido, mesma independência do menu de Configurações que
-  o item anterior.
-- **Tamanho:** M (um diálogo de visualização por categoria de item teria algum reaproveitamento
-  dos próprios diálogos de detalhe/edição já existentes, só em modo leitura)
-- **Prioridade:** P2
+- **Resumo:** abrir a aba de fotos (`FotosTab`) de um personagem dá erro — reportado em
+  2026-11-04, ainda sem detalhe do que exatamente aparece (tela de erro genérica, crash,
+  console, etc.).
+- **Estado atual:** não investigado ainda.
+- **Pronto para começar:** Não — falta reprodução/diagnóstico (em qual personagem, com quantas
+  fotos, mensagem de erro exata) antes de qualquer correção.
+- **Tamanho:** P (a confirmar depois do diagnóstico)
+- **Prioridade:** P0
 
 ## Sem prioridade definida — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
+
+### Gerar um novo frontend com o Claude Design
+
+- **Resumo:** pedido em 2026-11-04 — o usuário não está satisfeito com o design visual atual
+  do app conforme ele cresce, e quer usar o Claude Design (design system/ferramenta de geração
+  de UI da Anthropic) para gerar um novo frontend para o projeto.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — é uma decisão de produto/design grande (redesenho visual de
+  todo o app) antes de qualquer código: falta definir o que exatamente está insatisfazendo no
+  design atual, se o redesenho é incremental (tela por tela) ou de uma vez só, se o backend/
+  arquitetura de dados muda junto ou só a camada visual, e como o Claude Design se encaixa no
+  stack atual (Tailwind + Base UI + `class-variance-authority`, ver CLAUDE.md).
+- **Tamanho:** G
+- **Prioridade:** a definir
 
 ### Modificadores de atributo variáveis: distinguir tipos + redesenhar o popup
 
@@ -195,11 +191,12 @@ admin/users/security-alerts/:id` → `dismissSecurityAlertHandler` em `adminUser
 - **Tamanho:** M
 - **Prioridade:** a definir
 
-## P1 (concluído nesta leva, 2026-11-04) — ver "Já resolvidos"
+## P1 e P2 (concluídos em 2026-11-04) — ver "Já resolvidos"
 
-Os dois itens de prioridade P1 — prévia da história em markdown e listagem responsiva de
-sistemas/personagens — foram implementados nesta mesma leva e já aparecem na seção "Já
-resolvidos" abaixo, não como pendentes.
+Os dois itens de prioridade P1 (prévia da história em markdown, listagem responsiva de
+sistemas/personagens) e os dois de P2 (exclusão permanente na lixeira, visualização de item da
+lixeira) foram todos implementados em 2026-11-04 e já aparecem na seção "Já resolvidos" abaixo,
+não como pendentes.
 
 ## Itens já resolvidos — **[feito]**
 
@@ -301,3 +298,23 @@ resolvidos" abaixo, não como pendentes.
   pronto pra copiar, só o reaproveitamento do mesmo card atual, agora reorganizado num grid
   responsivo (1 coluna no mobile, 2–3 no desktop) em vez de uma lista de uma coluna sempre; o
   card em si manteve a mesma forma alongada em ambos os tamanhos de tela.
+- **[feito]** Botão de exclusão permanente (hard delete) na lixeira, visível só pro usuário
+  master — tanto na lixeira de fichas (`TrashDialog`, dono próprio; `DeletedCharactersPanel`,
+  cross-user) quanto na lixeira de itens da biblioteca compartilhada (`LibraryPage`). Endpoints
+  novos — `DELETE /api/admin/users/deleted-characters/:id` e `DELETE /api/libraries/:systemId/
+:category` com `{id, permanent: true}` no corpo (mesmo padrão de sobrecarregar o verbo por
+  formato do corpo já usado no PATCH de restore) — só apagam uma linha que já esteja na lixeira
+  (nunca uma ativa por engano), master-only mesmo que o chamador seja admin comum. Cascata de FK
+  (`onDelete: 'cascade'`) já cuidava de toda tabela filha de uma ficha; biblioteca não tem
+  tabelas filhas.
+- **[feito]** Visualizar o conteúdo de um item da lixeira ao clicar nele, antes de restaurar ou
+  excluir — fichas e itens de biblioteca. Para fichas, um resumo (nome, raça, foto, HP, quem
+  excluiu e quando) em vez da ficha completa (classes/perícias/magias vivem em tabelas
+  separadas, que o endpoint de listagem da lixeira não carrega — ver `DeletedCharacterSummary`);
+  uma visão com a ficha inteira é um trabalho maior e separado, se for preciso depois. Para
+  itens de biblioteca, todos os campos da categoria (não só o resumo nome+descrição que a
+  própria lista já mostra) — `libraryItemFields()`, novo seletor em
+  `entities/library-item/model/selectors.ts`.
+- **[feito]** Ícone de "Novidades" no menu (Sidebar/BottomBar), com um indicador de não-lido
+  reaproveitando a mesma condição já usada pelo banner (`user.lastSeenChangelogVersion !==
+CURRENT_VERSION`) — antes só se chegava lá tocando no banner.

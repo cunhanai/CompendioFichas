@@ -13,6 +13,21 @@ import type { ChangelogEntry } from './types';
  */
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    version: '2026.11.04-beta',
+    date: '2026-11-04',
+    title: 'Biblioteca em dois idiomas, mais controle na lixeira e listas responsivas',
+    changes: [
+      'Itens da biblioteca compartilhada agora podem ter uma versão em português e uma em inglês, ligadas como traduções do mesmo item — o resto da ficha já mostra automaticamente o idioma preferido da sua conta (editável em "Dados da conta", na tela de Perfil), com um seletor por item e um botão "+ tradução" na própria tela da Biblioteca.',
+      'Qualquer usuário autenticado pode editar um item da biblioteca compartilhada; administradores podem excluir (vai pra uma lixeira, não apaga na hora) e restaurar.',
+      '"Novo item" na Biblioteca agora abre o mesmo formulário completo usado na ficha, por categoria, em vez de um formulário genérico só com nome e descrição.',
+      'Habilidades especiais ganharam um único formulário de criação, com um interruptor para escolher se ela também vai pra biblioteca compartilhada ou fica só na sua ficha.',
+      'A lixeira (de fichas e da biblioteca) agora deixa ver o conteúdo completo do item antes de decidir restaurar ou excluir, e o usuário master ganhou um botão para excluir um item definitivamente, em vez de só poder restaurar.',
+      'A prévia da história do personagem, na aba Geral, agora mostra negrito/itálico de verdade, em vez dos asteriscos do markdown aparecendo literalmente.',
+      'As listas de Sistemas e de Personagens agora mostram cards lado a lado no desktop, mantendo a lista simples no celular.',
+      'Novo ícone de "Novidades" no menu, pra chegar direto nesta página quando quiser, sem precisar esperar o aviso aparecer.',
+    ],
+  },
+  {
     version: '2026.11.03-beta',
     date: '2026-11-03',
     title: 'Aviso de novidades',

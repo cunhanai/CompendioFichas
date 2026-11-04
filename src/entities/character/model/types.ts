@@ -350,6 +350,13 @@ export interface DeletedCharacterSummary {
   id: string;
   systemId: string;
   name: string;
+  /** A handful of `characters`' own flat columns, enough for a quick read-only preview in the
+   * trash view before restoring/deleting — not the full `Character` (classes, skills, etc. live
+   * in separate child tables and aren't worth joining just for a trash-row preview). */
+  raca: string;
+  photoUrl: string | null;
+  hpCurrent: number;
+  hpMax: number;
   deletedAt: string;
   ownerName: string;
   ownerUsername: string;

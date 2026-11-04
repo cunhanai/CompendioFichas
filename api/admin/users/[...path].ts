@@ -9,6 +9,7 @@ import {
   dismissSecurityAlertHandler,
   listDeletedCharactersHandler,
   restoreDeletedCharacterHandler,
+  hardDeleteCharacterHandler,
 } from '../../_lib/routes/adminUsers.js';
 
 /**
@@ -21,6 +22,7 @@ import {
  *   PATCH  /api/admin/users/security-alerts/:id            -> dismiss one alert
  *   GET    /api/admin/users/deleted-characters              -> every deleted character (master-only)
  *   POST   /api/admin/users/deleted-characters/:id/restore -> restore any user's deleted character (master-only)
+ *   DELETE /api/admin/users/deleted-characters/:id         -> permanently delete a trashed character (master-only)
  *   PATCH  /api/admin/users/:id                    -> update active/admin status
  *   POST   /api/admin/users/:id/reset-password     -> reset a user's password
  *
@@ -57,6 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (segments.length === 3 && segments[0] === 'deleted-characters' && segments[2] === 'restore') {
     return restoreDeletedCharacterHandler(req, res, segments[1]);
+  }
+  if (segments.length === 2 && segments[0] === 'deleted-characters') {
+    return hardDeleteCharacterHandler(req, res, segments[1]);
   }
   if (segments.length === 1) {
     return updateUserHandler(req, res, segments[0]);
