@@ -246,16 +246,18 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
         }}
         onCreateNew={() => setPopup({ kind: 'weaponLibraryAdd' })}
       />
-      <WeaponLibraryAddDialog
-        open={popup?.kind === 'weaponLibraryAdd'}
-        onOpenChange={(o) => !o && close()}
-        onSubmit={(weapon) => {
-          const fullWeapon = { ...weapon, ...freshLibraryItemIdentity(user.libraryLocale) };
-          addWeaponToLibrary(systemId, fullWeapon);
-          update((c) => addWeaponFromLibrary(c, fullWeapon));
-          close();
-        }}
-      />
+      {popup?.kind === 'weaponLibraryAdd' && (
+        <WeaponLibraryAddDialog
+          open
+          onOpenChange={(o) => !o && close()}
+          onSubmit={(weapon) => {
+            const fullWeapon = { ...weapon, ...freshLibraryItemIdentity(user.libraryLocale) };
+            addWeaponToLibrary(systemId, fullWeapon);
+            update((c) => addWeaponFromLibrary(c, fullWeapon));
+            close();
+          }}
+        />
+      )}
       <NotasAdicionaisDialog
         open={popup?.kind === 'notas'}
         onOpenChange={(o) => !o && close()}

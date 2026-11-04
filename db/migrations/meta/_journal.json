@@ -190,6 +190,13 @@
       "when": 1793803124957,
       "tag": "0026_mature_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793813568144,
+      "tag": "0027_good_infant_terrible",
+      "breakpoints": true
     }
   ]
 }

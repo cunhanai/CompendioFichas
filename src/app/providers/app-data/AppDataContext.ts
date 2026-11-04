@@ -41,14 +41,23 @@ export interface AppDataContextValue {
   addCharacter: (character: Character) => void;
   deleteCharacter: (characterId: string) => void;
   restoreCharacter: (characterId: string) => Promise<void>;
-  /** Generic "Novo item" add — builds the right shape per category from just a name+description. */
+  /** Generic "Novo item" add — builds the right shape per category from just a name+description
+   * (plus `tag`, for the ~6 plain categories that have one). */
   addLibraryItem: (
     systemId: string,
     category: LibraryCategory,
-    /** `locale`/`groupId` default to a fresh standalone group in the account's own
+    /** `tag` defaults to `''`, same as a brand-new item always has — pass the source item's own
+     * `tag` when adding a translation of an existing one, so it isn't silently dropped.
+     * `locale`/`groupId` default to a fresh standalone group in the account's own
      * `libraryLocale` — pass both explicitly only when adding a translation of an existing
      * item (same `groupId`, the other `locale`). */
-    values: { name: string; desc: string; locale?: LibraryItemLocale; groupId?: string },
+    values: {
+      name: string;
+      desc: string;
+      tag?: string;
+      locale?: LibraryItemLocale;
+      groupId?: string;
+    },
   ) => void;
   addWeaponToLibrary: (systemId: string, weapon: WeaponLibraryItem) => void;
   addSpecialToLibrary: (systemId: string, special: SpecialLibraryItem) => void;
@@ -63,6 +72,11 @@ export interface AppDataContextValue {
   /** Soft-deletes one library item — admin-only; the backend 403s for a non-admin caller, this
    * isn't the real guard (same reasoning as DeletedCharactersPanel). */
   removeLibraryItem: (systemId: string, category: LibraryCategory, id: string) => void;
+  /** Restores one library item from the trash — admin-only, same reasoning as `removeLibraryItem`
+   * above. Same shape as `restoreCharacter`: awaits the server (which may 404/409 — a caller
+   * reads those via a thrown `ApiError`), then appends the server-returned row back into local
+   * state so it reappears in the main list without a full bootstrap refetch. */
+  restoreLibraryItem: (systemId: string, category: LibraryCategory, id: string) => Promise<void>;
   toggleSystemFavorite: (systemId: string) => void;
 }
 

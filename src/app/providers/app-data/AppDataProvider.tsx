@@ -5,7 +5,7 @@ import { useAppToast } from '@/shared/ui/organisms';
 import type { Character } from '@/entities/character/model/types';
 import { normalizeCharacter } from '@/entities/character/model/factory';
 import type { RpgSystem } from '@/entities/system/model/types';
-import type { SharedLibrary } from '@/entities/library-item/model/types';
+import type { AnyLibraryItem, SharedLibrary } from '@/entities/library-item/model/types';
 import type { UserProfile } from '@/entities/user/model/types';
 import type { SecurityAlert } from '@/features/user-management/model/types';
 import type {
@@ -270,16 +270,44 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .catch((err: unknown) => console.error('Failed to delete library item', err));
   };
 
+  const restoreLibraryItem: AppDataContextValue['restoreLibraryItem'] = async (
+    systemId,
+    category,
+    id,
+  ) => {
+    const { item } = await api.patch<{ item: AnyLibraryItem }>(
+      `/libraries/${systemId}/${category}`,
+      { id, restore: true },
+    );
+    setData((d) => {
+      if (!d) return d;
+      const lib = d.libraries[systemId];
+      if (!lib) return d;
+      // Guards against a double-restore (e.g. a slow request retried) appending it twice.
+      if (lib[category].some((i) => i.id === item.id)) return d;
+      const nextLib = { ...lib, [category]: [...lib[category], item] } as SharedLibrary;
+      return { ...d, libraries: { ...d.libraries, [systemId]: nextLib } };
+    });
+  };
+
   const addLibraryItem: AppDataContextValue['addLibraryItem'] = (
     systemId,
     category,
-    { name, desc, locale, groupId },
+    { name, desc, tag, locale, groupId },
   ) => {
     const id = crypto.randomUUID();
     // Every new standalone item starts its own group of one, in the account's own default
     // language, unless the caller is adding a translation of an existing item (LibraryPage) and
     // passed both explicitly — see LibraryItemLocaleFields, entities/library-item/model/types.ts.
-    const localeFields = { locale: locale ?? data.user.libraryLocale, groupId: groupId ?? id };
+    // `groupId` defaults to a fresh random uuid, not `id` — a one-row group doesn't need
+    // `groupId === id`, and defaulting to a real random value (matching
+    // `freshLibraryItemIdentity`'s own default, entities/library-item/model/locale.ts) keeps
+    // every "new standalone item" identity built the same way instead of two subtly different
+    // ones depending on which function built it.
+    const localeFields = {
+      locale: locale ?? data.user.libraryLocale,
+      groupId: groupId ?? crypto.randomUUID(),
+    };
     switch (category) {
       case 'pericias':
       case 'idiomas':
@@ -287,7 +315,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       case 'classes':
       case 'racas':
       case 'tipos':
-        return postLibraryItem(systemId, category, { id, name, desc, tag: '', ...localeFields });
+        return postLibraryItem(systemId, category, {
+          id,
+          name,
+          desc,
+          tag: tag ?? '',
+          ...localeFields,
+        });
       case 'habilidades':
         return postLibraryItem(systemId, 'habilidades', {
           id,
@@ -407,6 +441,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     addSpellToLibrary,
     updateLibraryItem,
     removeLibraryItem,
+    restoreLibraryItem,
     toggleSystemFavorite,
   };
 

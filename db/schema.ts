@@ -669,130 +669,260 @@ const libraryLocale = () => text('locale').notNull().default('pt');
  * random one — see api/_lib/routes/libraries.ts. */
 const libraryGroupId = () => uuid('group_id').notNull().defaultRandom();
 
-export const librarySpells = pgTable('library_spells', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  school: text('school').notNull(),
-  circle: integer('circle').notNull(),
-  castTime: text('cast_time').notNull(),
-  range: text('range').notNull(),
-  duration: text('duration').notNull(),
-  resistance: text('resistance').notNull(),
-  desc: text('desc').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const librarySpells = pgTable(
+  'library_spells',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    school: text('school').notNull(),
+    circle: integer('circle').notNull(),
+    castTime: text('cast_time').notNull(),
+    range: text('range').notNull(),
+    duration: text('duration').notNull(),
+    resistance: text('resistance').notNull(),
+    desc: text('desc').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_spells_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryWeapons = pgTable('library_weapons', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  atk: text('atk').notNull(),
-  crit: text('crit').notNull(),
-  dmg: text('dmg').notNull(),
-  type: text('type').notNull(),
-  range: text('range').notNull(),
-  desc: text('desc').notNull(),
-  hasAmmo: boolean('has_ammo').notNull().default(false),
-  ammoMax: integer('ammo_max').notNull().default(0),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryWeapons = pgTable(
+  'library_weapons',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    atk: text('atk').notNull(),
+    crit: text('crit').notNull(),
+    dmg: text('dmg').notNull(),
+    type: text('type').notNull(),
+    range: text('range').notNull(),
+    desc: text('desc').notNull(),
+    hasAmmo: boolean('has_ammo').notNull().default(false),
+    ammoMax: integer('ammo_max').notNull().default(0),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_weapons_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const librarySpecialAbilities = pgTable('library_special_abilities', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  subtitle: text('subtitle').notNull(),
-  uses: text('uses').notNull(),
-  resumo: text('resumo').notNull().default(''),
-  fonte: text('fonte').notNull().default(''),
-  desc: text('desc').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const librarySpecialAbilities = pgTable(
+  'library_special_abilities',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    subtitle: text('subtitle').notNull(),
+    uses: text('uses').notNull(),
+    resumo: text('resumo').notNull().default(''),
+    fonte: text('fonte').notNull().default(''),
+    desc: text('desc').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_special_abilities_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryFeats = pgTable('library_feats', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  resumo: text('resumo').notNull().default(''),
-  prerequisite: text('prerequisite').notNull().default(''),
-  benefit: text('benefit').notNull().default(''),
-  fonte: text('fonte').notNull().default(''),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryFeats = pgTable(
+  'library_feats',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    resumo: text('resumo').notNull().default(''),
+    prerequisite: text('prerequisite').notNull().default(''),
+    benefit: text('benefit').notNull().default(''),
+    fonte: text('fonte').notNull().default(''),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_feats_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const librarySkills = pgTable('library_skills', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const librarySkills = pgTable(
+  'library_skills',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_skills_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryLanguages = pgTable('library_languages', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryLanguages = pgTable(
+  'library_languages',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_languages_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryCreatures = pgTable('library_creatures', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryCreatures = pgTable(
+  'library_creatures',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_creatures_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryClasses = pgTable('library_classes', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryClasses = pgTable(
+  'library_classes',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_classes_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryRaces = pgTable('library_races', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryRaces = pgTable(
+  'library_races',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_races_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
-export const libraryCreatureTypes = pgTable('library_creature_types', {
-  id: uuid('id').primaryKey(),
-  systemId: librarySystemId(),
-  name: text('name').notNull(),
-  desc: text('desc').notNull(),
-  tag: text('tag').notNull(),
-  locale: libraryLocale(),
-  groupId: libraryGroupId(),
-  deletedAt: libraryDeletedAt(),
-});
+export const libraryCreatureTypes = pgTable(
+  'library_creature_types',
+  {
+    id: uuid('id').primaryKey(),
+    systemId: librarySystemId(),
+    name: text('name').notNull(),
+    desc: text('desc').notNull(),
+    tag: text('tag').notNull(),
+    locale: libraryLocale(),
+    groupId: libraryGroupId(),
+    deletedAt: libraryDeletedAt(),
+  },
+  // At most one active (non-deleted) row per (systemId, groupId, locale) — enforced here (a
+  // partial unique index), not just in application code, so a concurrent restore racing
+  // against another restore/create in the same language slot can't both succeed and leave
+  // two active rows `resolveLibraryLocale` can't tell apart (same reasoning as
+  // `security_alerts_one_active` above; see `setLibraryItemDeleted`, db/library.ts).
+  (table) => [
+    uniqueIndex('library_creature_types_active_group_locale_unique')
+      .on(table.systemId, table.groupId, table.locale)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);

@@ -109,16 +109,18 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           setNewFeatOpen(true);
         }}
       />
-      <FeatLibraryAddDialog
-        open={newFeatOpen}
-        onOpenChange={setNewFeatOpen}
-        onSubmit={(feat) => {
-          const fullFeat = { ...feat, ...freshLibraryItemIdentity(user.libraryLocale) };
-          addFeatToLibrary(systemId, fullFeat);
-          update((c) => addFeatFromLibrary(c, fullFeat));
-          setNewFeatOpen(false);
-        }}
-      />
+      {newFeatOpen && (
+        <FeatLibraryAddDialog
+          open
+          onOpenChange={(open) => !open && setNewFeatOpen(false)}
+          onSubmit={(feat) => {
+            const fullFeat = { ...feat, ...freshLibraryItemIdentity(user.libraryLocale) };
+            addFeatToLibrary(systemId, fullFeat);
+            update((c) => addFeatFromLibrary(c, fullFeat));
+            setNewFeatOpen(false);
+          }}
+        />
+      )}
       <SpecialPickDialog
         open={specialPickOpen}
         onOpenChange={setSpecialPickOpen}
@@ -133,17 +135,19 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
           setNewSpecialOpen(true);
         }}
       />
-      <SpecialFormDialog
-        open={newSpecialOpen}
-        onOpenChange={setNewSpecialOpen}
-        showShareToggle
-        onSubmit={(special, shareToLibrary) => {
-          const item = { ...special, ...freshLibraryItemIdentity(user.libraryLocale) };
-          if (shareToLibrary) addSpecialToLibrary(systemId, item);
-          update((c) => addSpecialFromLibrary(c, item));
-          setNewSpecialOpen(false);
-        }}
-      />
+      {newSpecialOpen && (
+        <SpecialFormDialog
+          open
+          onOpenChange={(open) => !open && setNewSpecialOpen(false)}
+          showShareToggle
+          onSubmit={(special, shareToLibrary) => {
+            const item = { ...special, ...freshLibraryItemIdentity(user.libraryLocale) };
+            if (shareToLibrary) addSpecialToLibrary(systemId, item);
+            update((c) => addSpecialFromLibrary(c, item));
+            setNewSpecialOpen(false);
+          }}
+        />
+      )}
 
       {featDetailId && (
         <FeatDetailDialog

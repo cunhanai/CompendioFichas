@@ -50,7 +50,8 @@ export function WeaponLibraryAddDialog({
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = () => {
-    onSubmit({ ...form, name: form.name.trim() || 'Nova arma' });
+    if (!form.name.trim()) return;
+    onSubmit({ ...form, name: form.name.trim() });
     if (!editing) setForm(blank);
   };
 

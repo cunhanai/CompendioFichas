@@ -1656,3 +1656,78 @@ Achados considerados e **não corrigidos** nesta leva (escopo/risco não justifi
   em `AccountCard`, seletor de idioma por item na `LibraryPage`, etc.) que poderiam compartilhar
   um componente — risco de regressão visual sem um browser disponível pra confirmar lado a lado,
   deixado como está.
+
+## Segunda rodada de revisão (`/code-review xhigh --fix`, branch completo vs `main`)
+
+Nova rodada da revisão acima, agora sobre o branch inteiro (incluindo a primeira rodada de
+correções). Achados reais corrigidos:
+
+- **Restaurar um item da lixeira não reaparecia na lista principal sem recarregar a página** —
+  `LibraryPage.handleRestore` chamava `api.patch` direto, só atualizando a lista da lixeira
+  (`deleted`), nunca `libraries[systemId]` (o estado que a lista principal lê). O PATCH de
+  restore também só respondia `{ ok: true }`, sem o item restaurado, então nem um fix no
+  frontend teria como repor a linha sem refazer o fetch inteiro. Corrigido nos dois lados: o
+  restore agora devolve `{ item }` (`setLibraryItemDeleted`/`setDeletedX` ganharam um retorno
+  discriminado `{status, item}`, não só uma string, pra carregar a linha restaurada quando
+  `deleted: false`) e um novo `restoreLibraryItem` no `AppDataContext` (mesmo formato do já
+  existente `restoreCharacter`: aguarda o PATCH, insere o item devolvido de volta no estado
+  local) substitui a chamada direta à API em `LibraryPage`.
+- **Corrida real na checagem de conflito do restore** — o restore fazia
+  select-conflito-então-update como passos separados, não atômicos; duas restaurações
+  concorrentes pro mesmo `(groupId, locale)` podiam ambas passar a checagem antes de qualquer
+  uma gravar, recriando exatamente as duas linhas ativas que a checagem existe pra evitar.
+  Em vez de só reforçar a checagem em código (que continuaria sujeita à mesma corrida),
+  adicionado um índice único parcial em cada uma das 10 tabelas — `UNIQUE (system_id, group_id,
+  locale) WHERE deleted_at IS NULL` (migration `0027`, mesmo padrão de
+  `security_alerts_one_active` em `db/schema.ts`) — que torna duas linhas ativas no mesmo slot
+  impossível no banco, não só verificado em código. O `UPDATE` final de cada `setDeletedX` agora
+  também captura uma eventual violação desse índice (`code 23505`) e devolve `'conflict'` em vez
+  de deixar virar um 500 genérico, pro caso raro da corrida realmente acontecer.
+- **PATCH de edição genérica não excluía itens na lixeira** — o `.where()` de cada categoria
+  filtrava por `id`+`systemId`, mas não por `deletedAt IS NULL`; um item soft-deleted podia ser
+  editado por esse endpoint sem precisar ser restaurado primeiro, mudando campos dele enquanto
+  ainda escondido da listagem principal. Adicionado `isNull(deletedAt)` ao `where` de cada uma
+  das 10 categorias.
+- **Traduzir um item das categorias simples também apagava a `tag`** — o mesmo bug já corrigido
+  no fluxo de edição (`tag: ''` fixo) também existia no fluxo de "adicionar tradução", que nem
+  tinha como passar a tag adiante (`addLibraryItem` não aceitava esse campo). Adicionado `tag?`
+  opcional à assinatura de `addLibraryItem` (default `''`, igual a um item novo de verdade) e
+  `LibraryPage` agora passa `tag: sourceItem.tag` também na tradução.
+- **O mesmo bug de "formulário sempre montado, só alternando `open`"** corrigido na `LibraryPage`
+  na rodada anterior também existia em três diálogos usados direto pela ficha —
+  `FeatLibraryAddDialog`/`SpecialFormDialog` na `TalentosTab`, `WeaponLibraryAddDialog` na
+  `CombateTab` — cujos `onSubmit` esta mesma leva de PT/EN já tinha reescrito. Trocados pro
+  mesmo padrão de montagem condicional.
+- **`WeaponLibraryAddDialog` não tinha a validação de nome vazio que todo diálogo irmão tem** —
+  em vez de bloquear o submit como `FeatLibraryAddDialog`/`AddLibraryItemDialog`/
+  `SpecialFormDialog`/`SpellLibraryFormDialog` fazem, ele preenchia um nome vazio com "Nova
+  arma". Inofensivo enquanto só criava armas novas, mas agora que o mesmo diálogo também edita
+  (prop `editing`), limpar o nome e salvar renomeava silenciosamente a arma existente. Corrigido
+  pro mesmo padrão dos irmãos.
+- **`addLibraryItem` (`AppDataProvider`) ainda usava `groupId: groupId ?? id`** — a mesma
+  inconsistência que a extração de `freshLibraryItemIdentity()` (rodada anterior) corrigiu em
+  `LibraryPage`/`TalentosTab`/`CombateTab` continuava aqui, a única função que não passou por
+  essa limpeza. Trocado pro mesmo `groupId` aleatório de verdade.
+- **`'pt' | 'en'` repetido como literal** em vez de importar `LibraryItemLocale` —
+  `api/_lib/mappers.ts` e `entities/user/model/types.ts` cada um escrevia a união à mão; trocado
+  pra importar o tipo já existente.
+- **`locale`/`groupId` excluídos do PATCH com o mesmo trecho copiado em 10 casos** — diferente
+  das chamadas `.update()`/`.select()` (que não unificam entre tabelas do Drizzle), essa exclusão
+  é só desestruturação de objeto antes de qualquer chamada ao Drizzle, então uma função
+  `omitLocaleIdentity()` comum não bate no mesmo limite de tipos — extraída pros 10 casos do
+  PATCH de `api/_lib/routes/libraries.ts`.
+
+Achados considerados e **não corrigidos** nesta leva:
+- O prop `editing` (booleano) nos 5 diálogos de categoria colapsa a distinção real de 3 modos
+  que `LibraryPage` já modela (`FormTarget`: `'edit' | 'translate'` + criar) — cada diálogo não
+  tem como saber que está "traduzindo" (mostra o mesmo texto genérico de "criar"). Um prop
+  `mode` em vez de um booleano resolveria na raiz, mas são 5 componentes pra mudar e uma escolha
+  de copy/produto (o que o diálogo de tradução deveria dizer) melhor deixada pra quando o
+  produto realmente pedir esse texto.
+- Os 4 blocos de `onSubmit` quase idênticos da `LibraryPage` (editar/traduzir/criar por
+  magias/armas/talentos/habilidades) poderiam compartilhar um helper — não extraído por
+  enquanto; cada bloco chama uma função `addXToLibrary` com assinatura própria, e consolidar
+  isso com segurança de tipos exigiria mais do que a mudança mecânica que cabe num `--fix`.
+- Uma versão por closures (em vez de genérica sobre `PgTable`) dos 10 `setDeletedX` foi sugerida
+  como possível redução de duplicação, mas não verificada se compila/mantém o comportamento —
+  não implementada sem essa verificação.

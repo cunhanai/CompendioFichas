@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '../../../db/client.js';
 import {
   libraryClasses,
@@ -161,6 +161,18 @@ export const addLibraryItemHandler = withErrorHandling(async function handler(
   }
 });
 
+/** Splits a validated update payload into its `id` and everything else minus `locale`/`groupId`
+ * — shared by every category's PATCH case below, since excluding those two fields from `.set()`
+ * is plain object destructuring (no Drizzle table type involved), unlike the `.update()` calls
+ * themselves, which stay one per category for the reason explained at `setLibraryItemDeleted`
+ * (db/library.ts). */
+function omitLocaleIdentity<T extends { id: string; locale: unknown; groupId: unknown }>(
+  data: T,
+): { id: string; fields: Omit<T, 'id' | 'locale' | 'groupId'> } {
+  const { id, locale: _locale, groupId: _groupId, ...fields } = data;
+  return { id, fields };
+}
+
 /** PATCH /api/libraries/:systemId/:category — two actions share this verb+path, told apart by
  * body shape (keeps this area at one Vercel function per the Hobby-plan function cap this
  * project already hit once — see CLAUDE.md — instead of a new path segment per action):
@@ -171,7 +183,10 @@ export const addLibraryItemHandler = withErrorHandling(async function handler(
  * user-editable fields, they're bookkeeping that only `setLibraryItemDeleted`'s restore path and
  * the "add translation" create path are allowed to set. Letting a generic edit move an item into
  * a different group, or collide two rows on the same (groupId, locale), would silently corrupt
- * `resolveLibraryLocale`'s one-per-group assumption. */
+ * `resolveLibraryLocale`'s one-per-group assumption. Every `.where()` also excludes
+ * soft-deleted rows (`isNull(deletedAt)`) — without it, this same-verb-same-path edit could
+ * reach a trashed item directly, silently changing its fields while it sits in the trash
+ * instead of 404ing like it does for the main (non-trash) list. */
 export const updateLibraryItemHandler = withErrorHandling(async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -201,18 +216,18 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     }
 
     const result = await setLibraryItemDeleted(category, systemId, parsedId.data.id, false);
-    if (result === 'not_found') {
+    if (result.status === 'not_found') {
       res.status(404).json({ error: 'Item não encontrado na lixeira.' });
       return;
     }
-    if (result === 'conflict') {
+    if (result.status === 'conflict') {
       res.status(409).json({
         error:
           'Já existe outro item ativo neste mesmo idioma para este grupo — não é possível restaurar.',
       });
       return;
     }
-    res.status(200).json({ ok: true });
+    res.status(200).json({ item: result.item });
     return;
   }
 
@@ -223,11 +238,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'magias': {
       const parsed = spellItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(librarySpells)
         .set(fields)
-        .where(and(eq(librarySpells.id, id), eq(librarySpells.systemId, systemId)))
+        .where(
+          and(
+            eq(librarySpells.id, id),
+            eq(librarySpells.systemId, systemId),
+            isNull(librarySpells.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -236,11 +257,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'armas': {
       const parsed = weaponItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryWeapons)
         .set(fields)
-        .where(and(eq(libraryWeapons.id, id), eq(libraryWeapons.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryWeapons.id, id),
+            eq(libraryWeapons.systemId, systemId),
+            isNull(libraryWeapons.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -249,12 +276,16 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'habilidades': {
       const parsed = specialItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(librarySpecialAbilities)
         .set(fields)
         .where(
-          and(eq(librarySpecialAbilities.id, id), eq(librarySpecialAbilities.systemId, systemId)),
+          and(
+            eq(librarySpecialAbilities.id, id),
+            eq(librarySpecialAbilities.systemId, systemId),
+            isNull(librarySpecialAbilities.deletedAt),
+          ),
         )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
@@ -264,11 +295,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'talentos': {
       const parsed = featItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryFeats)
         .set(fields)
-        .where(and(eq(libraryFeats.id, id), eq(libraryFeats.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryFeats.id, id),
+            eq(libraryFeats.systemId, systemId),
+            isNull(libraryFeats.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -277,11 +314,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'pericias': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(librarySkills)
         .set(fields)
-        .where(and(eq(librarySkills.id, id), eq(librarySkills.systemId, systemId)))
+        .where(
+          and(
+            eq(librarySkills.id, id),
+            eq(librarySkills.systemId, systemId),
+            isNull(librarySkills.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -290,11 +333,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'idiomas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryLanguages)
         .set(fields)
-        .where(and(eq(libraryLanguages.id, id), eq(libraryLanguages.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryLanguages.id, id),
+            eq(libraryLanguages.systemId, systemId),
+            isNull(libraryLanguages.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -303,11 +352,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'criaturas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryCreatures)
         .set(fields)
-        .where(and(eq(libraryCreatures.id, id), eq(libraryCreatures.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryCreatures.id, id),
+            eq(libraryCreatures.systemId, systemId),
+            isNull(libraryCreatures.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -316,11 +371,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'classes': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryClasses)
         .set(fields)
-        .where(and(eq(libraryClasses.id, id), eq(libraryClasses.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryClasses.id, id),
+            eq(libraryClasses.systemId, systemId),
+            isNull(libraryClasses.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -329,11 +390,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'racas': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryRaces)
         .set(fields)
-        .where(and(eq(libraryRaces.id, id), eq(libraryRaces.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryRaces.id, id),
+            eq(libraryRaces.systemId, systemId),
+            isNull(libraryRaces.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -342,11 +409,17 @@ export const updateLibraryItemHandler = withErrorHandling(async function handler
     case 'tipos': {
       const parsed = genericLibraryItemSchema.safeParse(req.body);
       if (!parsed.success) return void res.status(400).json({ error: 'Dados inválidos.' });
-      const { id, locale: _locale, groupId: _groupId, ...fields } = parsed.data;
+      const { id, fields } = omitLocaleIdentity(parsed.data);
       const [row] = await db
         .update(libraryCreatureTypes)
         .set(fields)
-        .where(and(eq(libraryCreatureTypes.id, id), eq(libraryCreatureTypes.systemId, systemId)))
+        .where(
+          and(
+            eq(libraryCreatureTypes.id, id),
+            eq(libraryCreatureTypes.systemId, systemId),
+            isNull(libraryCreatureTypes.deletedAt),
+          ),
+        )
         .returning();
       if (!row) return void res.status(404).json({ error: 'Item não encontrado.' });
       res.status(200).json({ item: row });
@@ -381,7 +454,7 @@ export const deleteLibraryItemHandler = withErrorHandling(async function handler
   }
 
   const result = await setLibraryItemDeleted(category, systemId, parsed.data.id, true);
-  if (result === 'not_found') {
+  if (result.status === 'not_found') {
     res.status(404).json({ error: 'Item não encontrado.' });
     return;
   }

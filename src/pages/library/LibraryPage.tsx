@@ -77,6 +77,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
     addSpecialToLibrary,
     updateLibraryItem,
     removeLibraryItem,
+    restoreLibraryItem,
   } = useAppData();
   const navigate = useNavigate();
   const toast = useAppToast();
@@ -137,8 +138,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
   };
 
   const handleRestore = (id: string) => {
-    api
-      .patch(`/libraries/${systemId}/${tab}`, { id, restore: true })
+    restoreLibraryItem(systemId, tab, id)
       .then(() => {
         setDeleted((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         toast.success('Item restaurado.');
@@ -472,6 +472,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
             else if (formTarget?.mode === 'translate' && sourceItem)
               addLibraryItem(systemId, tab, {
                 ...values,
+                tag: (sourceItem as LibraryItem).tag,
                 locale: formTarget.locale,
                 groupId: sourceItem.groupId,
               });

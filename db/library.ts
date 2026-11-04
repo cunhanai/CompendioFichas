@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from './client.js';
 import type {
+  AnyLibraryItem,
   FeatLibraryItem,
   LibraryCategory,
   LibraryItem,
@@ -38,6 +39,22 @@ export const LIBRARY_TABLES = {
 
 export function isLibraryCategory(value: string): value is LibraryCategory {
   return Object.hasOwn(LIBRARY_TABLES, value);
+}
+
+/** True for a Postgres unique-violation error (code `23505`) — the pre-check each `setDeletedX`
+ * restore path does for a `(systemId, groupId, locale)` conflict is advisory (select-then-update,
+ * not atomic), so a second restore racing in that same tiny window between the two could still
+ * slip past it; the `*_active_group_locale_unique` partial index on each library table (see
+ * db/schema.ts) is what actually makes two active rows in the same slot impossible, by rejecting
+ * the losing transaction's `UPDATE` instead. Caught here to report that race the same way as the
+ * ordinary pre-checked case ('conflict', a 409) rather than letting it surface as a raw 500. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code: unknown }).code === '23505'
+  );
 }
 
 function emptyLibrary(systemId: string): SharedLibrary {
@@ -148,6 +165,14 @@ export async function loadLibraries(systemIds: string[]): Promise<Record<string,
   return libraries;
 }
 
+/** Discriminated result of a soft-delete/restore: `'not_found'`/`'conflict'` carry no row;
+ * `'ok'` carries the restored row (`item`) when `deleted` was `false`, or `null` when `deleted`
+ * was `true` — the delete direction has nothing new for a caller to reconcile into local state
+ * (the frontend already removes the item optimistically before the request even resolves), only
+ * restore does. */
+export type SetDeletedResult =
+  { status: 'not_found' } | { status: 'conflict' } | { status: 'ok'; item: AnyLibraryItem | null };
+
 /** Soft-deletes or restores one library item — admin-only (enforced by the route handler, not
  * here). Scoped by BOTH `category` and `systemId`: without the `systemId` check, a crafted `id`
  * belonging to a different system's item would still match (it's a globally-unique uuid) and
@@ -168,7 +193,7 @@ export async function setLibraryItemDeleted(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   switch (category) {
     case 'magias':
       return setDeletedSpells(systemId, id, deleted);
@@ -204,7 +229,7 @@ async function setDeletedSpells(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(librarySpells)
@@ -217,7 +242,7 @@ async function setDeletedSpells(
         ),
       )
       .returning({ id: librarySpells.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: librarySpells.groupId, locale: librarySpells.locale })
@@ -230,7 +255,7 @@ async function setDeletedSpells(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: librarySpells.id })
     .from(librarySpells)
@@ -243,26 +268,33 @@ async function setDeletedSpells(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(librarySpells)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(librarySpells.id, id),
-        eq(librarySpells.systemId, systemId),
-        isNotNull(librarySpells.deletedAt),
-      ),
-    )
-    .returning({ id: librarySpells.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(librarySpells)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(librarySpells.id, id),
+          eq(librarySpells.systemId, systemId),
+          isNotNull(librarySpells.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as SpellLibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedWeapons(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryWeapons)
@@ -275,7 +307,7 @@ async function setDeletedWeapons(
         ),
       )
       .returning({ id: libraryWeapons.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryWeapons.groupId, locale: libraryWeapons.locale })
@@ -288,7 +320,7 @@ async function setDeletedWeapons(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryWeapons.id })
     .from(libraryWeapons)
@@ -301,26 +333,33 @@ async function setDeletedWeapons(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryWeapons)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryWeapons.id, id),
-        eq(libraryWeapons.systemId, systemId),
-        isNotNull(libraryWeapons.deletedAt),
-      ),
-    )
-    .returning({ id: libraryWeapons.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryWeapons)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryWeapons.id, id),
+          eq(libraryWeapons.systemId, systemId),
+          isNotNull(libraryWeapons.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as WeaponLibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedSpecialAbilities(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(librarySpecialAbilities)
@@ -333,7 +372,7 @@ async function setDeletedSpecialAbilities(
         ),
       )
       .returning({ id: librarySpecialAbilities.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: librarySpecialAbilities.groupId, locale: librarySpecialAbilities.locale })
@@ -346,7 +385,7 @@ async function setDeletedSpecialAbilities(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: librarySpecialAbilities.id })
     .from(librarySpecialAbilities)
@@ -359,26 +398,33 @@ async function setDeletedSpecialAbilities(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(librarySpecialAbilities)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(librarySpecialAbilities.id, id),
-        eq(librarySpecialAbilities.systemId, systemId),
-        isNotNull(librarySpecialAbilities.deletedAt),
-      ),
-    )
-    .returning({ id: librarySpecialAbilities.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(librarySpecialAbilities)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(librarySpecialAbilities.id, id),
+          eq(librarySpecialAbilities.systemId, systemId),
+          isNotNull(librarySpecialAbilities.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as SpecialLibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedFeats(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryFeats)
@@ -391,7 +437,7 @@ async function setDeletedFeats(
         ),
       )
       .returning({ id: libraryFeats.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryFeats.groupId, locale: libraryFeats.locale })
@@ -404,7 +450,7 @@ async function setDeletedFeats(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryFeats.id })
     .from(libraryFeats)
@@ -417,26 +463,33 @@ async function setDeletedFeats(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryFeats)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryFeats.id, id),
-        eq(libraryFeats.systemId, systemId),
-        isNotNull(libraryFeats.deletedAt),
-      ),
-    )
-    .returning({ id: libraryFeats.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryFeats)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryFeats.id, id),
+          eq(libraryFeats.systemId, systemId),
+          isNotNull(libraryFeats.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as FeatLibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedSkills(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(librarySkills)
@@ -449,7 +502,7 @@ async function setDeletedSkills(
         ),
       )
       .returning({ id: librarySkills.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: librarySkills.groupId, locale: librarySkills.locale })
@@ -462,7 +515,7 @@ async function setDeletedSkills(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: librarySkills.id })
     .from(librarySkills)
@@ -475,26 +528,33 @@ async function setDeletedSkills(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(librarySkills)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(librarySkills.id, id),
-        eq(librarySkills.systemId, systemId),
-        isNotNull(librarySkills.deletedAt),
-      ),
-    )
-    .returning({ id: librarySkills.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(librarySkills)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(librarySkills.id, id),
+          eq(librarySkills.systemId, systemId),
+          isNotNull(librarySkills.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedLanguages(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryLanguages)
@@ -507,7 +567,7 @@ async function setDeletedLanguages(
         ),
       )
       .returning({ id: libraryLanguages.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryLanguages.groupId, locale: libraryLanguages.locale })
@@ -520,7 +580,7 @@ async function setDeletedLanguages(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryLanguages.id })
     .from(libraryLanguages)
@@ -533,26 +593,33 @@ async function setDeletedLanguages(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryLanguages)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryLanguages.id, id),
-        eq(libraryLanguages.systemId, systemId),
-        isNotNull(libraryLanguages.deletedAt),
-      ),
-    )
-    .returning({ id: libraryLanguages.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryLanguages)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryLanguages.id, id),
+          eq(libraryLanguages.systemId, systemId),
+          isNotNull(libraryLanguages.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedCreatures(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryCreatures)
@@ -565,7 +632,7 @@ async function setDeletedCreatures(
         ),
       )
       .returning({ id: libraryCreatures.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryCreatures.groupId, locale: libraryCreatures.locale })
@@ -578,7 +645,7 @@ async function setDeletedCreatures(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryCreatures.id })
     .from(libraryCreatures)
@@ -591,26 +658,33 @@ async function setDeletedCreatures(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryCreatures)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryCreatures.id, id),
-        eq(libraryCreatures.systemId, systemId),
-        isNotNull(libraryCreatures.deletedAt),
-      ),
-    )
-    .returning({ id: libraryCreatures.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryCreatures)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryCreatures.id, id),
+          eq(libraryCreatures.systemId, systemId),
+          isNotNull(libraryCreatures.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedClasses(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryClasses)
@@ -623,7 +697,7 @@ async function setDeletedClasses(
         ),
       )
       .returning({ id: libraryClasses.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryClasses.groupId, locale: libraryClasses.locale })
@@ -636,7 +710,7 @@ async function setDeletedClasses(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryClasses.id })
     .from(libraryClasses)
@@ -649,26 +723,33 @@ async function setDeletedClasses(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryClasses)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryClasses.id, id),
-        eq(libraryClasses.systemId, systemId),
-        isNotNull(libraryClasses.deletedAt),
-      ),
-    )
-    .returning({ id: libraryClasses.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryClasses)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryClasses.id, id),
+          eq(libraryClasses.systemId, systemId),
+          isNotNull(libraryClasses.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedRaces(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryRaces)
@@ -681,7 +762,7 @@ async function setDeletedRaces(
         ),
       )
       .returning({ id: libraryRaces.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryRaces.groupId, locale: libraryRaces.locale })
@@ -694,7 +775,7 @@ async function setDeletedRaces(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryRaces.id })
     .from(libraryRaces)
@@ -707,26 +788,33 @@ async function setDeletedRaces(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryRaces)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryRaces.id, id),
-        eq(libraryRaces.systemId, systemId),
-        isNotNull(libraryRaces.deletedAt),
-      ),
-    )
-    .returning({ id: libraryRaces.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryRaces)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryRaces.id, id),
+          eq(libraryRaces.systemId, systemId),
+          isNotNull(libraryRaces.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 async function setDeletedCreatureTypes(
   systemId: string,
   id: string,
   deleted: boolean,
-): Promise<'ok' | 'not_found' | 'conflict'> {
+): Promise<SetDeletedResult> {
   if (deleted) {
     const rows = await db
       .update(libraryCreatureTypes)
@@ -739,7 +827,7 @@ async function setDeletedCreatureTypes(
         ),
       )
       .returning({ id: libraryCreatureTypes.id });
-    return rows.length > 0 ? 'ok' : 'not_found';
+    return rows.length > 0 ? { status: 'ok', item: null } : { status: 'not_found' };
   }
   const [target] = await db
     .select({ groupId: libraryCreatureTypes.groupId, locale: libraryCreatureTypes.locale })
@@ -752,7 +840,7 @@ async function setDeletedCreatureTypes(
       ),
     )
     .limit(1);
-  if (!target) return 'not_found';
+  if (!target) return { status: 'not_found' };
   const [conflict] = await db
     .select({ id: libraryCreatureTypes.id })
     .from(libraryCreatureTypes)
@@ -765,19 +853,26 @@ async function setDeletedCreatureTypes(
       ),
     )
     .limit(1);
-  if (conflict) return 'conflict';
-  const rows = await db
-    .update(libraryCreatureTypes)
-    .set({ deletedAt: null })
-    .where(
-      and(
-        eq(libraryCreatureTypes.id, id),
-        eq(libraryCreatureTypes.systemId, systemId),
-        isNotNull(libraryCreatureTypes.deletedAt),
-      ),
-    )
-    .returning({ id: libraryCreatureTypes.id });
-  return rows.length > 0 ? 'ok' : 'not_found';
+  if (conflict) return { status: 'conflict' };
+  try {
+    const [row] = await db
+      .update(libraryCreatureTypes)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          eq(libraryCreatureTypes.id, id),
+          eq(libraryCreatureTypes.systemId, systemId),
+          isNotNull(libraryCreatureTypes.deletedAt),
+        ),
+      )
+      .returning();
+    if (!row) return { status: 'not_found' };
+    const { systemId: _systemId, deletedAt: _deletedAt, ...item } = row;
+    return { status: 'ok', item: item as LibraryItem };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { status: 'conflict' };
+    throw err;
+  }
 }
 
 /** Lists every soft-deleted item in one system's category — admin-only (enforced by the route
