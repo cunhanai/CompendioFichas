@@ -54,7 +54,7 @@ const NOTAS_PREVIEW_THRESHOLD = 220;
 
 export function CombateTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
-  const { addWeaponToLibrary } = useAppData();
+  const { user, addWeaponToLibrary } = useAppData();
   const library = useLibrary(systemId);
   const [popup, setPopup] = useState<Popup>(null);
   const close = () => setPopup(null);
@@ -250,8 +250,9 @@ export function CombateTab({ characterId, systemId }: { characterId: string; sys
         onOpenChange={(o) => !o && close()}
         onSubmit={(weapon) => {
           const id = crypto.randomUUID();
-          addWeaponToLibrary(systemId, { ...weapon, id });
-          update((c) => addWeaponFromLibrary(c, { ...weapon, id }));
+          const fullWeapon = { ...weapon, id, locale: user.libraryLocale, groupId: id };
+          addWeaponToLibrary(systemId, fullWeapon);
+          update((c) => addWeaponFromLibrary(c, fullWeapon));
           close();
         }}
       />

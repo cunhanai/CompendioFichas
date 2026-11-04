@@ -1543,3 +1543,55 @@ do tempo em que todo "Novo item" passava pelo formulário genérico), então a c
 no-op silencioso. Corrigido trocando as quatro chamadas de criação pelas funções dedicadas,
 gerando o `id` no cliente (`crypto.randomUUID()`) como as próprias funções dedicadas esperam. A
 edição (`updateLibraryItem`) nunca teve esse problema — sempre manda o item inteiro.
+
+## Biblioteca compartilhada em mais de um idioma (PT/EN)
+
+Item do `BACKLOG.md` que já tinha três pontos marcados como "precisa de decisão" — decididos
+assim antes de começar:
+
+- **Modelo de dados: registros linkados por grupo, não campos duplicados no mesmo registro.**
+  Cada idioma de um item é sua própria linha, na mesma tabela de sempre (ex.: duas linhas em
+  `library_feats` para "Acuidade com Arma"/"Weapon Finesse"), ligadas por um `group_id` (uuid,
+  `NOT NULL DEFAULT gen_random_uuid()`) — um item sem tradução é só "um grupo de uma linha", o
+  `group_id` não precisa ser igual ao `id`, só único o bastante pra não colidir com outro grupo.
+  Cada linha também ganhou `locale` (`text NOT NULL DEFAULT 'pt'`, migration `0026`, todas as 10
+  tabelas de biblioteca). Preferido a campos duplicados (`desc_pt`/`desc_en` etc.) porque: (a)
+  não dobra cada coluna de texto das 10 tabelas (talentos sozinho tem 6 campos de texto), (b)
+  fica pronto pra um 3º idioma no futuro sem nova migration, e (c) `locale`/`group_id` não
+  precisam de um tipo pg real (`pgEnum`) — nada mais no schema usa um, então seguiu o padrão já
+  estabelecido de validar conjuntos fixos só na camada zod (`libraryLocaleSchema = z.enum(['pt',
+  'en'])`).
+- **Escopo: todo campo de texto livre, inclusive o nome** — não só a descrição. Como cada idioma
+  é uma linha inteira (não um campo por vez), isso não exigiu nenhuma decisão por-campo em código:
+  a linha inteira varia por idioma, os campos mecânicos (círculo da magia, dano/crítico de arma,
+  usa munição, etc.) só "variam" porque tecnicamente existem nas duas linhas — na prática ficam
+  idênticos, porque o formulário de "adicionar tradução" (abaixo) já vem pré-preenchido com o
+  valor original.
+- **Seleção de idioma: preferência global da conta (`users.library_locale`, migration `0026`,
+  editável em "Dados da conta" na tela de Perfil) com alternância por item na hora, só na
+  `LibraryPage`.** `resolveLibraryLocale` (`entities/library-item/model/locale.ts`) é a peça
+  central: agrupa um array de itens por `group_id` e escolhe, por grupo, a linha no idioma
+  preferido — caindo pro que existir se faltar a tradução preferida (confirmado explicitamente
+  pelo usuário: "alguns itens... podem ter apenas um idioma que não é o idioma padrão da conta,
+  nesse caso, deve aparecer o item normalmente naquele idioma" — nunca some um item por falta de
+  tradução). **`useLibrary()`** (o hook usado por todo picker da ficha — `FeatPickDialog`,
+  `WeaponPickDialog`, `SpellPickDialog`, etc.) passou a devolver a biblioteca já resolvida por
+  esse idioma, em vez do array bruto (que pode ter 2 linhas por item) — nenhum consumidor
+  existente precisou mudar uma linha sequer, todos passaram a mostrar o idioma certo de graça.
+  Só a `LibraryPage` lê a biblioteca bruta direto (`useAppData().libraries`, não `useLibrary()`),
+  porque é a única tela que realmente precisa ver as duas versões — mostra um seletor PT/EN por
+  item quando as duas existem (`localeOverrides`, estado local da tela, nunca persistido — só a
+  preferência da conta é "de verdade") e, quando só uma existe, um botão "+ tradução" que abre o
+  mesmo formulário rico da categoria pré-preenchido com o conteúdo da versão existente, travado
+  no idioma que falta, criando uma linha nova com o mesmo `group_id`.
+- **Efeito colateral, não planejado originalmente**: como todo item passou a exigir `locale`,
+  `updateProfileBodySchema.libraryLocale` teve que ficar **opcional** (não obrigatório) —
+  `AccountCard` já faz seu próprio PATCH `/api/user` só com `{name, username}` (e `AvatarUpload`
+  só com `avatarUrl`, via `updateUser`), então exigir o campo quebraria esses dois fluxos
+  existentes. Mesmo padrão que `avatarUrl` já usava (`!== undefined` antes de incluir no
+  `.set()`).
+- **`addLibraryItem` (as ~6 categorias simples) ganhou `locale`/`groupId` opcionais** no terceiro
+  parâmetro — todo call site existente (`ClassPickerDialog`, `ClassesEditor`,
+  `LibraryValuePickerDialog`, `LanguagesDialog`) continua passando só `{name, desc}` e herdando o
+  padrão (`locale` da conta, `groupId` novo); só a `LibraryPage` passa os dois explicitamente, ao
+  criar uma tradução de um item dessas categorias.

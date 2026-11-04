@@ -10,8 +10,8 @@ export interface SpellLibraryFormDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Pre-fills the form for editing an existing library item — the caller should remount this
    * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
-  initial?: Omit<SpellLibraryItem, 'id'>;
-  onSubmit: (spell: Omit<SpellLibraryItem, 'id'>) => void;
+  initial?: Omit<SpellLibraryItem, 'id' | 'locale' | 'groupId'>;
+  onSubmit: (spell: Omit<SpellLibraryItem, 'id' | 'locale' | 'groupId'>) => void;
 }
 
 const blank = {

@@ -15,6 +15,7 @@ export function toUserProfile(row: UserRow): UserProfile {
     isMaster: row.isMaster,
     mustChangePassword: row.mustChangePassword,
     lastSeenChangelogVersion: row.lastSeenChangelogVersion,
+    libraryLocale: row.libraryLocale as 'pt' | 'en',
   };
 }
 

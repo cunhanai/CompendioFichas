@@ -35,6 +35,10 @@ export const users = pgTable(
      * (rather than localStorage) so it survives logout/login and shows consistently across
      * devices, same reasoning as security_alerts below. */
     lastSeenChangelogVersion: text('last_seen_changelog_version'),
+    /** 'pt' | 'en' — which language variant to show by default when a library item has more
+     * than one (see `locale`/`group_id` on the library category tables below). Falls back to
+     * whichever locale a given item actually has if this preference isn't available for it. */
+    libraryLocale: text('library_locale').notNull().default('pt'),
     active: boolean('active').notNull().default(true),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -651,6 +655,20 @@ const librarySystemId = () =>
  * delete/restore are admin-only, see api/_lib/routes/libraries.ts). */
 const libraryDeletedAt = () => timestamp('deleted_at', { withTimezone: true });
 
+/** 'pt' | 'en' (see LibraryItemLocale, src/entities/library-item/model/types.ts) — plain text,
+ * not a real pg enum: nothing else in this schema uses one (always validated at the zod layer
+ * instead), so a third option later is just a new accepted string, no migration needed. */
+const libraryLocale = () => text('locale').notNull().default('pt');
+
+/** Links every language variant of "the same conceptual item" together — a lone item (the
+ * common case, no translation yet) is simply a group of one, with a `groupId` that's never
+ * referenced by any other row. Defaults to a fresh random uuid (like `id` itself) rather than
+ * self-referencing `id`: nothing requires `groupId === id` for a solo item, and a column default
+ * can't read another column of the same row anyway. Creating a translation of an existing item
+ * is the one case the app sets this explicitly, to the original's `groupId` instead of a new
+ * random one — see api/_lib/routes/libraries.ts. */
+const libraryGroupId = () => uuid('group_id').notNull().defaultRandom();
+
 export const librarySpells = pgTable('library_spells', {
   id: uuid('id').primaryKey(),
   systemId: librarySystemId(),
@@ -662,6 +680,8 @@ export const librarySpells = pgTable('library_spells', {
   duration: text('duration').notNull(),
   resistance: text('resistance').notNull(),
   desc: text('desc').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -677,6 +697,8 @@ export const libraryWeapons = pgTable('library_weapons', {
   desc: text('desc').notNull(),
   hasAmmo: boolean('has_ammo').notNull().default(false),
   ammoMax: integer('ammo_max').notNull().default(0),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -689,6 +711,8 @@ export const librarySpecialAbilities = pgTable('library_special_abilities', {
   resumo: text('resumo').notNull().default(''),
   fonte: text('fonte').notNull().default(''),
   desc: text('desc').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -702,6 +726,8 @@ export const libraryFeats = pgTable('library_feats', {
   prerequisite: text('prerequisite').notNull().default(''),
   benefit: text('benefit').notNull().default(''),
   fonte: text('fonte').notNull().default(''),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -711,6 +737,8 @@ export const librarySkills = pgTable('library_skills', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -720,6 +748,8 @@ export const libraryLanguages = pgTable('library_languages', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -729,6 +759,8 @@ export const libraryCreatures = pgTable('library_creatures', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -738,6 +770,8 @@ export const libraryClasses = pgTable('library_classes', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -747,6 +781,8 @@ export const libraryRaces = pgTable('library_races', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });
 
@@ -756,5 +792,7 @@ export const libraryCreatureTypes = pgTable('library_creature_types', {
   name: text('name').notNull(),
   desc: text('desc').notNull(),
   tag: text('tag').notNull(),
+  locale: libraryLocale(),
+  groupId: libraryGroupId(),
   deletedAt: libraryDeletedAt(),
 });

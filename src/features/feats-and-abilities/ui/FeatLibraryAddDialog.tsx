@@ -9,11 +9,11 @@ export interface FeatLibraryAddDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Pre-fills the form for editing an existing library item — the caller should remount this
    * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
-  initial?: Omit<FeatLibraryItem, 'id'>;
+  initial?: Omit<FeatLibraryItem, 'id' | 'locale' | 'groupId'>;
   /** False from LibraryPage, where there's no character to add the new talento to — only
    * changes the copy/button label, not what gets saved. Default true (the sheet's own flow). */
   addToSheet?: boolean;
-  onSubmit: (feat: Omit<FeatLibraryItem, 'id'>) => void;
+  onSubmit: (feat: Omit<FeatLibraryItem, 'id' | 'locale' | 'groupId'>) => void;
 }
 
 const blank = {

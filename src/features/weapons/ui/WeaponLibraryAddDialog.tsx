@@ -13,11 +13,11 @@ export interface WeaponLibraryAddDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Pre-fills the form for editing an existing library item — the caller should remount this
    * component (e.g. `key={editing?.id ?? 'new'}`) when switching which item is being edited. */
-  initial?: Omit<WeaponLibraryItem, 'id'>;
+  initial?: Omit<WeaponLibraryItem, 'id' | 'locale' | 'groupId'>;
   /** False from LibraryPage, where there's no character to add the new arma to — only changes
    * the copy/button label, not what gets saved. Default true (the sheet's own flow). */
   addToSheet?: boolean;
-  onSubmit: (weapon: Omit<WeaponLibraryItem, 'id'>) => void;
+  onSubmit: (weapon: Omit<WeaponLibraryItem, 'id' | 'locale' | 'groupId'>) => void;
 }
 
 const blank = {

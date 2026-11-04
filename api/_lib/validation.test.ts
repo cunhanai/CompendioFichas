@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   changelogSeenBodySchema,
+  genericLibraryItemSchema,
   libraryItemIdSchema,
   photoBodySchema,
   updateProfileBodySchema,
@@ -65,7 +66,7 @@ describe('photoBodySchema', () => {
 });
 
 describe('updateProfileBodySchema', () => {
-  const base = { name: 'Ana', username: 'ana' };
+  const base = { name: 'Ana', username: 'ana', libraryLocale: 'pt' as const };
 
   it('accepts a null avatarUrl', () => {
     expect(updateProfileBodySchema.safeParse({ ...base, avatarUrl: null }).success).toBe(true);
@@ -73,6 +74,15 @@ describe('updateProfileBodySchema', () => {
 
   it('accepts an omitted avatarUrl', () => {
     expect(updateProfileBodySchema.safeParse(base).success).toBe(true);
+  });
+
+  it('accepts an omitted libraryLocale (AccountCard/AvatarUpload save only name/username/avatar)', () => {
+    const { libraryLocale: _libraryLocale, ...withoutLocale } = base;
+    expect(updateProfileBodySchema.safeParse(withoutLocale).success).toBe(true);
+  });
+
+  it('rejects an unsupported libraryLocale', () => {
+    expect(updateProfileBodySchema.safeParse({ ...base, libraryLocale: 'fr' }).success).toBe(false);
   });
 
   it('accepts a genuine PNG avatarUrl', () => {
@@ -115,5 +125,39 @@ describe('libraryItemIdSchema', () => {
 
   it('rejects a missing id', () => {
     expect(libraryItemIdSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('genericLibraryItemSchema (locale/groupId)', () => {
+  const base = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    name: 'Acuidade com Arma',
+    desc: '',
+    tag: '',
+    groupId: '123e4567-e89b-12d3-a456-426614174001',
+  };
+
+  it('accepts a pt item', () => {
+    expect(genericLibraryItemSchema.safeParse({ ...base, locale: 'pt' }).success).toBe(true);
+  });
+
+  it('accepts an en item', () => {
+    expect(genericLibraryItemSchema.safeParse({ ...base, locale: 'en' }).success).toBe(true);
+  });
+
+  it('rejects an unsupported locale', () => {
+    expect(genericLibraryItemSchema.safeParse({ ...base, locale: 'fr' }).success).toBe(false);
+  });
+
+  it('rejects a missing locale', () => {
+    const { locale: _locale, ...withoutLocale } = { ...base, locale: 'pt' };
+    expect(genericLibraryItemSchema.safeParse(withoutLocale).success).toBe(false);
+  });
+
+  it('rejects a missing groupId', () => {
+    const { groupId: _groupId, ...withoutGroupId } = base;
+    expect(genericLibraryItemSchema.safeParse({ ...withoutGroupId, locale: 'pt' }).success).toBe(
+      false,
+    );
   });
 });

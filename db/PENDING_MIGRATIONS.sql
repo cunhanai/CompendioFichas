@@ -29,3 +29,28 @@ ALTER TABLE "library_skills" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp wit
 ALTER TABLE "library_special_abilities" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp with time zone;
 ALTER TABLE "library_spells" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp with time zone;
 ALTER TABLE "library_weapons" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp with time zone;
+
+-- ============================================================
+-- 0026 — item da biblioteca em mais de um idioma (PT/EN)
+-- ============================================================
+ALTER TABLE "library_classes" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_classes" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_creature_types" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_creature_types" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_creatures" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_creatures" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_feats" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_feats" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_languages" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_languages" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_races" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_races" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_skills" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_skills" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_special_abilities" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_special_abilities" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_spells" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_spells" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "library_weapons" ADD COLUMN IF NOT EXISTS "locale" text DEFAULT 'pt' NOT NULL;
+ALTER TABLE "library_weapons" ADD COLUMN IF NOT EXISTS "group_id" uuid DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "library_locale" text DEFAULT 'pt' NOT NULL;

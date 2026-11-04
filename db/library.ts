@@ -1,7 +1,14 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db } from './client.js';
-import type { SharedLibrary } from '../src/entities/library-item/model/types.js';
-import type { LibraryCategory } from '../src/entities/library-item/model/types.js';
+import type {
+  FeatLibraryItem,
+  LibraryCategory,
+  LibraryItem,
+  SharedLibrary,
+  SpecialLibraryItem,
+  SpellLibraryItem,
+  WeaponLibraryItem,
+} from '../src/entities/library-item/model/types.js';
 import {
   libraryClasses,
   libraryCreatures,
@@ -113,18 +120,30 @@ export async function loadLibraries(systemIds: string[]): Promise<Record<string,
         ),
     ]);
 
-  for (const { systemId, deletedAt, ...item } of spells) libraries[systemId]?.magias.push(item);
-  for (const { systemId, deletedAt, ...item } of weapons) libraries[systemId]?.armas.push(item);
+  // `locale` comes back from drizzle typed as plain `string` (a text column) — cast to the
+  // narrower `LibraryItemLocale` ('pt' | 'en') trusting the zod validation already done at
+  // write time (libraryLocaleSchema, api/_lib/validation.ts), same pattern as toUserProfile's
+  // libraryLocale cast in api/_lib/mappers.ts.
+  for (const { systemId, deletedAt, ...item } of spells)
+    libraries[systemId]?.magias.push(item as SpellLibraryItem);
+  for (const { systemId, deletedAt, ...item } of weapons)
+    libraries[systemId]?.armas.push(item as WeaponLibraryItem);
   for (const { systemId, deletedAt, ...item } of specials)
-    libraries[systemId]?.habilidades.push(item);
-  for (const { systemId, deletedAt, ...item } of feats) libraries[systemId]?.talentos.push(item);
-  for (const { systemId, deletedAt, ...item } of skills) libraries[systemId]?.pericias.push(item);
-  for (const { systemId, deletedAt, ...item } of languages) libraries[systemId]?.idiomas.push(item);
+    libraries[systemId]?.habilidades.push(item as SpecialLibraryItem);
+  for (const { systemId, deletedAt, ...item } of feats)
+    libraries[systemId]?.talentos.push(item as FeatLibraryItem);
+  for (const { systemId, deletedAt, ...item } of skills)
+    libraries[systemId]?.pericias.push(item as LibraryItem);
+  for (const { systemId, deletedAt, ...item } of languages)
+    libraries[systemId]?.idiomas.push(item as LibraryItem);
   for (const { systemId, deletedAt, ...item } of creatures)
-    libraries[systemId]?.criaturas.push(item);
-  for (const { systemId, deletedAt, ...item } of classes) libraries[systemId]?.classes.push(item);
-  for (const { systemId, deletedAt, ...item } of races) libraries[systemId]?.racas.push(item);
-  for (const { systemId, deletedAt, ...item } of types) libraries[systemId]?.tipos.push(item);
+    libraries[systemId]?.criaturas.push(item as LibraryItem);
+  for (const { systemId, deletedAt, ...item } of classes)
+    libraries[systemId]?.classes.push(item as LibraryItem);
+  for (const { systemId, deletedAt, ...item } of races)
+    libraries[systemId]?.racas.push(item as LibraryItem);
+  for (const { systemId, deletedAt, ...item } of types)
+    libraries[systemId]?.tipos.push(item as LibraryItem);
 
   return libraries;
 }

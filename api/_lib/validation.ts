@@ -25,6 +25,11 @@ export const adminUpdateUserBodySchema = z
   });
 
 const uuid = z.uuid();
+// 'pt' | 'en' — see LibraryItemLocale, src/entities/library-item/model/types.ts.
+const libraryLocaleSchema = z.enum(['pt', 'en']);
+/** Merged into every library item schema below — see LibraryItemLocaleFields in
+ * entities/library-item/model/types.ts for what `locale`/`groupId` mean. */
+const libraryItemLocaleFieldsSchema = z.object({ locale: libraryLocaleSchema, groupId: uuid });
 /** Every character field backed by a Postgres `integer` column (as opposed to `real`) is
  * validated with this instead of a bare `z.number()` — matches int4's actual range/precision,
  * so an out-of-range or non-integer value 400s here instead of crashing the DB write with a 500. */
@@ -125,6 +130,11 @@ export const updateProfileBodySchema = z.object({
   name: z.string().min(1),
   username: z.string().min(3),
   avatarUrl: imageDataUrl(500_000).nullable().optional(),
+  // Optional, same reasoning as avatarUrl above: AccountCard's own name/username form (and
+  // AvatarUpload's own avatarUrl-only save) PATCH /api/user without it, so it can't be required
+  // — only updateUser's full-profile saves (AppDataProvider.tsx) and the dedicated library
+  // language toggle actually send it.
+  libraryLocale: libraryLocaleSchema.optional(),
 });
 
 export const MAX_CHARACTER_JSON_LENGTH = 2_000_000;
@@ -386,58 +396,68 @@ export const characterBodySchema = characterSnapshotDataSchema.extend({
   currentSnapshotId: uuid.nullable(),
 });
 
-export const spellItemSchema = z.object({
-  id: uuid,
-  name: z.string().min(1),
-  school: z.string(),
-  circle: z.number().int().min(0),
-  castTime: z.string(),
-  range: z.string(),
-  duration: z.string(),
-  resistance: z.string(),
-  desc: z.string(),
-});
+export const spellItemSchema = z
+  .object({
+    id: uuid,
+    name: z.string().min(1),
+    school: z.string(),
+    circle: z.number().int().min(0),
+    castTime: z.string(),
+    range: z.string(),
+    duration: z.string(),
+    resistance: z.string(),
+    desc: z.string(),
+  })
+  .extend(libraryItemLocaleFieldsSchema.shape);
 
-export const weaponItemSchema = z.object({
-  id: uuid,
-  name: z.string().min(1),
-  atk: z.string(),
-  crit: z.string(),
-  dmg: z.string(),
-  type: z.string(),
-  range: z.string(),
-  desc: z.string(),
-  hasAmmo: z.boolean(),
-  ammoMax: z.number().int().min(0),
-});
+export const weaponItemSchema = z
+  .object({
+    id: uuid,
+    name: z.string().min(1),
+    atk: z.string(),
+    crit: z.string(),
+    dmg: z.string(),
+    type: z.string(),
+    range: z.string(),
+    desc: z.string(),
+    hasAmmo: z.boolean(),
+    ammoMax: z.number().int().min(0),
+  })
+  .extend(libraryItemLocaleFieldsSchema.shape);
 
-export const specialItemSchema = z.object({
-  id: uuid,
-  name: z.string().min(1),
-  subtitle: z.string(),
-  uses: z.string(),
-  resumo: z.string(),
-  fonte: z.string(),
-  desc: z.string(),
-});
+export const specialItemSchema = z
+  .object({
+    id: uuid,
+    name: z.string().min(1),
+    subtitle: z.string(),
+    uses: z.string(),
+    resumo: z.string(),
+    fonte: z.string(),
+    desc: z.string(),
+  })
+  .extend(libraryItemLocaleFieldsSchema.shape);
 
-export const genericLibraryItemSchema = z.object({
-  id: uuid,
-  name: z.string().min(1),
-  desc: z.string(),
-  tag: z.string(),
-});
+export const genericLibraryItemSchema = z
+  .object({
+    id: uuid,
+    name: z.string().min(1),
+    desc: z.string(),
+    tag: z.string(),
+  })
+  .extend(libraryItemLocaleFieldsSchema.shape);
 
-export const featItemSchema = z.object({
-  id: uuid,
-  name: z.string().min(1),
-  tag: z.string(),
-  resumo: z.string(),
-  prerequisite: z.string(),
-  benefit: z.string(),
-  fonte: z.string(),
-  desc: z.string(),
-});
+export const featItemSchema = z
+  .object({
+    id: uuid,
+    name: z.string().min(1),
+    tag: z.string(),
+    resumo: z.string(),
+    prerequisite: z.string(),
+    benefit: z.string(),
+    fonte: z.string(),
+    desc: z.string(),
+  })
+  .extend(libraryItemLocaleFieldsSchema.shape);
 
 // Shared by the library item PATCH (update, "id" + the rest validated per-category against the
 // schemas above) and DELETE (soft-delete, "id" only) handlers, api/_lib/routes/libraries.ts.

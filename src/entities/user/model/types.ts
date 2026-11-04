@@ -7,6 +7,9 @@ export interface UserProfile {
   isMaster: boolean;
   mustChangePassword: boolean;
   lastSeenChangelogVersion: string | null;
+  /** Which language variant to show by default when a library item has more than one — see
+   * LibraryItemLocale, entities/library-item/model/types.ts. */
+  libraryLocale: 'pt' | 'en';
 }
 
 /** Lightweight listing of another account — used by the character-sharing user picker, never

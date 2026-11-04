@@ -32,7 +32,7 @@ export const updateProfileHandler = withErrorHandling(async function handler(
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
     return;
   }
-  const { name, username, avatarUrl } = parsed.data;
+  const { name, username, avatarUrl, libraryLocale } = parsed.data;
 
   const [conflict] = await db
     .select({ id: users.id })
@@ -46,7 +46,12 @@ export const updateProfileHandler = withErrorHandling(async function handler(
 
   const [user] = await db
     .update(users)
-    .set({ name, username, ...(avatarUrl !== undefined && { avatarUrl }) })
+    .set({
+      name,
+      username,
+      ...(avatarUrl !== undefined && { avatarUrl }),
+      ...(libraryLocale !== undefined && { libraryLocale }),
+    })
     .where(eq(users.id, userId))
     .returning();
 

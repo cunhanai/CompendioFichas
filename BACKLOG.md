@@ -30,17 +30,6 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
 
 ## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
 
-- **Itens da biblioteca compartilhada com versão em português e em inglês, cadastradas pelos
-  próprios jogadores, de fontes diferentes** (pedido em 2026-10-13) — exemplo dado: o talento
-  "Acuidade com Arma" poderia ter tanto o texto oficial do livro (PT) quanto o texto equivalente
-  do d20pf1e (EN, "Weapon Finesse") registrados no mesmo item. "Isso será importante em breve",
-  mas ainda sem decisão de implementação. Pontos a decidir: é um campo de idioma por item
-  (duplicando nome/descrição/etc. em dois idiomas dentro do mesmo registro), ou dois registros
-  separados linkados um ao outro? Afeta só `desc`/campos de texto longo, ou também `name` (um
-  talento pode ter nomes diferentes em cada idioma — ver o exemplo dado)? Como o usuário escolhe
-  qual idioma ver na ficha (preferência global da conta? por sistema? por item, alternável na
-  hora)? Toca toda a biblioteca compartilhada (todas as ~8 categorias), não só talentos — o
-  exemplo foi só ilustrativo.
 - **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
   possivelmente outros tipos) e redesenhar o popup do atributo** — pedido explícito de mudança de
   design: "o valor final e o modificador do atributo final devem estar em destaque, depois as
@@ -48,6 +37,21 @@ hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
   uma definição de quais tipos de modificador existem (temporário, classe, racial, seria outros?),
   como cada tipo empilha/soma, e o layout novo do popup (`AbilityDialog` ou equivalente). Não dá
   pra implementar sem alinhar isso.
+- **Novos sistemas de RPG além de Pathfinder 1ª Ed.** (pedido em 2026-11-04) — por ordem de
+  prioridade: Vampire: The Masquerade, Dune, Tormenta20 e, talvez, Pathfinder 2ª Ed. e D&D 5ª Ed.
+  Hoje só Pathfinder 1e está de fato implementado — os outros sistemas já aparecem na navegação/
+  dados semente só como placeholder "em breve" (ver `CLAUDE.md`). Antes de começar qualquer um
+  desses sistemas, **precisa avaliar o estado atual do app pra receber fichas de outros
+  sistemas** — o tipo `Character` (`entities/character/model/types.ts`) e as ~22 tabelas
+  relacionais de personagem hoje são inteiramente modeladas em cima da ficha de Pathfinder 1e
+  (atributos, perícias, grimórios, manobras, etc. — mecânicas que não existem igual em Vampire ou
+  Dune); não dá pra saber de antemão quanto disso é genérico o suficiente pra reaproveitar (a
+  shell do app — auth, biblioteca compartilhada, compartilhamento, lixeira — provavelmente sim;
+  o modelo de dados da ficha em si, provavelmente não) sem entrar no código e comparar com as
+  fichas reais de cada sistema novo. Esse levantamento é o primeiro passo, antes de decidir a
+  abordagem (um `Character` por sistema? Um núcleo comum + extensão por sistema? Tabelas
+  totalmente novas por sistema?) — fica registrado aqui pra isso acontecer antes de qualquer
+  código.
 - **Criptografar todos os dados das fichas no banco** — decisão de arquitetura grande: que tipo de
   criptografia (nível de coluna com `pgcrypto`, nível de aplicação com uma chave em variável de
   ambiente, etc.), quais tabelas/colunas exatamente (a ficha inteira é ~22 tabelas), e como isso
@@ -84,11 +88,33 @@ mantenedor > usuário comum`, cumulativa (cada papel acima tem tudo que os de ba
   usuário classificou essa tela como "quase uma tela de suporte" e **ainda mal definida** — fica
   pra uma conversa de design futura antes de qualquer código, não só pelo tamanho mas porque o
   próprio escopo de ações/estados ainda está em aberto.
+  - **Complemento (pedido em 2026-11-04)**: a visualização da listagem pode ser tanto tabela
+    quanto kanban (por status, provavelmente). E o uso da tela pode ir além de solicitações de
+    biblioteca — também serviria pra sugestões de melhoria, relato de bugs, e um roadmap de
+    desenvolvimento visível pro usuário. Ainda sem definição de como esses diferentes "tipos de
+    uso" convivem na mesma tela genérica (abas? filtro de tipo? telas de entrada diferentes pro
+    mesmo backend?) — mais um ponto em aberto pra quando essa conversa de design acontecer.
 
 ## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
 
-(nenhum no momento — os últimos itens desta categoria, crop do avatar da conta e galeria virar
-aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
+- **Menu de "Configurações" (submenu), tirando usuário logado + Gestão de usuários do nível
+  principal do menu** (pedido em 2026-11-04) — hoje "Perfil"/conta e "Gestão de usuários" ficam
+  direto na navegação principal; o pedido é agrupar os dois num submenu de Configurações.
+  **Ainda precisa de desenho de design** (o próprio usuário marcou isso como em aberto) — qual
+  ícone, onde entra na sidebar/bottom bar, como fica em mobile, etc.
+  - **Lixeira genérica num submenu à parte**: "Fichas excluídas" (já existe, hoje dentro de
+    Gestão de usuários) e qualquer outro tipo de item excluído (ex.: a lixeira de itens da
+    biblioteca compartilhada, já implementada nesta mesma leva, hoje dentro da própria
+    `LibraryPage`) saem dali — o pedido é não ficar "dentro de Gestão de usuários" porque
+    conceitualmente não é gestão de usuário nenhuma. Vira um submenu próprio.
+  - **Botão de exclusão permanente, master-only**: hoje a lixeira só restaura (soft delete sem
+    rotina de limpeza automática — ver itens "[feito]" de exclusão de ficha/biblioteca). Pedido
+    novo: um botão, visível só pro usuário master, pra apagar um item da lixeira
+    **definitivamente** (hard delete), em vez de só restaurar.
+  - **Visualizar um item da lixeira ao clicar nele**: hoje a lixeira (de fichas, e a nova de
+    biblioteca) só lista nome + metadado + botão de restaurar — não dá pra abrir o item e ver o
+    conteúdo completo antes de decidir restaurar/apagar. Pedido: clicar no item abre uma
+    visualização (provavelmente somente leitura) do conteúdo dele.
 
 ## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
 
@@ -99,6 +125,13 @@ aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
   existe na tela inicial (`DashboardPage`, a seção "Seus sistemas"). O padrão visual do card já
   existe pronto pra copiar; o trabalho é responsivo (breakpoint mobile/desktop) nas duas telas de
   listagem, não um componente novo do zero.
+- **Prévia da história do personagem não renderiza markdown** (reportado em 2026-11-04) — a aba
+  Geral mostra um resumo de `character.story` (3 linhas, com "Ler mais") como texto puro
+  (`GeralTab.tsx`, `{character.story}` direto num `<p>`), então um personagem com **negrito**
+  aparece com os asteriscos literais na prévia, mesmo já suportando markdown de verdade dentro do
+  `StoryDialog` (que usa o componente `Markdown` compartilhado). Troca pequena: usar `Markdown`
+  (ou uma versão truncada dele) também na prévia — mesmo padrão já usado em outros lugares da
+  ficha.
 
 ## Itens já resolvidos — **[feito]**
 
@@ -173,3 +206,15 @@ aba da ficha, foram resolvidos nesta leva, ver "Já resolvidos")
   ligado, funciona como Talentos (salva na biblioteca e na ficha). O mesmo formulário também
   serve pra criar/editar direto na Biblioteca compartilhada (sem o interruptor, que só faz
   sentido quando há uma ficha envolvida). `addCustomSpecial` foi removido.
+- **[feito]** Itens da biblioteca compartilhada agora podem ter versão em português e em inglês:
+  cada idioma é uma linha própria (`locale` + `group_id` em todas as 10 tabelas de biblioteca,
+  migration `0026`) ligada às outras versões do mesmo item pelo `group_id` — não um campo
+  duplicado dentro do mesmo registro. Todo campo de texto livre varia por idioma, inclusive o
+  nome. `users.library_locale` guarda a preferência da conta (editável em "Dados da conta", tela
+  de Perfil); `useLibrary()` já devolve a biblioteca resolvida nesse idioma (com fallback pro que
+  existir, se faltar a tradução), então toda a ficha mostra o idioma certo automaticamente, sem
+  precisar mudar nenhum dos pickers existentes. Só a `LibraryPage` lida com os dois idiomas de
+  verdade: mostra um seletor PT/EN por item quando as duas versões existem (troca só a
+  visualização, não a preferência da conta), e um botão "+ tradução" quando só uma existe, que
+  abre o mesmo formulário rico pré-preenchido com o conteúdo original (pra não precisar redigitar
+  dano/CA/etc. que não muda entre idiomas) pra criar a outra versão, já ligada ao mesmo grupo.

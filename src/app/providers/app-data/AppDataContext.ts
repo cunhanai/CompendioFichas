@@ -4,6 +4,7 @@ import type { RpgSystem } from '@/entities/system/model/types';
 import type {
   FeatLibraryItem,
   LibraryCategory,
+  LibraryItemLocale,
   SharedLibrary,
   SpecialLibraryItem,
   SpellLibraryItem,
@@ -44,7 +45,10 @@ export interface AppDataContextValue {
   addLibraryItem: (
     systemId: string,
     category: LibraryCategory,
-    values: { name: string; desc: string },
+    /** `locale`/`groupId` default to a fresh standalone group in the account's own
+     * `libraryLocale` — pass both explicitly only when adding a translation of an existing
+     * item (same `groupId`, the other `locale`). */
+    values: { name: string; desc: string; locale?: LibraryItemLocale; groupId?: string },
   ) => void;
   addWeaponToLibrary: (systemId: string, weapon: WeaponLibraryItem) => void;
   addSpecialToLibrary: (systemId: string, special: SpecialLibraryItem) => void;

@@ -1,12 +1,22 @@
 import { useState } from 'react';
-import { Archive, ArrowLeft, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive, ArrowLeft, Languages, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppData } from '@/app/providers';
 import { routes } from '@/shared/lib/routes';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppToast } from '@/shared/ui/organisms';
-import type { LibraryCategory, SharedLibrary } from '@/entities/library-item/model/types';
+import type {
+  FeatLibraryItem,
+  LibraryCategory,
+  LibraryItem,
+  LibraryItemLocale,
+  SharedLibrary,
+  SpecialLibraryItem,
+  SpellLibraryItem,
+  WeaponLibraryItem,
+} from '@/entities/library-item/model/types';
 import { toDisplayItems, type DisplayItem } from '@/entities/library-item/model/selectors';
+import { groupLibraryItems } from '@/entities/library-item/model/locale';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
 import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
@@ -38,6 +48,24 @@ const PLAIN_CATEGORIES = new Set<LibraryCategory>([
   'tipos',
 ]);
 
+/** `library?.[tab]` indexes a `SharedLibrary` with a non-literal `category`, so TS widens it to
+ * the union of every category's array type — too wide for `groupLibraryItems`'s generic to
+ * infer against directly. Every member shares `id`/`locale`/`groupId` though, so this union
+ * (not `library?.[tab]`'s own inferred type) is what gets passed to it instead. */
+type AnyLibraryItem =
+  LibraryItem | SpellLibraryItem | WeaponLibraryItem | SpecialLibraryItem | FeatLibraryItem;
+
+const LOCALE_LABEL: Record<LibraryItemLocale, string> = { pt: 'PT', en: 'EN' };
+const otherLocale = (locale: LibraryItemLocale): LibraryItemLocale =>
+  locale === 'pt' ? 'en' : 'pt';
+
+/** Which item the "Novo item"/edit/trash form targets — `null` is "create a brand new,
+ * standalone item"; `edit` replaces an existing row's fields in place; `translate` creates a
+ * new row sharing the source item's `groupId` but in the other language, prefilled from the
+ * source so only the actually-different (mostly text) fields need changing. */
+type FormTarget =
+  { mode: 'edit'; id: string } | { mode: 'translate'; sourceId: string; locale: LibraryItemLocale };
+
 /** Thin wrapper so `systemId` changing while mounted (navigating between two systems' libraries
  * without leaving the page) remounts the content fresh — same reasoning/pattern as
  * `<FotosTab key={characterId}>` in SheetPage.tsx: simpler than an effect that resets every
@@ -64,20 +92,43 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
   const toast = useAppToast();
   const [tab, setTab] = useState<LibraryCategory>('magias');
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
   const [deleted, setDeleted] = useState<DisplayItem[] | null>(null);
+  // Per-group "show the other language instead" override — local to this screen/session, never
+  // persisted (the account-wide default lives in user.libraryLocale). Keyed by groupId, reset
+  // whenever the category tab changes.
+  const [localeOverrides, setLocaleOverrides] = useState<Record<string, LibraryItemLocale>>({});
 
   const system = systems.find((s) => s.id === systemId);
   const library = libraries[systemId];
-  const items = library ? toDisplayItems(library, tab) : [];
-  const editingItem = editingId ? library?.[tab].find((i) => i.id === editingId) : undefined;
+  const rawItems = (library?.[tab] ?? []) as AnyLibraryItem[];
+  const groups = Array.from(groupLibraryItems(rawItems).values());
+  const selectedItems = groups.map((group) => {
+    const wantLocale = localeOverrides[group[0].groupId] ?? user.libraryLocale;
+    return group.find((i) => i.locale === wantLocale) ?? group[0];
+  });
+  const displayItems = library
+    ? toDisplayItems({ ...library, [tab]: selectedItems } as SharedLibrary, tab)
+    : [];
+  const rows = groups.map((group, i) => ({
+    group,
+    selected: selectedItems[i],
+    display: displayItems[i],
+  }));
+
+  const sourceItem = formTarget
+    ? rawItems.find(
+        (i) => i.id === (formTarget.mode === 'edit' ? formTarget.id : formTarget.sourceId),
+      )
+    : undefined;
 
   const selectTab = (next: LibraryCategory) => {
     setTab(next);
     setTrashOpen(false);
     setDeleted(null);
+    setLocaleOverrides({});
   };
 
   const loadTrash = () => {
@@ -85,8 +136,8 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
     setDeleted(null);
     api
       .get<{ deleted: SharedLibrary[LibraryCategory] }>(`/libraries/${systemId}/${tab}`)
-      .then(({ deleted: rows }) => {
-        const fakeLibrary = { ...library, [tab]: rows } as SharedLibrary;
+      .then(({ deleted: deletedRows }) => {
+        const fakeLibrary = { ...library, [tab]: deletedRows } as SharedLibrary;
         setDeleted(toDisplayItems(fakeLibrary, tab));
       })
       .catch((err: unknown) => {
@@ -99,7 +150,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
     api
       .patch(`/libraries/${systemId}/${tab}`, { id, restore: true })
       .then(() => {
-        setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
+        setDeleted((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         toast.success('Item restaurado.');
       })
       .catch((err: unknown) => {
@@ -108,13 +159,21 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
   };
 
   const openCreate = () => {
-    setEditingId(null);
+    setFormTarget(null);
     setFormOpen(true);
   };
   const openEdit = (id: string) => {
-    setEditingId(id);
+    setFormTarget({ mode: 'edit', id });
     setFormOpen(true);
   };
+  const openTranslate = (sourceId: string, locale: LibraryItemLocale) => {
+    setFormTarget({ mode: 'translate', sourceId, locale });
+    setFormOpen(true);
+  };
+
+  const formKey = formTarget
+    ? `${formTarget.mode}-${formTarget.mode === 'edit' ? formTarget.id : formTarget.sourceId}`
+    : 'new';
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 md:px-10 md:py-10">
@@ -206,27 +265,62 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {items.map((item) => (
+          {rows.map(({ group, selected, display }) => (
             <div
-              key={item.id}
+              key={group[0].groupId}
               className="flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-neutral-200">{item.name}</p>
-                  {item.tag && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-neutral-200">{display.name}</p>
+                  {display.tag && (
                     <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-500 uppercase">
-                      {item.tag}
+                      {display.tag}
                     </span>
                   )}
+                  {group.length > 1 ? (
+                    <div className="flex shrink-0 overflow-hidden rounded-full border border-neutral-700 text-[10px] font-semibold">
+                      {group.map((variant) => (
+                        <button
+                          key={variant.locale}
+                          type="button"
+                          title={`Ver em ${LOCALE_LABEL[variant.locale]}`}
+                          onClick={() =>
+                            setLocaleOverrides((o) => ({
+                              ...o,
+                              [group[0].groupId]: variant.locale,
+                            }))
+                          }
+                          className={cn(
+                            'px-2 py-0.5 transition',
+                            variant.locale === selected.locale
+                              ? 'text-ink bg-amber-500'
+                              : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200',
+                          )}
+                        >
+                          {LOCALE_LABEL[variant.locale]}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      title={`Adicionar tradução em ${LOCALE_LABEL[otherLocale(selected.locale)]}`}
+                      onClick={() => openTranslate(selected.id, otherLocale(selected.locale))}
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-dashed border-neutral-700 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:border-amber-600 hover:text-amber-400"
+                    >
+                      <Languages className="h-3 w-3" strokeWidth={2} />+{' '}
+                      {LOCALE_LABEL[otherLocale(selected.locale)]}
+                    </button>
+                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-neutral-500">{item.desc}</p>
+                <p className="mt-0.5 text-xs text-neutral-500">{display.desc}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   title="Editar"
-                  onClick={() => openEdit(item.id)}
+                  onClick={() => openEdit(selected.id)}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-800 hover:text-amber-400"
                 >
                   <Pencil className="h-4 w-4" strokeWidth={1.8} />
@@ -235,7 +329,7 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
                   <button
                     type="button"
                     title="Excluir"
-                    onClick={() => setConfirmDeleteId(item.id)}
+                    onClick={() => setConfirmDeleteId(selected.id)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-neutral-800 hover:text-rose-400"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={1.8} />
@@ -249,68 +343,161 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
 
       {tab === 'magias' && (
         <SpellLibraryFormDialog
-          key={editingId ?? 'new'}
+          key={formKey}
           open={formOpen}
           onOpenChange={setFormOpen}
-          initial={editingItem as SharedLibrary['magias'][number] | undefined}
+          initial={sourceItem as SharedLibrary['magias'][number] | undefined}
           onSubmit={(spell) => {
-            if (editingId) updateLibraryItem(systemId, 'magias', { ...spell, id: editingId });
-            else addSpellToLibrary(systemId, { ...spell, id: crypto.randomUUID() });
+            if (formTarget?.mode === 'edit' && sourceItem)
+              updateLibraryItem(systemId, 'magias', {
+                ...spell,
+                id: formTarget.id,
+                locale: sourceItem.locale,
+                groupId: sourceItem.groupId,
+              });
+            else if (formTarget?.mode === 'translate' && sourceItem)
+              addSpellToLibrary(systemId, {
+                ...spell,
+                id: crypto.randomUUID(),
+                locale: formTarget.locale,
+                groupId: sourceItem.groupId,
+              });
+            else
+              addSpellToLibrary(systemId, {
+                ...spell,
+                id: crypto.randomUUID(),
+                locale: user.libraryLocale,
+                groupId: crypto.randomUUID(),
+              });
+            setFormTarget(null);
             setFormOpen(false);
           }}
         />
       )}
       {tab === 'armas' && (
         <WeaponLibraryAddDialog
-          key={editingId ?? 'new'}
+          key={formKey}
           open={formOpen}
           onOpenChange={setFormOpen}
-          initial={editingItem as SharedLibrary['armas'][number] | undefined}
+          initial={sourceItem as SharedLibrary['armas'][number] | undefined}
           addToSheet={false}
           onSubmit={(weapon) => {
-            if (editingId) updateLibraryItem(systemId, 'armas', { ...weapon, id: editingId });
-            else addWeaponToLibrary(systemId, { ...weapon, id: crypto.randomUUID() });
+            if (formTarget?.mode === 'edit' && sourceItem)
+              updateLibraryItem(systemId, 'armas', {
+                ...weapon,
+                id: formTarget.id,
+                locale: sourceItem.locale,
+                groupId: sourceItem.groupId,
+              });
+            else if (formTarget?.mode === 'translate' && sourceItem)
+              addWeaponToLibrary(systemId, {
+                ...weapon,
+                id: crypto.randomUUID(),
+                locale: formTarget.locale,
+                groupId: sourceItem.groupId,
+              });
+            else
+              addWeaponToLibrary(systemId, {
+                ...weapon,
+                id: crypto.randomUUID(),
+                locale: user.libraryLocale,
+                groupId: crypto.randomUUID(),
+              });
+            setFormTarget(null);
             setFormOpen(false);
           }}
         />
       )}
       {tab === 'talentos' && (
         <FeatLibraryAddDialog
-          key={editingId ?? 'new'}
+          key={formKey}
           open={formOpen}
           onOpenChange={setFormOpen}
-          initial={editingItem as SharedLibrary['talentos'][number] | undefined}
+          initial={sourceItem as SharedLibrary['talentos'][number] | undefined}
           addToSheet={false}
           onSubmit={(feat) => {
-            if (editingId) updateLibraryItem(systemId, 'talentos', { ...feat, id: editingId });
-            else addFeatToLibrary(systemId, { ...feat, id: crypto.randomUUID() });
+            if (formTarget?.mode === 'edit' && sourceItem)
+              updateLibraryItem(systemId, 'talentos', {
+                ...feat,
+                id: formTarget.id,
+                locale: sourceItem.locale,
+                groupId: sourceItem.groupId,
+              });
+            else if (formTarget?.mode === 'translate' && sourceItem)
+              addFeatToLibrary(systemId, {
+                ...feat,
+                id: crypto.randomUUID(),
+                locale: formTarget.locale,
+                groupId: sourceItem.groupId,
+              });
+            else
+              addFeatToLibrary(systemId, {
+                ...feat,
+                id: crypto.randomUUID(),
+                locale: user.libraryLocale,
+                groupId: crypto.randomUUID(),
+              });
+            setFormTarget(null);
             setFormOpen(false);
           }}
         />
       )}
       {tab === 'habilidades' && (
         <SpecialFormDialog
-          key={editingId ?? 'new'}
+          key={formKey}
           open={formOpen}
           onOpenChange={setFormOpen}
-          initial={editingItem as SharedLibrary['habilidades'][number] | undefined}
+          initial={sourceItem as SharedLibrary['habilidades'][number] | undefined}
           onSubmit={(special) => {
-            if (editingId)
-              updateLibraryItem(systemId, 'habilidades', { ...special, id: editingId });
-            else addSpecialToLibrary(systemId, { ...special, id: crypto.randomUUID() });
+            if (formTarget?.mode === 'edit' && sourceItem)
+              updateLibraryItem(systemId, 'habilidades', {
+                ...special,
+                id: formTarget.id,
+                locale: sourceItem.locale,
+                groupId: sourceItem.groupId,
+              });
+            else if (formTarget?.mode === 'translate' && sourceItem)
+              addSpecialToLibrary(systemId, {
+                ...special,
+                id: crypto.randomUUID(),
+                locale: formTarget.locale,
+                groupId: sourceItem.groupId,
+              });
+            else
+              addSpecialToLibrary(systemId, {
+                ...special,
+                id: crypto.randomUUID(),
+                locale: user.libraryLocale,
+                groupId: crypto.randomUUID(),
+              });
+            setFormTarget(null);
             setFormOpen(false);
           }}
         />
       )}
       {PLAIN_CATEGORIES.has(tab) && (
         <AddLibraryItemDialog
-          key={editingId ?? 'new'}
+          key={formKey}
           open={formOpen}
           onOpenChange={setFormOpen}
-          initial={editingItem as { name: string; desc: string } | undefined}
+          initial={sourceItem as { name: string; desc: string } | undefined}
           onSubmit={(values) => {
-            if (editingId) updateLibraryItem(systemId, tab, { ...values, tag: '', id: editingId });
+            if (formTarget?.mode === 'edit' && sourceItem)
+              updateLibraryItem(systemId, tab, {
+                ...values,
+                tag: '',
+                id: formTarget.id,
+                locale: sourceItem.locale,
+                groupId: sourceItem.groupId,
+              });
+            else if (formTarget?.mode === 'translate' && sourceItem)
+              addLibraryItem(systemId, tab, {
+                ...values,
+                locale: formTarget.locale,
+                groupId: sourceItem.groupId,
+              });
             else addLibraryItem(systemId, tab, values);
+            setFormTarget(null);
             setFormOpen(false);
           }}
         />

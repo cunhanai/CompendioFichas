@@ -11,6 +11,7 @@ import { PasswordField } from '@/shared/ui/atoms/PasswordField';
 import { Button } from '@/shared/ui/atoms/Button';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppToast } from '@/shared/ui/organisms';
+import { cn } from '@/shared/lib/cn';
 import {
   accountSchema,
   passwordSchema,
@@ -31,6 +32,7 @@ export function AccountCard({ user, onSaved }: AccountCardProps) {
   const toast = useAppToast();
   const [editing, setEditing] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [libraryLocale, setLibraryLocale] = useState(user.libraryLocale);
   const {
     register,
     handleSubmit,
@@ -50,7 +52,10 @@ export function AccountCard({ user, onSaved }: AccountCardProps) {
 
   const onSaveAccount = async (values: AccountValues) => {
     try {
-      const { user: updated } = await api.patch<{ user: UserProfile }>('/user', values);
+      const { user: updated } = await api.patch<{ user: UserProfile }>('/user', {
+        ...values,
+        libraryLocale,
+      });
       onSaved(updated);
       setEditing(false);
     } catch (err) {
@@ -98,6 +103,10 @@ export function AccountCard({ user, onSaved }: AccountCardProps) {
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
           <FieldView label="Nome" value={user.name} />
           <FieldView label="Nome de usuário" value={`@${user.username}`} />
+          <FieldView
+            label="Idioma da biblioteca"
+            value={user.libraryLocale === 'pt' ? 'Português' : 'Inglês'}
+          />
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSaveAccount)}>
@@ -109,6 +118,32 @@ export function AccountCard({ user, onSaved }: AccountCardProps) {
               error={errors.username?.message}
               {...register('username')}
             />
+          </div>
+          <div className="mt-3">
+            <span className="mb-1.5 block text-xs font-medium text-neutral-400">
+              Idioma da biblioteca
+            </span>
+            <p className="mb-1.5 text-[11px] text-neutral-600">
+              Quando um item da biblioteca compartilhada tem mais de um idioma cadastrado, mostra
+              nesse por padrão.
+            </p>
+            <div className="flex gap-2">
+              {(['pt', 'en'] as const).map((locale) => (
+                <button
+                  key={locale}
+                  type="button"
+                  onClick={() => setLibraryLocale(locale)}
+                  className={cn(
+                    'rounded-lg px-3.5 py-2 text-xs font-medium transition',
+                    libraryLocale === locale
+                      ? 'text-ink bg-amber-500'
+                      : 'bg-neutral-800 text-neutral-400 hover:text-neutral-200',
+                  )}
+                >
+                  {locale === 'pt' ? 'Português' : 'Inglês'}
+                </button>
+              ))}
+            </div>
           </div>
           <Button type="submit" className="mt-4 w-full">
             Salvar

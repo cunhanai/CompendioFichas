@@ -273,9 +273,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const addLibraryItem: AppDataContextValue['addLibraryItem'] = (
     systemId,
     category,
-    { name, desc },
+    { name, desc, locale, groupId },
   ) => {
     const id = crypto.randomUUID();
+    // Every new standalone item starts its own group of one, in the account's own default
+    // language, unless the caller is adding a translation of an existing item (LibraryPage) and
+    // passed both explicitly — see LibraryItemLocaleFields, entities/library-item/model/types.ts.
+    const localeFields = { locale: locale ?? data.user.libraryLocale, groupId: groupId ?? id };
     switch (category) {
       case 'pericias':
       case 'idiomas':
@@ -283,7 +287,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       case 'classes':
       case 'racas':
       case 'tipos':
-        return postLibraryItem(systemId, category, { id, name, desc, tag: '' });
+        return postLibraryItem(systemId, category, { id, name, desc, tag: '', ...localeFields });
       case 'habilidades':
         return postLibraryItem(systemId, 'habilidades', {
           id,
@@ -293,6 +297,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           resumo: '',
           fonte: '',
           desc,
+          ...localeFields,
         });
       case 'magias':
         return postLibraryItem(systemId, 'magias', {
@@ -305,6 +310,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           duration: '',
           resistance: '',
           desc,
+          ...localeFields,
         });
       case 'armas':
         return postLibraryItem(systemId, 'armas', {
@@ -318,6 +324,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           desc,
           hasAmmo: false,
           ammoMax: 0,
+          ...localeFields,
         });
     }
   };

@@ -10,14 +10,28 @@ export type LibraryCategory =
   | 'racas'
   | 'tipos';
 
-export interface LibraryItem {
+/** Which language this library item's text is written in. Every item has exactly one — a second
+ * language is a second item (same `groupId`, different `locale`), never a field that holds both
+ * at once (see `groupId` below). */
+export type LibraryItemLocale = 'pt' | 'en';
+
+/** Links every language variant of "the same conceptual item" together — a lone item (the
+ * common case, no translation yet) is simply a group of one, with a `groupId` nothing else
+ * shares. `resolveLibraryLocale` (./locale.ts) is what actually groups items by this and picks
+ * one per group to show. */
+export interface LibraryItemLocaleFields {
+  locale: LibraryItemLocale;
+  groupId: string;
+}
+
+export interface LibraryItem extends LibraryItemLocaleFields {
   id: string;
   name: string;
   desc: string;
   tag: string;
 }
 
-export interface SpellLibraryItem {
+export interface SpellLibraryItem extends LibraryItemLocaleFields {
   id: string;
   name: string;
   school: string;
@@ -29,7 +43,7 @@ export interface SpellLibraryItem {
   desc: string;
 }
 
-export interface WeaponLibraryItem {
+export interface WeaponLibraryItem extends LibraryItemLocaleFields {
   id: string;
   name: string;
   atk: string;
@@ -42,7 +56,7 @@ export interface WeaponLibraryItem {
   ammoMax: number;
 }
 
-export interface SpecialLibraryItem {
+export interface SpecialLibraryItem extends LibraryItemLocaleFields {
   id: string;
   name: string;
   subtitle: string;
@@ -52,7 +66,7 @@ export interface SpecialLibraryItem {
   desc: string;
 }
 
-export interface FeatLibraryItem {
+export interface FeatLibraryItem extends LibraryItemLocaleFields {
   id: string;
   name: string;
   tag: string;

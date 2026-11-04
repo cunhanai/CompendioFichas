@@ -15,7 +15,7 @@ import { SectionCard, SectionCardHeader } from '@/shared/ui/molecules/SectionCar
 
 export function TalentosTab({ characterId, systemId }: { characterId: string; systemId: string }) {
   const { character, update } = useCharacter(characterId);
-  const { addFeatToLibrary, addSpecialToLibrary } = useAppData();
+  const { user, addFeatToLibrary, addSpecialToLibrary } = useAppData();
   const library = useLibrary(systemId);
   const [featPickOpen, setFeatPickOpen] = useState(false);
   const [specialPickOpen, setSpecialPickOpen] = useState(false);
@@ -113,8 +113,9 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         onOpenChange={setNewFeatOpen}
         onSubmit={(feat) => {
           const id = crypto.randomUUID();
-          addFeatToLibrary(systemId, { ...feat, id });
-          update((c) => addFeatFromLibrary(c, { ...feat, id }));
+          const fullFeat = { ...feat, id, locale: user.libraryLocale, groupId: id };
+          addFeatToLibrary(systemId, fullFeat);
+          update((c) => addFeatFromLibrary(c, fullFeat));
           setNewFeatOpen(false);
         }}
       />
@@ -137,7 +138,8 @@ export function TalentosTab({ characterId, systemId }: { characterId: string; sy
         onOpenChange={setNewSpecialOpen}
         showShareToggle
         onSubmit={(special, shareToLibrary) => {
-          const item = { ...special, id: crypto.randomUUID() };
+          const id = crypto.randomUUID();
+          const item = { ...special, id, locale: user.libraryLocale, groupId: id };
           if (shareToLibrary) addSpecialToLibrary(systemId, item);
           update((c) => addSpecialFromLibrary(c, item));
           setNewSpecialOpen(false);

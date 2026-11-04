@@ -12,13 +12,16 @@ export interface SpecialFormDialogProps {
    * should remount this component (e.g. `key={editing?.id ?? 'new'}`) when switching which item
    * is being edited. Never set from the sheet's own "criar nova habilidade" flow, which always
    * creates fresh (see `showShareToggle` below). */
-  initial?: Omit<SpecialLibraryItem, 'id'>;
+  initial?: Omit<SpecialLibraryItem, 'id' | 'locale' | 'groupId'>;
   /** True from the sheet's "criar nova habilidade" flow (TalentosTab/SpecialPickDialog), which
    * shows the "Compartilhar na biblioteca" switch and reports the player's choice back via
    * `onSubmit`'s second argument. False from LibraryPage, which has no character to add to and
    * always means the library copy — the switch is hidden and that argument is unused. */
   showShareToggle?: boolean;
-  onSubmit: (special: Omit<SpecialLibraryItem, 'id'>, shareToLibrary: boolean) => void;
+  onSubmit: (
+    special: Omit<SpecialLibraryItem, 'id' | 'locale' | 'groupId'>,
+    shareToLibrary: boolean,
+  ) => void;
 }
 
 const blank = {
