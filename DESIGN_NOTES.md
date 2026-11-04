@@ -1731,3 +1731,48 @@ Achados considerados e **não corrigidos** nesta leva:
 - Uma versão por closures (em vez de genérica sobre `PgTable`) dos 10 `setDeletedX` foi sugerida
   como possível redução de duplicação, mas não verificada se compila/mantém o comportamento —
   não implementada sem essa verificação.
+
+## Priorização do backlog + prévia da história em markdown + listagem responsiva
+
+Pedido do usuário em 2026-11-04: definir prioridades explícitas do `BACKLOG.md` (bugs sempre
+primeiro — P0; depois prévia da história em markdown e listagem responsiva — P1; depois botão de
+exclusão permanente na lixeira e visualização de item da lixeira — P2, registrados mas não
+implementados ainda; o resto sem prioridade até haver conversa) e reestruturar o arquivo pra
+cada item carregar sempre os mesmos seis campos (Título, Resumo, Estado atual, Pronto pra
+começar, Tamanho, Prioridade) — pensado para alimentar sem reformatação a futura tela de
+Solicitações/kanban. **Nova regra de processo, registrada em `CLAUDE.md`**: toda vez que um item
+novo entrar em `BACKLOG.md`, a prioridade dele precisa ser definida com o usuário antes, nunca
+inventada.
+
+- **Investigação dos dois bugs P0** (redefinir senha de outro usuário; alerta de segurança
+  dispensado voltando no F5) — lida de ponta a ponta toda a cadeia de código de cada um
+  (dispatcher → handler → auth → DB → frontend → diálogo) e **nenhum defeito foi encontrado por
+  leitura de código** em nenhum dos dois. Sem `DATABASE_URL` neste ambiente não há como logar e
+  reproduzir de fato, então nenhuma correção foi aplicada "no escuro" — os dois ficam registrados
+  no backlog como P0 ainda pendentes, esperando uma reprodução concreta (o que a tela mostra, o
+  que aparece no Network) em vez de uma tentativa de fix especulativa.
+- **Prévia da história do personagem (aba Geral) não renderizava markdown** — mostrava
+  `character.story` cru num `<p className="line-clamp-3">`, então **negrito** aparecia com os
+  asteriscos literais, mesmo a história completa (`StoryDialog`) já suportando markdown de
+  verdade via o componente compartilhado `Markdown`. Corrigido dando ao `Markdown` uma prop
+  `className` opcional (mesclada no `<div>` externo via `cn()`), permitindo `<Markdown
+  className="line-clamp-3">` no lugar do `<p>` antigo — negrito/itálico renderizam como
+  `<strong>`/`<em>` (inline, então o clamp de 3 linhas continua truncando do mesmo jeito).
+- **Listagem de sistemas/personagens: lista no mobile, cards no desktop** — `SystemsPage` e
+  `CharactersPage` mostravam tudo como lista (linha horizontal), inclusive no desktop.
+  - `SystemCard` já tinha as duas formas visuais que o pedido queria (`wide`, usado aqui; `grid`,
+    usado em `DashboardPage`'s "Seus sistemas") — só faltava alternar entre elas por breakpoint.
+    Ganhou um terceiro `variant="responsive"` que renderiza as duas formas ao mesmo tempo, cada
+    uma escondida por CSS no tamanho de tela errado (`sm:hidden`/`hidden sm:block` — mesmo padrão
+    Tailwind-só, sem JS de media query, que o chevron do `CharCard` já usava), em vez de duplicar
+    essa lógica de toggle em cada uma das 4 seções de `SystemsPage` que precisavam dela.
+    `SystemsPage` só troca `variant="wide"` por `variant="responsive"` e envolve cada lista num
+    grid responsivo (`sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`).
+  - `CharCard` (usado em `CharactersPage`) **não tem** um variant de card compacto equivalente ao
+    `grid` do `SystemCard` — não existe nenhum já pronto pra copiar, diferente do que o pedido
+    original assumia. Em vez de desenhar um card novo do zero (fora do escopo pedido — "não um
+    componente novo do zero"), a solução foi reorganizar o mesmo `CharCard` (sem mudar sua forma
+    alongada) num grid responsivo (1 coluna no mobile, 2–3 no desktop) em vez de uma lista de uma
+    coluna sempre. Se o usuário quiser de fato um card compacto distinto pra personagens (tipo o
+    tile do `SystemCard`), isso é um desenho novo e fica como um próximo pedido explícito, não
+    assumido aqui.

@@ -20,4 +20,10 @@ describe('Markdown', () => {
     const { container } = render(<Markdown>{'Linha um\nLinha dois'}</Markdown>);
     expect(container.querySelectorAll('br')).toHaveLength(1);
   });
+
+  it('merges a custom className onto the wrapper without dropping the base styling', () => {
+    const { container } = render(<Markdown className="line-clamp-3">{'Texto'}</Markdown>);
+    const wrapper = container.firstElementChild;
+    expect(wrapper).toHaveClass('line-clamp-3', 'text-sm', 'leading-relaxed');
+  });
 });

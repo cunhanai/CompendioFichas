@@ -123,7 +123,7 @@ export function CharactersPage() {
           <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-emerald-500/80 uppercase">
             Ativos
           </h2>
-          <div className="mb-6 flex flex-col gap-2.5">
+          <div className="mb-6 flex flex-col gap-2.5 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 lg:grid-cols-3">
             {active.map((c) => (
               <CharCard key={c.id} {...cardProps(c, true)} />
             ))}
@@ -148,7 +148,7 @@ export function CharactersPage() {
           <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-neutral-600 uppercase">
             Inativos
           </h2>
-          <div className="flex flex-col gap-2.5 opacity-70">
+          <div className="flex flex-col gap-2.5 opacity-70 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 lg:grid-cols-3">
             {inactive.map((c) => (
               <CharCard key={c.id} {...cardProps(c, true)} />
             ))}
@@ -161,7 +161,7 @@ export function CharactersPage() {
           <h2 className="mt-6 mb-2.5 text-xs font-semibold tracking-wider text-sky-500/80 uppercase">
             Fichas compartilhadas
           </h2>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 lg:grid-cols-3">
             {sharedWithMeHere.map(({ character: c, ownerUsername }) => (
               <CharCard
                 key={c.id}

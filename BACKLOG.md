@@ -6,132 +6,200 @@ item), sem data definida para início. Lista viva — itens saem daqui quando im
 conforme chegam. Para o resumo de alto nível de feito/planejado/faltando, veja
 [`ONBOARDING.md`](./ONBOARDING.md#5-estado-do-projeto-feito-planejado-faltando).
 
-Os itens abaixo foram registrados originalmente a partir de um pedido em lote de 2026-09-30/10-01
-(branch `claude/reported-bugs-batch-3`); quatro itens pequenos dessa leva já foram resolvidos na
-hora e ficam listados em "Já resolvidos" no fim deste arquivo, não aqui.
+Os itens da seção "Já resolvidos" no fim deste arquivo foram registrados originalmente a partir
+de um pedido em lote de 2026-09-30/10-01 (branch `claude/reported-bugs-batch-3`); quatro itens
+pequenos dessa leva já foram resolvidos na hora e não aparecem aqui.
 
-## Bugs reportados — ainda não investigados
+## Como este arquivo é organizado (regra de processo)
 
-- **Redefinir senha de outro usuário não está funcionando** (reportado em 2026-11-04) — admin
-  tenta redefinir a senha de outra conta (tela de Gestão de usuários) e não funciona. Ainda sem
-  diagnóstico: não se sabe se é erro silencioso, 500, senha não aplicada de fato, ou outra coisa.
-  Precisa reproduzir e investigar antes de corrigir.
-- **Dispensar o alerta de segurança ("N tentativas de login falhas...") some da tela, mas volta
-  ao atualizar a página** (reportado em 2026-11-04) — problema antigo, ainda não resolvido
-  (diferente do bug já corrigido em 2026-10-13, de um alerta quase idêntico reaparecer na hora —
-  ver "Já resolvidos"; este aqui é especificamente sobre sobreviver a um F5). A UI
-  (`SecurityAlertBanner`/`dismissSecurityAlert` em `AppDataProvider.tsx`) remove o alerta da tela
-  na hora (otimista) e chama `PATCH /api/admin/users/security-alerts/:id`; pelo código lido até
-  agora (`dismissSecurityAlertHandler`, `api/_lib/routes/adminUsers.ts`), o UPDATE e o filtro de
-  `GET /api/bootstrap` por `dismissed = false` parecem corretos à primeira vista — não foi
-  reproduzido nem investigado de fato (sem acesso a rodar a aplicação neste ambiente), só uma
-  leitura rápida do código. Precisa reproduzir com o Network aberto pra ver se o PATCH está
-  falhando silenciosamente, devolvendo erro, ou se é outra causa.
+Cada item pendente abaixo carrega sempre os mesmos seis campos — **Título, Resumo, Estado
+atual, Pronto pra começar, Tamanho, Prioridade** — pensado para alimentar sem reformatação uma
+futura tela de Solicitações/kanban (ver item correspondente mais abaixo). **Toda vez que um novo
+item entrar neste arquivo, a prioridade dele precisa ser definida com o usuário antes — não
+inventada.** Um item sem prioridade combinada entra como "a definir", nunca com um número
+chutado.
 
-## Pendentes — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
+Escala de prioridade em uso (definida pelo usuário em 2026-11-04):
 
-- **Modificadores de atributo variáveis: distinguir "temporário" de "modificador de classe" (e
-  possivelmente outros tipos) e redesenhar o popup do atributo** — pedido explícito de mudança de
-  design: "o valor final e o modificador do atributo final devem estar em destaque, depois as
-  somas por tipo, depois o descritivo de que tipo de atributos o personagem tem." Isso precisa de
-  uma definição de quais tipos de modificador existem (temporário, classe, racial, seria outros?),
-  como cada tipo empilha/soma, e o layout novo do popup (`AbilityDialog` ou equivalente). Não dá
-  pra implementar sem alinhar isso.
-- **Novos sistemas de RPG além de Pathfinder 1ª Ed.** (pedido em 2026-11-04) — por ordem de
-  prioridade: Vampire: The Masquerade, Dune, Tormenta20 e, talvez, Pathfinder 2ª Ed. e D&D 5ª Ed.
-  Hoje só Pathfinder 1e está de fato implementado — os outros sistemas já aparecem na navegação/
-  dados semente só como placeholder "em breve" (ver `CLAUDE.md`). Antes de começar qualquer um
-  desses sistemas, **precisa avaliar o estado atual do app pra receber fichas de outros
-  sistemas** — o tipo `Character` (`entities/character/model/types.ts`) e as ~22 tabelas
-  relacionais de personagem hoje são inteiramente modeladas em cima da ficha de Pathfinder 1e
-  (atributos, perícias, grimórios, manobras, etc. — mecânicas que não existem igual em Vampire ou
-  Dune); não dá pra saber de antemão quanto disso é genérico o suficiente pra reaproveitar (a
-  shell do app — auth, biblioteca compartilhada, compartilhamento, lixeira — provavelmente sim;
-  o modelo de dados da ficha em si, provavelmente não) sem entrar no código e comparar com as
-  fichas reais de cada sistema novo. Esse levantamento é o primeiro passo, antes de decidir a
-  abordagem (um `Character` por sistema? Um núcleo comum + extensão por sistema? Tabelas
-  totalmente novas por sistema?) — fica registrado aqui pra isso acontecer antes de qualquer
-  código.
-- **Criptografar todos os dados das fichas no banco** — decisão de arquitetura grande: que tipo de
-  criptografia (nível de coluna com `pgcrypto`, nível de aplicação com uma chave em variável de
-  ambiente, etc.), quais tabelas/colunas exatamente (a ficha inteira é ~22 tabelas), e como isso
-  interage com buscas/filtros que hoje são feitos direto no banco. Precisa de conversa antes de
-  qualquer código.
-- **Papel de "mantenedor" da biblioteca compartilhada + hierarquia de roles extensível**
-  (pedido em 2026-11-04) — hoje qualquer usuário autenticado pode adicionar/editar a biblioteca
-  (ver itens de biblioteca editável/removível acima, implementados nesta mesma leva); o pedido é
-  criar um papel dedicado só pra isso, deixando usuários comuns apenas visualizar e puxar itens
-  pra ficha, nunca editar/excluir/criar diretamente. Hierarquia desejada: `master > admin >
-mantenedor > usuário comum`, cumulativa (cada papel acima tem tudo que os de baixo têm, mais o
-  que é exclusivo dele) — e a modelagem precisa já deixar margem pra hierarquias não-lineares no
-  futuro (ex.: duas roles distintas e mutuamente exclusivas entre si, ambas derivadas da mesma
-  role-base, cada uma com permissões próprias além da base comum). Isso é uma mudança de
-  modelagem de permissões bem maior que o `isAdmin`/`isMaster` booleano atual (`users` table) —
-  precisa de desenho antes de codar. **Falta decidir o nome do papel** ("mantenedor" foi só um
-  nome de rascunho do próprio pedido) antes de implementar.
-- **Página genérica de "Solicitações"** (pedido em 2026-11-04, acompanha o item acima) — usuários
-  comuns (que no desenho acima deixam de poder editar a biblioteca direto) precisam de um jeito
-  de pedir uma adição/edição/exclusão de item, e isso vira uma solicitação revisável por quem tem
-  o papel de mantenedor (ou acima). Pedido explícito pra ser **genérica desde o início** — não
-  "solicitações da biblioteca", mas uma tela com index no menu principal reutilizável por
-  qualquer contexto futuro que precise de um fluxo de pedido→revisão. Campos obrigatórios que já
-  foram especificados: sistema, tipo de solicitação (aqui: adição/edição/exclusão de item da
-  biblioteca), um subtipo descritivo (ex.: "adicionar talento"), descrição da ação pedida, um
-  campo de texto livre do solicitante (máx. 500 caracteres), autor, role de destino (inferida
-  automaticamente pelo sistema — nesse caso "mantenedor e acima", não escolhida à mão), data/hora,
-  e — só quando for edição/exclusão — referência a qual item da biblioteca a solicitação se
-  refere. Regras de acesso já definidas: o autor pode ver qualquer solicitação (sua ou de
-  terceiros), mas só pode cancelar/marcar como resolvida **a própria**; qualquer um pode comentar
-  (comentário datado) na própria solicitação; mantenedor+ pode agir em **qualquer** solicitação —
-  comentar, recusar, marcar como resolvida, "e talvez mais alguma coisa, ainda não pensamos quais
-  outras ações fariam sentido". Precisa de busca, filtros e ordenação na listagem. O próprio
-  usuário classificou essa tela como "quase uma tela de suporte" e **ainda mal definida** — fica
-  pra uma conversa de design futura antes de qualquer código, não só pelo tamanho mas porque o
-  próprio escopo de ações/estados ainda está em aberto.
-  - **Complemento (pedido em 2026-11-04)**: a visualização da listagem pode ser tanto tabela
-    quanto kanban (por status, provavelmente). E o uso da tela pode ir além de solicitações de
-    biblioteca — também serviria pra sugestões de melhoria, relato de bugs, e um roadmap de
-    desenvolvimento visível pro usuário. Ainda sem definição de como esses diferentes "tipos de
-    uso" convivem na mesma tela genérica (abas? filtro de tipo? telas de entrada diferentes pro
-    mesmo backend?) — mais um ponto em aberto pra quando essa conversa de design acontecer.
+- **P0** — bugs reportados. Sempre primeiro, por padrão, sem precisar perguntar de novo a cada
+  novo bug.
+- **P1** — próximo depois dos bugs, nesta ordem explícita: prévia da história renderizar
+  markdown, depois listagem responsiva de sistemas/personagens.
+- **P2** — depois do P1: botão de exclusão permanente (lixeira, master-only), depois
+  visualização de item da lixeira.
+- **Sem prioridade definida** — todo o resto; precisa de conversa com o usuário antes de entrar
+  numa dessas faixas (a maioria também precisa de decisão de design antes de qualquer código,
+  ver campo "Pronto pra começar" de cada um).
 
-## Pendentes — bem definidos, mas grandes ou tocam muita coisa (não fiz nesta leva por escopo)
+## P0 — Bugs reportados
 
-- **Menu de "Configurações" (submenu), tirando usuário logado + Gestão de usuários do nível
-  principal do menu** (pedido em 2026-11-04) — hoje "Perfil"/conta e "Gestão de usuários" ficam
-  direto na navegação principal; o pedido é agrupar os dois num submenu de Configurações.
-  **Ainda precisa de desenho de design** (o próprio usuário marcou isso como em aberto) — qual
-  ícone, onde entra na sidebar/bottom bar, como fica em mobile, etc.
-  - **Lixeira genérica num submenu à parte**: "Fichas excluídas" (já existe, hoje dentro de
-    Gestão de usuários) e qualquer outro tipo de item excluído (ex.: a lixeira de itens da
-    biblioteca compartilhada, já implementada nesta mesma leva, hoje dentro da própria
-    `LibraryPage`) saem dali — o pedido é não ficar "dentro de Gestão de usuários" porque
-    conceitualmente não é gestão de usuário nenhuma. Vira um submenu próprio.
-  - **Botão de exclusão permanente, master-only**: hoje a lixeira só restaura (soft delete sem
-    rotina de limpeza automática — ver itens "[feito]" de exclusão de ficha/biblioteca). Pedido
-    novo: um botão, visível só pro usuário master, pra apagar um item da lixeira
-    **definitivamente** (hard delete), em vez de só restaurar.
-  - **Visualizar um item da lixeira ao clicar nele**: hoje a lixeira (de fichas, e a nova de
-    biblioteca) só lista nome + metadado + botão de restaurar — não dá pra abrir o item e ver o
-    conteúdo completo antes de decidir restaurar/apagar. Pedido: clicar no item abre uma
-    visualização (provavelmente somente leitura) do conteúdo dele.
+### Redefinir senha de outro usuário não funciona
 
-## Pendentes — pequenos, mesmo padrão já usado em outro lugar (próximos candidatos óbvios)
+- **Resumo:** admin abre "Gestão de usuários", clica em "Redefinir senha" de outra conta, e a
+  ação não funciona — sem diagnóstico ainda do que "não funciona" significa (nada acontece?
+  erro visível? gera senha mas ela não serve pra logar?).
+- **Estado atual:** investigado estaticamente em 2026-11-04 — lido de ponta a ponta o fluxo
+  completo (`UsersManagementPanel.tsx` → `ConfirmDialog` → `api.post('/admin/users/:id/reset-
+password')` → dispatcher `api/admin/users/[...path].ts` → `resetPasswordHandler` em
+  `api/_lib/routes/adminUsers.ts` → `requireAdminUser`/`hashPassword`/`generateTempPassword` →
+  `TempPasswordDialog` → o próprio login consumindo a senha nova e `mustChangePassword`) e
+  **nenhum defeito foi encontrado por leitura de código** — toda a cadeia parece correta.
+  Sem `DATABASE_URL` neste ambiente não há como logar e reproduzir de fato.
+- **Pronto para começar:** Não — falta reprodução concreta (o que a tela mostra/não mostra, se
+  aparece erro, código de status no Network, se a senha temporária gerada de fato não funciona
+  no login) antes de inventar uma correção para um defeito que a leitura de código não confirma.
+- **Tamanho:** P (uma vez que haja reprodução concreta — hoje é investigação, não código)
+- **Prioridade:** P0
 
-- **Listagem de sistemas e de personagens: cards no desktop, lista no mobile** (pedido em
-  2026-11-04) — hoje `SystemsPage` e `CharactersPage` mostram tudo como lista (linha com
-  avatar/ícone + texto), inclusive no desktop. Pedido: no mobile continuar em lista (mais fácil de
-  visualizar na tela estreita); no desktop, virar cards — como o card "sistema favorito" que já
-  existe na tela inicial (`DashboardPage`, a seção "Seus sistemas"). O padrão visual do card já
-  existe pronto pra copiar; o trabalho é responsivo (breakpoint mobile/desktop) nas duas telas de
-  listagem, não um componente novo do zero.
-- **Prévia da história do personagem não renderiza markdown** (reportado em 2026-11-04) — a aba
-  Geral mostra um resumo de `character.story` (3 linhas, com "Ler mais") como texto puro
-  (`GeralTab.tsx`, `{character.story}` direto num `<p>`), então um personagem com **negrito**
-  aparece com os asteriscos literais na prévia, mesmo já suportando markdown de verdade dentro do
-  `StoryDialog` (que usa o componente `Markdown` compartilhado). Troca pequena: usar `Markdown`
-  (ou uma versão truncada dele) também na prévia — mesmo padrão já usado em outros lugares da
-  ficha.
+### Alerta de segurança dispensado volta ao atualizar a página (F5)
+
+- **Resumo:** admin dispensa o alerta "N tentativas de login falhas...", ele some da tela, mas
+  reaparece depois de um F5 — diferente do bug já corrigido em 2026-10-13 (reaparecer na hora,
+  sem F5; ver "Já resolvidos").
+- **Estado atual:** investigado estaticamente em 2026-11-04 — lido o fluxo completo
+  (`SecurityAlertBanner.tsx` → `dismissSecurityAlert` em `AppDataProvider.tsx` → `PATCH /api/
+admin/users/security-alerts/:id` → `dismissSecurityAlertHandler` em `adminUsers.ts`, que
+  marca `dismissed = true` em toda linha ativa → `GET /api/bootstrap`, que já filtra por
+  `dismissed = false`) e **nenhum defeito foi encontrado por leitura de código**. Hipótese não
+  descartada: um novo alerta genuíno sendo levantado por `maybeRaiseSecurityAlert` se os logins
+  falhos continuarem depois do dismiss — nesse caso não seria bug, seria o alerta antigo
+  reaparecendo por coincidência de texto. Sem ambiente pra reproduzir, não dá pra confirmar.
+- **Pronto para começar:** Não — falta reprodução com o Network aberto no momento em que o
+  alerta reaparece (ver se é o mesmo `id` de antes do dismiss, ou um `id` novo).
+- **Tamanho:** P (uma vez que haja reprodução concreta)
+- **Prioridade:** P0
+
+## P2 — Lixeira: hard delete e visualização (registrados agora, não implementados ainda)
+
+### Botão de exclusão permanente na lixeira, master-only
+
+- **Resumo:** hoje restaurar é a única ação da lixeira (soft delete sem rotina de limpeza
+  automática — fichas e itens de biblioteca). Pedido: um botão visível só pro usuário master
+  pra apagar um item da lixeira **definitivamente** (hard delete), em vez de só restaurar.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Sim — bem definido (quem pode ver o botão, o que ele faz), não
+  depende do menu de Configurações nem da lixeira genérica (pode entrar na UI de lixeira atual,
+  tanto `TrashDialog`/fichas quanto a lixeira de `LibraryPage`, e mudar de lugar depois se/quando
+  o submenu de Configurações for desenhado).
+- **Tamanho:** M (toca dois lugares — lixeira de fichas e de biblioteca — e exige endpoint
+  novo de hard delete admin-only em cada um)
+- **Prioridade:** P2
+
+### Visualizar o conteúdo de um item da lixeira ao clicar nele
+
+- **Resumo:** hoje a lixeira (fichas e biblioteca) só lista nome + metadado + botão de
+  restaurar — não dá pra ver o conteúdo completo do item antes de decidir restaurar ou apagar.
+  Pedido: clicar no item abre uma visualização (provavelmente somente leitura) do conteúdo
+  dele.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Sim — bem definido, mesma independência do menu de Configurações que
+  o item anterior.
+- **Tamanho:** M (um diálogo de visualização por categoria de item teria algum reaproveitamento
+  dos próprios diálogos de detalhe/edição já existentes, só em modo leitura)
+- **Prioridade:** P2
+
+## Sem prioridade definida — precisam de decisão ou são grandes o suficiente para valer uma conversa antes
+
+### Modificadores de atributo variáveis: distinguir tipos + redesenhar o popup
+
+- **Resumo:** pedido explícito de mudança de design no popup de atributo: "o valor final e o
+  modificador do atributo final devem estar em destaque, depois as somas por tipo, depois o
+  descritivo de que tipo de atributos o personagem tem" — hoje não existe essa distinção de
+  tipo (temporário vs. modificador de classe vs. possivelmente outros).
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — precisa definir primeiro quais tipos de modificador existem
+  (temporário, classe, racial, outros?), como cada tipo empilha/soma, e o layout novo do popup
+  (`AbilityDialog` ou equivalente).
+- **Tamanho:** M
+- **Prioridade:** a definir
+
+### Novos sistemas de RPG além de Pathfinder 1ª Ed.
+
+- **Resumo:** por ordem de prioridade do próprio pedido original: Vampire: The Masquerade,
+  Dune, Tormenta20 e, talvez, Pathfinder 2ª Ed. e D&D 5ª Ed. Hoje só Pathfinder 1e está de fato
+  implementado — os outros já aparecem na navegação/dados semente só como placeholder "em
+  breve" (ver `CLAUDE.md`).
+- **Estado atual:** não iniciado — nem o levantamento preliminar.
+- **Pronto para começar:** Não — antes de qualquer sistema novo, precisa avaliar o estado atual
+  do app pra receber fichas de outros sistemas. O tipo `Character`
+  (`entities/character/model/types.ts`) e as ~22 tabelas relacionais de personagem hoje são
+  inteiramente modeladas em cima da ficha de Pathfinder 1e (atributos, perícias, grimórios,
+  manobras — mecânicas que não existem igual em Vampire ou Dune); não dá pra saber de antemão
+  quanto disso é genérico o suficiente pra reaproveitar (a shell do app — auth, biblioteca
+  compartilhada, compartilhamento, lixeira — provavelmente sim; o modelo de dados da ficha em
+  si, provavelmente não) sem comparar com as fichas reais de cada sistema novo. Esse
+  levantamento é o primeiro passo, antes de decidir a abordagem (um `Character` por sistema? Um
+  núcleo comum + extensão por sistema? Tabelas totalmente novas por sistema?).
+- **Tamanho:** G (o levantamento sozinho já é trabalho; a implementação de cada sistema, mais
+  ainda)
+- **Prioridade:** a definir
+
+### Criptografar todos os dados das fichas no banco
+
+- **Resumo:** criptografar os dados de ficha de personagem armazenados no banco.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — decisão de arquitetura grande: que tipo de criptografia (nível
+  de coluna com `pgcrypto`, nível de aplicação com uma chave em variável de ambiente, etc.),
+  quais tabelas/colunas exatamente (a ficha inteira é ~22 tabelas), e como isso interage com
+  buscas/filtros hoje feitos direto no banco.
+- **Tamanho:** G
+- **Prioridade:** a definir
+
+### Papel de "mantenedor" da biblioteca compartilhada + hierarquia de roles extensível
+
+- **Resumo:** hoje qualquer usuário autenticado pode adicionar/editar a biblioteca
+  compartilhada; o pedido é criar um papel dedicado só pra isso, deixando usuários comuns
+  apenas visualizar e puxar itens pra ficha. Hierarquia desejada: `master > admin > mantenedor
+  > usuário comum`, cumulativa, já deixando margem pra hierarquias não-lineares no futuro (ex.:
+  > duas roles mutuamente exclusivas derivadas da mesma role-base, cada uma com permissões
+  > próprias além da base comum).
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — é uma mudança de modelagem de permissões bem maior que o
+  `isAdmin`/`isMaster` booleano atual (`users` table), precisa de desenho antes de codar. Falta
+  também decidir o nome do papel ("mantenedor" foi só um rascunho do próprio pedido).
+- **Tamanho:** G
+- **Prioridade:** a definir
+
+### Página genérica de "Solicitações"
+
+- **Resumo:** usuários comuns (que no desenho do item de "mantenedor" acima deixam de poder
+  editar a biblioteca direto) precisam de um jeito de pedir uma adição/edição/exclusão de item,
+  revisável por quem tem o papel de mantenedor (ou acima). Pedido explícito pra ser **genérica
+  desde o início** — não "solicitações da biblioteca", mas uma tela com entrada no menu
+  principal reutilizável por qualquer fluxo futuro de pedido→revisão (sugestões de melhoria,
+  relato de bugs, roadmap visível pro usuário). Campos já especificados: sistema, tipo de
+  solicitação, subtipo descritivo, descrição da ação pedida, texto livre do solicitante (máx.
+  500 caracteres), autor, role de destino (inferida automaticamente), data/hora, e — quando for
+  edição/exclusão — referência ao item da biblioteca. Regras de acesso já definidas: autor vê
+  qualquer solicitação mas só cancela/resolve a própria; qualquer um comenta na própria;
+  mantenedor+ age em qualquer uma (comentar, recusar, resolver, "e talvez mais alguma coisa").
+  Visualização pode ser tabela ou kanban (por status); precisa de busca/filtros/ordenação.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — o próprio usuário classificou essa tela como "quase uma tela
+  de suporte" e **ainda mal definida**: falta decidir como tabela/kanban e os diferentes "tipos
+  de uso" (biblioteca, bugs, sugestões, roadmap) convivem na mesma tela genérica (abas? filtro
+  de tipo? telas de entrada diferentes pro mesmo backend?), e que outras ações o mantenedor+
+  pode ter além de comentar/recusar/resolver.
+- **Tamanho:** G
+- **Prioridade:** a definir
+
+### Menu de "Configurações" (submenu) + lixeira genérica num submenu próprio
+
+- **Resumo:** hoje "Perfil"/conta e "Gestão de usuários" ficam direto na navegação principal; o
+  pedido é agrupar os dois num submenu de Configurações. Acompanha: tirar a lixeira de dentro de
+  "Gestão de usuários" (onde não faz sentido conceitualmente) e a lixeira de biblioteca de
+  dentro da própria `LibraryPage`, juntando as duas num submenu de lixeira à parte.
+- **Estado atual:** não iniciado.
+- **Pronto para começar:** Não — o próprio usuário marcou como em aberto: qual ícone, onde entra
+  na sidebar/bottom bar, como fica em mobile, etc.
+- **Tamanho:** M
+- **Prioridade:** a definir
+
+## P1 (concluído nesta leva, 2026-11-04) — ver "Já resolvidos"
+
+Os dois itens de prioridade P1 — prévia da história em markdown e listagem responsiva de
+sistemas/personagens — foram implementados nesta mesma leva e já aparecem na seção "Já
+resolvidos" abaixo, não como pendentes.
 
 ## Itens já resolvidos — **[feito]**
 
@@ -218,3 +286,18 @@ mantenedor > usuário comum`, cumulativa (cada papel acima tem tudo que os de ba
   visualização, não a preferência da conta), e um botão "+ tradução" quando só uma existe, que
   abre o mesmo formulário rico pré-preenchido com o conteúdo original (pra não precisar redigitar
   dano/CA/etc. que não muda entre idiomas) pra criar a outra versão, já ligada ao mesmo grupo.
+- **[feito]** Prévia da história do personagem (aba Geral) agora renderiza markdown de verdade
+  em vez de texto puro (negrito aparecia com asteriscos literais) — o componente `Markdown`
+  compartilhado ganhou uma prop `className` opcional, mesclada no wrapper, pra a prévia poder
+  aplicar `line-clamp-3` direto nele (como o antigo `<p>` fazia) sem perder a renderização de
+  **negrito**/_itálico_ (inline, então o clamp trunca igual).
+- **[feito]** Listagem de sistemas e de personagens responsiva: lista (uma coluna) no mobile,
+  cards lado a lado a partir do breakpoint `sm` no desktop. `SystemCard` ganhou um terceiro
+  variant (`'responsive'`) que renderiza as duas formas já existentes (`wide`/lista e
+  `grid`/card) ao mesmo tempo, cada uma escondida por CSS no breakpoint errado (mesmo padrão já
+  usado no chevron do `CharCard`, sem JS de media query) — `SystemsPage` só trocou `variant="wide"`
+  por `variant="responsive"` e envolveu as listas num grid responsivo. `CharactersPage` não tinha
+  (e não ganhou) um variant de card compacto equivalente para `CharCard` — não existia nenhum
+  pronto pra copiar, só o reaproveitamento do mesmo card atual, agora reorganizado num grid
+  responsivo (1 coluna no mobile, 2–3 no desktop) em vez de uma lista de uma coluna sempre; o
+  card em si manteve a mesma forma alongada em ambos os tamanhos de tela.
