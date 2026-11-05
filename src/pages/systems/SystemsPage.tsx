@@ -37,15 +37,17 @@ export function SystemsPage() {
           <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-amber-500/80 uppercase">
             Favorito
           </h2>
-          <SystemCard
-            variant="wide"
-            title={favorite.system.title}
-            status={favorite.status}
-            favorited={favorite.system.favorited}
-            logoUrl={favorite.system.logoUrl}
-            onOpen={() => navigate(routes.characters(favorite.system.id))}
-            onToggleFavorite={() => toggleSystemFavorite(favorite.system.id)}
-          />
+          <div className="sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
+            <SystemCard
+              variant="responsive"
+              title={favorite.system.title}
+              status={favorite.status}
+              favorited={favorite.system.favorited}
+              logoUrl={favorite.system.logoUrl}
+              onOpen={() => navigate(routes.characters(favorite.system.id))}
+              onToggleFavorite={() => toggleSystemFavorite(favorite.system.id)}
+            />
+          </div>
         </div>
       )}
 
@@ -56,11 +58,11 @@ export function SystemsPage() {
         {active.length === 0 ? (
           <p className="text-xs text-neutral-600">Nenhum outro sistema ativo no momento.</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
             {active.map(({ system, status }) => (
               <SystemCard
                 key={system.id}
-                variant="wide"
+                variant="responsive"
                 title={system.title}
                 status={status}
                 favorited={system.favorited}
@@ -77,11 +79,11 @@ export function SystemsPage() {
         <h2 className="mb-2.5 text-xs font-semibold tracking-wider text-neutral-600 uppercase">
           Inativos
         </h2>
-        <div className="mb-2 flex flex-col gap-2">
+        <div className="mb-2 flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
           {inactive.map(({ system, status }) => (
             <SystemCard
               key={system.id}
-              variant="wide"
+              variant="responsive"
               title={system.title}
               status={status}
               favorited={system.favorited}
@@ -95,11 +97,11 @@ export function SystemsPage() {
         {soon.length > 0 && (
           <>
             <p className="mt-4 mb-1.5 text-xs text-neutral-600">Em breve neste compêndio</p>
-            <div className="flex flex-col gap-2 opacity-50">
+            <div className="flex flex-col gap-2 opacity-50 sm:grid sm:grid-cols-2 sm:items-stretch sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
               {soon.map(({ system, status }) => (
                 <SystemCard
                   key={system.id}
-                  variant="wide"
+                  variant="responsive"
                   title={system.title}
                   status={status}
                   favorited={system.favorited}

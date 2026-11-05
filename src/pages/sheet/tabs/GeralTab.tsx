@@ -16,6 +16,7 @@ import {
 } from '@/features/sheet-identity';
 import { SectionCardButton, SectionCardHeader } from '@/shared/ui/molecules/SectionCard';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { Markdown } from '@/shared/ui/atoms/Markdown';
 
 type Popup = 'identity' | 'levelUp' | 'speed' | 'languages' | 'xp' | 'story' | null;
 
@@ -134,7 +135,7 @@ export function GeralTab({ characterId }: { characterId: string }) {
         <h3 className="mb-3 text-xs font-semibold tracking-wider text-neutral-500 uppercase">
           História do personagem
         </h3>
-        <p className="line-clamp-3 text-sm leading-relaxed text-neutral-300">{character.story}</p>
+        <Markdown className="line-clamp-3">{character.story}</Markdown>
         {character.story.length > STORY_PREVIEW_THRESHOLD && (
           <span className="mt-1.5 inline-block text-xs font-medium text-amber-500">Ler mais</span>
         )}

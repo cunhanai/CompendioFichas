@@ -1,16 +1,24 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
+import { cn } from '@/shared/lib/cn';
 
 /** Renders Markdown for free-text description fields — bold and tables (via remark-gfm), plus
  * single line breaks turned into actual breaks (remark-breaks) so existing plain-text
  * descriptions written before this component existed (where every `\n` was just a line break,
  * not a new paragraph) keep rendering the same way. Component overrides below only restyle what
  * Tailwind's preflight reset strips (table borders, list bullets) — everything else renders with
- * its normal tag and inherits surrounding text color. */
-export function Markdown({ children }: { children: string }) {
+ * its normal tag and inherits surrounding text color.
+ *
+ * `className` merges onto the outer wrapper — e.g. a `line-clamp-N` preview (GeralTab's story
+ * card) applies it here directly, instead of to a plain `<p>`, so bold/italic markdown renders
+ * as real `<strong>`/`<em>` (inline, so the clamp still truncates the same way) in the preview
+ * too, not just inside the full-text dialog. */
+export function Markdown({ children, className }: { children: string; className?: string }) {
   return (
-    <div className="text-sm leading-relaxed text-neutral-300 [&>*:last-child]:mb-0">
+    <div
+      className={cn('text-sm leading-relaxed text-neutral-300 [&>*:last-child]:mb-0', className)}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{

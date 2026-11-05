@@ -1,6 +1,7 @@
-import { ArchiveRestore } from 'lucide-react';
+import { ArchiveRestore, Trash2 } from 'lucide-react';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Button } from '@/shared/ui/atoms/Button';
+import { IconButton } from '@/shared/ui/atoms/IconButton';
 import { daysRemainingInTrash } from '../model/trash';
 import type { DeletedCharacterSummary } from '../model/types';
 
@@ -11,21 +12,32 @@ export interface DeletedCharacterRowProps {
   subtitle?: string;
   restoring: boolean;
   onRestore: () => void;
+  onView: () => void;
+  /** Omitted entirely for a non-master viewer — hard delete is master-only, enforced again on
+   * the backend, but there's no reason to even show the button otherwise. */
+  onHardDelete?: () => void;
 }
 
 /** One row in a trash list ("Lixeira") — shared by the owner's own trash (`TrashDialog`) and the
  * master's cross-user trash (`DeletedCharactersPanel`), which otherwise differ only in what they
- * fetch and this row's optional `subtitle`. */
+ * fetch and this row's optional `subtitle`. Clicking the row (anywhere but the action buttons)
+ * opens `DeletedCharacterViewDialog`. */
 export function DeletedCharacterRow({
   character,
   subtitle,
   restoring,
   onRestore,
+  onView,
+  onHardDelete,
 }: DeletedCharacterRowProps) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg bg-neutral-950 px-3 py-2.5">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Avatar size="sm" />
+      <button
+        type="button"
+        onClick={onView}
+        className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+      >
+        <Avatar src={character.photoUrl} size="sm" />
         <div className="min-w-0">
           <p className="truncate text-sm text-neutral-200">{character.name}</p>
           <p className="truncate text-xs text-neutral-500">
@@ -33,11 +45,23 @@ export function DeletedCharacterRow({
             Restam {daysRemainingInTrash(character.deletedAt)} dias na lixeira
           </p>
         </div>
+      </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {onHardDelete && (
+          <IconButton
+            label="Excluir definitivamente"
+            variant="danger"
+            disabled={restoring}
+            onClick={onHardDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+          </IconButton>
+        )}
+        <Button size="sm" variant="secondary" disabled={restoring} onClick={onRestore}>
+          <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={1.8} />
+          Restaurar
+        </Button>
       </div>
-      <Button size="sm" variant="secondary" disabled={restoring} onClick={onRestore}>
-        <ArchiveRestore className="h-3.5 w-3.5" strokeWidth={1.8} />
-        Restaurar
-      </Button>
     </div>
   );
 }

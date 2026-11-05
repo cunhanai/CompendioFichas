@@ -1,9 +1,10 @@
-import { Home, Layers, LogOut, User, Users } from 'lucide-react';
+import { Home, Layers, LogOut, Sparkles, User, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 import { routes } from '@/shared/lib/routes';
 import { useSession } from '@/entities/session';
 import { useAppData } from '@/app/providers';
+import { CURRENT_VERSION } from '@/entities/changelog/model/data';
 
 const itemBase = 'flex flex-1 flex-col items-center justify-center py-2.5 transition';
 const itemOn = cn(itemBase, 'text-amber-400');
@@ -45,6 +46,19 @@ export function BottomBar() {
         onClick={() => navigate(routes.profile())}
       >
         <User className="h-5 w-5" strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        title="Novidades"
+        className={pathname === routes.changelog() ? itemOn : itemOff}
+        onClick={() => navigate(routes.changelog())}
+      >
+        <span className="relative inline-flex h-5 w-5">
+          <Sparkles className="h-5 w-5" strokeWidth={1.8} />
+          {user.lastSeenChangelogVersion !== CURRENT_VERSION && (
+            <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-violet-400" />
+          )}
+        </span>
       </button>
       {user.isAdmin && (
         <button

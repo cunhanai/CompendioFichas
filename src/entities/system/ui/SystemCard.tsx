@@ -20,7 +20,12 @@ export interface SystemCardProps {
   favorited: boolean;
   onOpen: () => void;
   onToggleFavorite?: () => void;
-  variant?: 'grid' | 'wide';
+  /** `'responsive'` renders both shapes at once, each hidden by breakpoint via CSS (no JS media
+   * query, same `hidden sm:block`-style approach already used elsewhere, e.g. `CharCard`'s
+   * chevron) — `wide` (list row) below `sm`, `grid` (tile) at `sm` and up. Used by `SystemsPage`,
+   * which wants a real list on mobile and the same cards `DashboardPage` already shows on
+   * desktop. */
+  variant?: 'grid' | 'wide' | 'responsive';
   logoUrl?: string;
 }
 
@@ -60,55 +65,49 @@ export function SystemCard({
 }: SystemCardProps) {
   const disabled = status === 'soon';
   const clickable = !disabled ? { onClick: onOpen } : {};
+  const keyDown = (e: React.KeyboardEvent) => {
+    if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onOpen();
+    }
+  };
 
-  if (variant === 'wide') {
-    return (
-      <div
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        aria-disabled={disabled}
-        {...clickable}
-        onKeyDown={(e) => {
-          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            onOpen();
-          }
-        }}
-        className={cn(
-          'flex w-full cursor-pointer items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-left transition hover:border-neutral-700',
-          disabled && 'pointer-events-none cursor-not-allowed opacity-60',
-        )}
-      >
-        <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-neutral-50 p-1.5">
-          {logoUrl ? (
-            <img src={logoUrl} alt={title} className="h-full w-full object-contain" />
-          ) : (
-            <BookOpen className="h-6 w-6 text-neutral-400" strokeWidth={1.6} />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="truncate text-sm font-medium text-neutral-200">{title}</span>
-        </div>
-        {onToggleFavorite && <FavoriteToggle favorited={favorited} onToggle={onToggleFavorite} />}
-        <Badge tone={STATUS_TONE[status]} size="sm">
-          {STATUS_LABEL[status]}
-        </Badge>
-      </div>
-    );
-  }
-
-  return (
+  const wide = (
     <div
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       {...clickable}
-      onKeyDown={(e) => {
-        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          onOpen();
-        }
-      }}
+      onKeyDown={keyDown}
+      className={cn(
+        'flex w-full cursor-pointer items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-left transition hover:border-neutral-700',
+        disabled && 'pointer-events-none cursor-not-allowed opacity-60',
+      )}
+    >
+      <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-neutral-50 p-1.5">
+        {logoUrl ? (
+          <img src={logoUrl} alt={title} className="h-full w-full object-contain" />
+        ) : (
+          <BookOpen className="h-6 w-6 text-neutral-400" strokeWidth={1.6} />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <span className="truncate text-sm font-medium text-neutral-200">{title}</span>
+      </div>
+      {onToggleFavorite && <FavoriteToggle favorited={favorited} onToggle={onToggleFavorite} />}
+      <Badge tone={STATUS_TONE[status]} size="sm">
+        {STATUS_LABEL[status]}
+      </Badge>
+    </div>
+  );
+
+  const grid = (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      {...clickable}
+      onKeyDown={keyDown}
       className={cn(
         'flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border text-center transition',
         favorited
@@ -136,5 +135,14 @@ export function SystemCard({
         </div>
       </div>
     </div>
+  );
+
+  if (variant === 'wide') return wide;
+  if (variant === 'grid') return grid;
+  return (
+    <>
+      <div className="sm:hidden">{wide}</div>
+      <div className="hidden sm:block">{grid}</div>
+    </>
   );
 }

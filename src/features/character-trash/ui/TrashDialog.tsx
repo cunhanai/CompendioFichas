@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { useAppToast } from '@/shared/ui/organisms';
+import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { api, ApiError } from '@/shared/lib/api';
+import { useAppData } from '@/app/providers';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
+import {
+  HARD_DELETE_CONFIRM_MESSAGE,
+  HARD_DELETE_CONFIRM_TITLE,
+  hardDeleteCharacter,
+} from '@/entities/character/model/trash';
 import { DeletedCharacterRow } from '@/entities/character/ui/DeletedCharacterRow';
+import { DeletedCharacterViewDialog } from '@/entities/character/ui/DeletedCharacterViewDialog';
 
 export interface TrashDialogProps {
   open: boolean;
@@ -12,12 +20,18 @@ export interface TrashDialogProps {
   onRestore: (id: string) => Promise<void>;
 }
 
-/** Owner's own trash — deleted characters from this system, with a "Restaurar" action. Fetched
- * lazily (only while open), same pattern as PhotoGalleryDialog/ActivityLog. */
+/** Owner's own trash — deleted characters from this system, with "Restaurar" and (master-only)
+ * "Excluir definitivamente" actions, plus a read-only view on click. Fetched lazily (only while
+ * open), same pattern as PhotoGalleryDialog/ActivityLog. */
 export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDialogProps) {
   const toast = useAppToast();
+  const { user } = useAppData();
   const [deleted, setDeleted] = useState<DeletedCharacterSummary[] | null>(null);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Every row currently mid-restore/mid-hard-delete — a Set (not a single id) so one row's
+  // in-flight request can't clobber another row's busy state and re-enable its buttons early.
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [confirmHardDeleteId, setConfirmHardDeleteId] = useState<string | null>(null);
   // Guards against an earlier fetch (e.g. from a fast close+reopen) resolving after a later one
   // and clobbering it with stale data — same pattern as PhotoGalleryDialog.
   const fetchSeq = useRef(0);
@@ -40,44 +54,90 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
 
   // Resets on close (rather than inside the fetch effect) so the next open always starts from a
   // clean loading state instead of briefly showing last time's list — same pattern as
-  // PhotoGalleryDialog's handleOpenChange.
+  // PhotoGalleryDialog's handleOpenChange. Also closes any view/confirm dialog left open from
+  // the previous visit, so it can't resurface over a stale id on reopen.
   const handleOpenChange = (next: boolean) => {
     onOpenChange(next);
-    if (!next) setDeleted(null);
+    if (!next) {
+      setDeleted(null);
+      setViewingId(null);
+      setConfirmHardDeleteId(null);
+    }
   };
 
   const forThisSystem = (deleted ?? []).filter((c) => c.systemId === systemId);
+  const viewing = forThisSystem.find((c) => c.id === viewingId) ?? null;
+
+  const setBusy = (id: string, busy: boolean) =>
+    setBusyIds((ids) => {
+      const next = new Set(ids);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   const handleRestore = async (id: string) => {
-    setRestoringId(id);
+    setBusy(id, true);
     try {
       await onRestore(id);
       setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível restaurar a ficha.');
     } finally {
-      setRestoringId(null);
+      setBusy(id, false);
+    }
+  };
+
+  const handleHardDelete = async (id: string) => {
+    setConfirmHardDeleteId(null);
+    setBusy(id, true);
+    try {
+      await hardDeleteCharacter(id);
+      setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
+      toast.success('Ficha excluída definitivamente.');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
+    } finally {
+      setBusy(id, false);
     }
   };
 
   return (
-    <Popup open={open} onOpenChange={handleOpenChange} title="Lixeira" size="sm">
-      {deleted === null ? (
-        <p className="py-6 text-center text-xs text-neutral-500">Carregando…</p>
-      ) : forThisSystem.length === 0 ? (
-        <p className="py-6 text-center text-xs text-neutral-500">Nenhuma ficha excluída.</p>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {forThisSystem.map((c) => (
-            <DeletedCharacterRow
-              key={c.id}
-              character={c}
-              restoring={restoringId === c.id}
-              onRestore={() => handleRestore(c.id)}
-            />
-          ))}
-        </div>
-      )}
-    </Popup>
+    <>
+      <Popup open={open} onOpenChange={handleOpenChange} title="Lixeira" size="sm">
+        {deleted === null ? (
+          <p className="py-6 text-center text-xs text-neutral-500">Carregando…</p>
+        ) : forThisSystem.length === 0 ? (
+          <p className="py-6 text-center text-xs text-neutral-500">Nenhuma ficha excluída.</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {forThisSystem.map((c) => (
+              <DeletedCharacterRow
+                key={c.id}
+                character={c}
+                restoring={busyIds.has(c.id)}
+                onRestore={() => handleRestore(c.id)}
+                onView={() => setViewingId(c.id)}
+                onHardDelete={user.isMaster ? () => setConfirmHardDeleteId(c.id) : undefined}
+              />
+            ))}
+          </div>
+        )}
+      </Popup>
+
+      <DeletedCharacterViewDialog
+        character={viewing}
+        onOpenChange={(next) => !next && setViewingId(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmHardDeleteId !== null}
+        onOpenChange={(next) => !next && setConfirmHardDeleteId(null)}
+        title={HARD_DELETE_CONFIRM_TITLE}
+        message={HARD_DELETE_CONFIRM_MESSAGE}
+        confirmLabel="Excluir definitivamente"
+        onConfirm={() => confirmHardDeleteId && handleHardDelete(confirmHardDeleteId)}
+      />
+    </>
   );
 }

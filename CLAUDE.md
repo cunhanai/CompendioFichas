@@ -241,3 +241,15 @@ the user needing to ask each time — this is a standing instruction from the pr
 a one-off ask. Read `DESIGN_NOTES.md` before starting nontrivial work in this repo; it's the
 canonical record of product decisions and their reasoning, and is longer and more authoritative
 than this file for anything product-shaped.
+
+### Process rule: every `BACKLOG.md` item needs a priority, defined with the user
+
+Every pending item in `BACKLOG.md` carries six fields — **Título, Resumo, Estado atual, Pronto
+pra começar, Tamanho, Prioridade** — and that structure is deliberate: it's meant to map
+directly onto the future "Solicitações"/kanban screen (see that item in the backlog itself)
+without reformatting. **Whenever a new item is added to `BACKLOG.md`, its priority must be
+defined with the user as part of that same change — never invented or guessed.** An item
+without an agreed priority goes in with "a definir", not a number picked on your own judgment.
+`BACKLOG.md`'s own "Como este arquivo é organizado" section documents the priority scale
+currently in use (P0/P1/P2/sem prioridade) — read it before adding or re-prioritizing anything
+there.

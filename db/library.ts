@@ -875,6 +875,151 @@ async function setDeletedCreatureTypes(
   }
 }
 
+/** Permanently deletes a library item already in the trash — master-only, not just admin
+ * (enforced by the route handler, not here — see `deleteLibraryItemHandler`'s `permanent`
+ * branch). Scoped by BOTH `category` and `systemId`, same reasoning as `setLibraryItemDeleted`.
+ * Only ever deletes a row that's already soft-deleted (`isNotNull(deletedAt)`) — a hard delete
+ * is one-way, so it never reaches directly into an active item by id alone, only ones already
+ * soft-deleted first. */
+export async function hardDeleteLibraryItem(
+  category: LibraryCategory,
+  systemId: string,
+  id: string,
+): Promise<boolean> {
+  switch (category) {
+    case 'magias': {
+      const rows = await db
+        .delete(librarySpells)
+        .where(
+          and(
+            eq(librarySpells.id, id),
+            eq(librarySpells.systemId, systemId),
+            isNotNull(librarySpells.deletedAt),
+          ),
+        )
+        .returning({ id: librarySpells.id });
+      return rows.length > 0;
+    }
+    case 'armas': {
+      const rows = await db
+        .delete(libraryWeapons)
+        .where(
+          and(
+            eq(libraryWeapons.id, id),
+            eq(libraryWeapons.systemId, systemId),
+            isNotNull(libraryWeapons.deletedAt),
+          ),
+        )
+        .returning({ id: libraryWeapons.id });
+      return rows.length > 0;
+    }
+    case 'habilidades': {
+      const rows = await db
+        .delete(librarySpecialAbilities)
+        .where(
+          and(
+            eq(librarySpecialAbilities.id, id),
+            eq(librarySpecialAbilities.systemId, systemId),
+            isNotNull(librarySpecialAbilities.deletedAt),
+          ),
+        )
+        .returning({ id: librarySpecialAbilities.id });
+      return rows.length > 0;
+    }
+    case 'talentos': {
+      const rows = await db
+        .delete(libraryFeats)
+        .where(
+          and(
+            eq(libraryFeats.id, id),
+            eq(libraryFeats.systemId, systemId),
+            isNotNull(libraryFeats.deletedAt),
+          ),
+        )
+        .returning({ id: libraryFeats.id });
+      return rows.length > 0;
+    }
+    case 'pericias': {
+      const rows = await db
+        .delete(librarySkills)
+        .where(
+          and(
+            eq(librarySkills.id, id),
+            eq(librarySkills.systemId, systemId),
+            isNotNull(librarySkills.deletedAt),
+          ),
+        )
+        .returning({ id: librarySkills.id });
+      return rows.length > 0;
+    }
+    case 'idiomas': {
+      const rows = await db
+        .delete(libraryLanguages)
+        .where(
+          and(
+            eq(libraryLanguages.id, id),
+            eq(libraryLanguages.systemId, systemId),
+            isNotNull(libraryLanguages.deletedAt),
+          ),
+        )
+        .returning({ id: libraryLanguages.id });
+      return rows.length > 0;
+    }
+    case 'criaturas': {
+      const rows = await db
+        .delete(libraryCreatures)
+        .where(
+          and(
+            eq(libraryCreatures.id, id),
+            eq(libraryCreatures.systemId, systemId),
+            isNotNull(libraryCreatures.deletedAt),
+          ),
+        )
+        .returning({ id: libraryCreatures.id });
+      return rows.length > 0;
+    }
+    case 'classes': {
+      const rows = await db
+        .delete(libraryClasses)
+        .where(
+          and(
+            eq(libraryClasses.id, id),
+            eq(libraryClasses.systemId, systemId),
+            isNotNull(libraryClasses.deletedAt),
+          ),
+        )
+        .returning({ id: libraryClasses.id });
+      return rows.length > 0;
+    }
+    case 'racas': {
+      const rows = await db
+        .delete(libraryRaces)
+        .where(
+          and(
+            eq(libraryRaces.id, id),
+            eq(libraryRaces.systemId, systemId),
+            isNotNull(libraryRaces.deletedAt),
+          ),
+        )
+        .returning({ id: libraryRaces.id });
+      return rows.length > 0;
+    }
+    case 'tipos': {
+      const rows = await db
+        .delete(libraryCreatureTypes)
+        .where(
+          and(
+            eq(libraryCreatureTypes.id, id),
+            eq(libraryCreatureTypes.systemId, systemId),
+            isNotNull(libraryCreatureTypes.deletedAt),
+          ),
+        )
+        .returning({ id: libraryCreatureTypes.id });
+      return rows.length > 0;
+    }
+  }
+}
+
 /** Lists every soft-deleted item in one system's category — admin-only (enforced by the route
  * handler), newest-deleted first. Used by the library trash view in `LibraryPage`. */
 export async function loadDeletedLibraryItems(systemId: string, category: LibraryCategory) {

@@ -477,6 +477,10 @@ async function loadDeletedCharacterSummaries(
       id: characters.id,
       systemId: characters.systemId,
       name: characters.name,
+      raca: characters.raca,
+      photoUrl: characters.photoUrl,
+      hpCurrent: characters.hpCurrent,
+      hpMax: characters.hpMax,
       deletedAt: characters.deletedAt,
       ownerName: users.name,
       ownerUsername: users.username,
@@ -533,6 +537,21 @@ export async function restoreCharacterAny(id: string): Promise<boolean> {
   const rows = await db
     .update(characters)
     .set({ deletedAt: null })
+    .where(and(eq(characters.id, id), CHARACTER_IS_DELETED))
+    .returning({ id: characters.id });
+  return rows.length > 0;
+}
+
+/** Permanently deletes a character — master-only (see requireAdminUser + isMaster check in the
+ * route handler), no owner scoping. Only ever deletes a row that's already in the trash
+ * (`CHARACTER_IS_DELETED`) — a hard delete is one-way, so it never reaches directly into an
+ * active character by id alone, only ones already soft-deleted first. Every child table
+ * (classes, skills, weapons, spellbooks, photos, shares, snapshots, …) references
+ * `characters.id` with `onDelete: 'cascade'` (see the shared `characterId()` column helper,
+ * db/schema.ts), so this one statement is enough — no manual cleanup of child rows needed. */
+export async function hardDeleteCharacterAny(id: string): Promise<boolean> {
+  const rows = await db
+    .delete(characters)
     .where(and(eq(characters.id, id), CHARACTER_IS_DELETED))
     .returning({ id: characters.id });
   return rows.length > 0;

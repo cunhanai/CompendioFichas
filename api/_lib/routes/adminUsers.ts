@@ -4,7 +4,11 @@ import { z } from 'zod';
 import { db } from '../../../db/client.js';
 import { auditLog, securityAlerts, sessions, users } from '../../../db/schema.js';
 import { requireAdminUser, hashPassword } from '../auth.js';
-import { loadAllDeletedCharacters, restoreCharacterAny } from '../characterRepo.js';
+import {
+  hardDeleteCharacterAny,
+  loadAllDeletedCharacters,
+  restoreCharacterAny,
+} from '../characterRepo.js';
 import { adminUpdateUserBodySchema } from '../validation.js';
 import { toAdminUserView } from '../mappers.js';
 import { generateTempPassword } from '../password.js';
@@ -258,6 +262,34 @@ export const restoreDeletedCharacterHandler = withErrorHandling(async function h
 
   const restored = await restoreCharacterAny(id);
   if (!restored) {
+    res.status(404).json({ error: 'Ficha excluída não encontrada.' });
+    return;
+  }
+
+  res.status(200).json({ ok: true });
+});
+
+/** DELETE /api/admin/users/deleted-characters/:id — permanently deletes a character already in
+ * the trash. Master-only, see above. One-way: the route only ever matches a row that's already
+ * soft-deleted (`hardDeleteCharacterAny`), so this can't reach into an active character. */
+export const hardDeleteCharacterHandler = withErrorHandling(async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+  id: string,
+) {
+  if (req.method !== 'DELETE') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const caller = await requireAdminUser(req, res);
+  if (!caller) return;
+  if (!caller.isMaster) {
+    res.status(403).json({ error: 'Apenas o usuário master pode fazer isso.' });
+    return;
+  }
+
+  const deletedForGood = await hardDeleteCharacterAny(id);
+  if (!deletedForGood) {
     res.status(404).json({ error: 'Ficha excluída não encontrada.' });
     return;
   }
