@@ -1,8 +1,9 @@
-import { ChevronRight, Heart, Share2 } from 'lucide-react';
+import { ChevronRight, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { Badge } from '@/shared/ui/atoms/Badge';
+import { HpBar } from './HpBar';
 
 export interface CharCardProps {
   href: string;
@@ -43,8 +44,6 @@ export function CharCard({
   showChevron,
   onShare,
 }: CharCardProps) {
-  const pct = hpMax > 0 ? Math.round((hpCurrent / hpMax) * 100) : 0;
-
   return (
     <div
       className={cn(
@@ -71,15 +70,7 @@ export function CharCard({
             )}
           </div>
           <p className="mt-0.5 text-xs text-neutral-500">{subtitle}</p>
-          <div className="mt-3 flex max-w-xs items-center gap-2">
-            <Heart className="h-4 w-4 shrink-0 text-rose-400" fill="currentColor" />
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-800">
-              <div className="h-full bg-rose-500" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="shrink-0 text-xs text-neutral-400">
-              {hpCurrent}/{hpMax}
-            </span>
-          </div>
+          <HpBar hpCurrent={hpCurrent} hpMax={hpMax} className="mt-3 max-w-xs" />
         </div>
       </div>
       {shared && (

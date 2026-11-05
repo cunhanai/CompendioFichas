@@ -875,11 +875,12 @@ async function setDeletedCreatureTypes(
   }
 }
 
-/** Permanently deletes a library item already in the trash — admin-only (enforced by the route
- * handler, not here). Scoped by BOTH `category` and `systemId`, same reasoning as
- * `setLibraryItemDeleted`. Only ever deletes a row that's already soft-deleted
- * (`isNotNull(deletedAt)`) — a hard delete is one-way, so it never reaches directly into an
- * active item by id alone, only ones already soft-deleted first. */
+/** Permanently deletes a library item already in the trash — master-only, not just admin
+ * (enforced by the route handler, not here — see `deleteLibraryItemHandler`'s `permanent`
+ * branch). Scoped by BOTH `category` and `systemId`, same reasoning as `setLibraryItemDeleted`.
+ * Only ever deletes a row that's already soft-deleted (`isNotNull(deletedAt)`) — a hard delete
+ * is one-way, so it never reaches directly into an active item by id alone, only ones already
+ * soft-deleted first. */
 export async function hardDeleteLibraryItem(
   category: LibraryCategory,
   systemId: string,

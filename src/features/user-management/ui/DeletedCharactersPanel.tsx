@@ -6,6 +6,11 @@ import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { SectionCard } from '@/shared/ui/molecules/SectionCard';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
+import {
+  HARD_DELETE_CONFIRM_MESSAGE,
+  HARD_DELETE_CONFIRM_TITLE,
+  hardDeleteCharacter,
+} from '@/entities/character/model/trash';
 import { DeletedCharacterRow } from '@/entities/character/ui/DeletedCharacterRow';
 import { DeletedCharacterViewDialog } from '@/entities/character/ui/DeletedCharacterViewDialog';
 
@@ -17,7 +22,9 @@ export function DeletedCharactersPanel() {
   const { systems } = useAppData();
   const toast = useAppToast();
   const [deleted, setDeleted] = useState<DeletedCharacterSummary[] | null>(null);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Every row currently mid-restore/mid-hard-delete — a Set (not a single id) so one row's
+  // in-flight request can't clobber another row's busy state and re-enable its buttons early.
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [confirmHardDeleteId, setConfirmHardDeleteId] = useState<string | null>(null);
 
@@ -34,8 +41,16 @@ export function DeletedCharactersPanel() {
 
   const viewing = (deleted ?? []).find((c) => c.id === viewingId) ?? null;
 
+  const setBusy = (id: string, busy: boolean) =>
+    setBusyIds((ids) => {
+      const next = new Set(ids);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
   const handleRestore = async (id: string) => {
-    setRestoringId(id);
+    setBusy(id, true);
     try {
       await api.post(`/admin/users/deleted-characters/${id}/restore`, {});
       setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
@@ -43,21 +58,21 @@ export function DeletedCharactersPanel() {
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível restaurar a ficha.');
     } finally {
-      setRestoringId(null);
+      setBusy(id, false);
     }
   };
 
   const handleHardDelete = async (id: string) => {
     setConfirmHardDeleteId(null);
-    setRestoringId(id);
+    setBusy(id, true);
     try {
-      await api.delete(`/admin/users/deleted-characters/${id}`, { permanent: true });
+      await hardDeleteCharacter(id);
       setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
       toast.success('Ficha excluída definitivamente.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
     } finally {
-      setRestoringId(null);
+      setBusy(id, false);
     }
   };
 
@@ -77,7 +92,7 @@ export function DeletedCharactersPanel() {
                 key={c.id}
                 character={c}
                 subtitle={`@${c.ownerUsername} · ${systems.find((s) => s.id === c.systemId)?.title ?? c.systemId} · excluída ${formatRelativeTime(c.deletedAt)}`}
-                restoring={restoringId === c.id}
+                restoring={busyIds.has(c.id)}
                 onRestore={() => handleRestore(c.id)}
                 onView={() => setViewingId(c.id)}
                 onHardDelete={() => setConfirmHardDeleteId(c.id)}
@@ -96,8 +111,8 @@ export function DeletedCharactersPanel() {
       <ConfirmDialog
         open={confirmHardDeleteId !== null}
         onOpenChange={(next) => !next && setConfirmHardDeleteId(null)}
-        title="Excluir esta ficha definitivamente?"
-        message="Não tem volta — a ficha e tudo que ela tem (itens, histórico, fotos) são apagados pra sempre, não só movidos pra lixeira."
+        title={HARD_DELETE_CONFIRM_TITLE}
+        message={HARD_DELETE_CONFIRM_MESSAGE}
         confirmLabel="Excluir definitivamente"
         onConfirm={() => confirmHardDeleteId && handleHardDelete(confirmHardDeleteId)}
       />

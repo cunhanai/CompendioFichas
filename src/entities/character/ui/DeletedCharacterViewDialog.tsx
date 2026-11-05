@@ -1,9 +1,9 @@
-import { Heart } from 'lucide-react';
 import { Popup } from '@/shared/ui/organisms/Popup';
 import { Avatar } from '@/shared/ui/atoms/Avatar';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { DeletedCharacterSummary } from '../model/types';
 import { daysRemainingInTrash } from '../model/trash';
+import { HpBar } from './HpBar';
 
 export interface DeletedCharacterViewDialogProps {
   character: DeletedCharacterSummary | null;
@@ -29,11 +29,6 @@ export function DeletedCharacterViewDialog({
   subtitle,
   onOpenChange,
 }: DeletedCharacterViewDialogProps) {
-  const pct =
-    character && character.hpMax > 0
-      ? Math.round((character.hpCurrent / character.hpMax) * 100)
-      : 0;
-
   return (
     <Popup open={character !== null} onOpenChange={onOpenChange} title="Ficha excluída" size="sm">
       {character && (
@@ -47,15 +42,7 @@ export function DeletedCharacterViewDialog({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 shrink-0 text-rose-400" fill="currentColor" />
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-800">
-              <div className="h-full bg-rose-500" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="shrink-0 text-xs text-neutral-400">
-              {character.hpCurrent}/{character.hpMax}
-            </span>
-          </div>
+          <HpBar hpCurrent={character.hpCurrent} hpMax={character.hpMax} />
           <div className="rounded-lg bg-neutral-950 px-3.5 py-2.5 text-xs text-neutral-500">
             {subtitle && <p>{subtitle}</p>}
             <p>Excluída {formatRelativeTime(character.deletedAt)}</p>

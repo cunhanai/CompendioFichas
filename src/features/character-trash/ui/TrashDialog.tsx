@@ -5,6 +5,11 @@ import { ConfirmDialog } from '@/shared/ui/organisms/ConfirmDialog';
 import { api, ApiError } from '@/shared/lib/api';
 import { useAppData } from '@/app/providers';
 import type { DeletedCharacterSummary } from '@/entities/character/model/types';
+import {
+  HARD_DELETE_CONFIRM_MESSAGE,
+  HARD_DELETE_CONFIRM_TITLE,
+  hardDeleteCharacter,
+} from '@/entities/character/model/trash';
 import { DeletedCharacterRow } from '@/entities/character/ui/DeletedCharacterRow';
 import { DeletedCharacterViewDialog } from '@/entities/character/ui/DeletedCharacterViewDialog';
 
@@ -22,7 +27,9 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
   const toast = useAppToast();
   const { user } = useAppData();
   const [deleted, setDeleted] = useState<DeletedCharacterSummary[] | null>(null);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Every row currently mid-restore/mid-hard-delete — a Set (not a single id) so one row's
+  // in-flight request can't clobber another row's busy state and re-enable its buttons early.
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [confirmHardDeleteId, setConfirmHardDeleteId] = useState<string | null>(null);
   // Guards against an earlier fetch (e.g. from a fast close+reopen) resolving after a later one
@@ -47,38 +54,51 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
 
   // Resets on close (rather than inside the fetch effect) so the next open always starts from a
   // clean loading state instead of briefly showing last time's list — same pattern as
-  // PhotoGalleryDialog's handleOpenChange.
+  // PhotoGalleryDialog's handleOpenChange. Also closes any view/confirm dialog left open from
+  // the previous visit, so it can't resurface over a stale id on reopen.
   const handleOpenChange = (next: boolean) => {
     onOpenChange(next);
-    if (!next) setDeleted(null);
+    if (!next) {
+      setDeleted(null);
+      setViewingId(null);
+      setConfirmHardDeleteId(null);
+    }
   };
 
   const forThisSystem = (deleted ?? []).filter((c) => c.systemId === systemId);
   const viewing = forThisSystem.find((c) => c.id === viewingId) ?? null;
 
+  const setBusy = (id: string, busy: boolean) =>
+    setBusyIds((ids) => {
+      const next = new Set(ids);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
   const handleRestore = async (id: string) => {
-    setRestoringId(id);
+    setBusy(id, true);
     try {
       await onRestore(id);
       setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível restaurar a ficha.');
     } finally {
-      setRestoringId(null);
+      setBusy(id, false);
     }
   };
 
   const handleHardDelete = async (id: string) => {
     setConfirmHardDeleteId(null);
-    setRestoringId(id);
+    setBusy(id, true);
     try {
-      await api.delete(`/admin/users/deleted-characters/${id}`, { permanent: true });
+      await hardDeleteCharacter(id);
       setDeleted((rows) => rows?.filter((r) => r.id !== id) ?? rows);
       toast.success('Ficha excluída definitivamente.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir a ficha.');
     } finally {
-      setRestoringId(null);
+      setBusy(id, false);
     }
   };
 
@@ -95,7 +115,7 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
               <DeletedCharacterRow
                 key={c.id}
                 character={c}
-                restoring={restoringId === c.id}
+                restoring={busyIds.has(c.id)}
                 onRestore={() => handleRestore(c.id)}
                 onView={() => setViewingId(c.id)}
                 onHardDelete={user.isMaster ? () => setConfirmHardDeleteId(c.id) : undefined}
@@ -113,8 +133,8 @@ export function TrashDialog({ open, onOpenChange, systemId, onRestore }: TrashDi
       <ConfirmDialog
         open={confirmHardDeleteId !== null}
         onOpenChange={(next) => !next && setConfirmHardDeleteId(null)}
-        title="Excluir esta ficha definitivamente?"
-        message="Não tem volta — a ficha e tudo que ela tem (itens, histórico, fotos) são apagados pra sempre, não só movidos pra lixeira."
+        title={HARD_DELETE_CONFIRM_TITLE}
+        message={HARD_DELETE_CONFIRM_MESSAGE}
         confirmLabel="Excluir definitivamente"
         onConfirm={() => confirmHardDeleteId && handleHardDelete(confirmHardDeleteId)}
       />

@@ -12,7 +12,7 @@ import type {
   LibraryItemLocale,
   SharedLibrary,
 } from '@/entities/library-item/model/types';
-import { toDisplayItems, type DisplayItem } from '@/entities/library-item/model/selectors';
+import { toDisplayItems } from '@/entities/library-item/model/selectors';
 import { freshLibraryItemIdentity, groupLibraryItems } from '@/entities/library-item/model/locale';
 import { Breadcrumbs } from '@/widgets/app-shell';
 import { Button } from '@/shared/ui/atoms/Button';
@@ -86,13 +86,14 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
-  const [deleted, setDeleted] = useState<DisplayItem[] | null>(null);
-  // Raw rows behind `deleted` (which only carries the display-projected {name, desc, tag}) — kept
-  // around so the "ver item" dialog can show every field the item actually has, not just the
-  // summary the trash list itself shows.
+  // Raw rows of the trash list — kept as the single source of truth (not also a parallel
+  // `DisplayItem[]` state) so there's nothing to desync; `deleted` below is just this, projected.
   const [deletedRaw, setDeletedRaw] = useState<AnyLibraryItem[] | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [confirmHardDeleteId, setConfirmHardDeleteId] = useState<string | null>(null);
+  // Disables a trash row's own buttons while its restore/hard-delete request is in flight, so a
+  // fast double-click can't fire the same mutation twice.
+  const [busyId, setBusyId] = useState<string | null>(null);
   // Per-group "show the other language instead" override — local to this screen/session, never
   // persisted (the account-wide default lives in user.libraryLocale). Keyed by groupId, reset
   // whenever the category tab changes.
@@ -122,57 +123,60 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
     : undefined;
 
   const viewingItem = deletedRaw?.find((i) => i.id === viewingId) ?? null;
+  const deleted = deletedRaw
+    ? toDisplayItems({ ...library, [tab]: deletedRaw } as SharedLibrary, tab)
+    : null;
 
   const selectTab = (next: LibraryCategory) => {
     setTab(next);
     setTrashOpen(false);
-    setDeleted(null);
     setDeletedRaw(null);
+    setViewingId(null);
+    setConfirmHardDeleteId(null);
+    setBusyId(null);
     setLocaleOverrides({});
   };
 
   const loadTrash = () => {
     setTrashOpen(true);
-    setDeleted(null);
     setDeletedRaw(null);
     api
       .get<{ deleted: SharedLibrary[LibraryCategory] }>(`/libraries/${systemId}/${tab}`)
       .then(({ deleted: deletedRows }) => {
-        const fakeLibrary = { ...library, [tab]: deletedRows } as SharedLibrary;
-        setDeleted(toDisplayItems(fakeLibrary, tab));
         setDeletedRaw(deletedRows as AnyLibraryItem[]);
       })
       .catch((err: unknown) => {
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível carregar a lixeira.');
-        setDeleted([]);
         setDeletedRaw([]);
       });
   };
 
   const handleRestore = (id: string) => {
+    setBusyId(id);
     restoreLibraryItem(systemId, tab, id)
       .then(() => {
-        setDeleted((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         setDeletedRaw((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         toast.success('Item restaurado.');
       })
       .catch((err: unknown) => {
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível restaurar o item.');
-      });
+      })
+      .finally(() => setBusyId(null));
   };
 
   const handleHardDelete = (id: string) => {
     setConfirmHardDeleteId(null);
+    setBusyId(id);
     api
       .delete(`/libraries/${systemId}/${tab}`, { id, permanent: true })
       .then(() => {
-        setDeleted((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         setDeletedRaw((rows2) => rows2?.filter((r) => r.id !== id) ?? rows2);
         toast.success('Item excluído definitivamente.');
       })
       .catch((err: unknown) => {
         toast.error(err instanceof ApiError ? err.message : 'Não foi possível excluir o item.');
-      });
+      })
+      .finally(() => setBusyId(null));
   };
 
   const openCreate = () => {
@@ -276,8 +280,9 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
                   {user.isMaster && (
                     <button
                       type="button"
+                      disabled={busyId === item.id}
                       onClick={() => setConfirmHardDeleteId(item.id)}
-                      className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium text-rose-400 transition hover:bg-neutral-700"
+                      className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium text-rose-400 transition hover:bg-neutral-700 disabled:opacity-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
                       Excluir definitivamente
@@ -285,8 +290,9 @@ function LibraryPageContent({ systemId }: { systemId: string }) {
                   )}
                   <button
                     type="button"
+                    disabled={busyId === item.id}
                     onClick={() => handleRestore(item.id)}
-                    className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium text-emerald-400 transition hover:bg-neutral-700"
+                    className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium text-emerald-400 transition hover:bg-neutral-700 disabled:opacity-50"
                   >
                     <RotateCcw className="h-3.5 w-3.5" strokeWidth={2} />
                     Restaurar
