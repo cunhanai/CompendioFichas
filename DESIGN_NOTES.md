@@ -1863,3 +1863,48 @@ usuário final, então nada entra no changelog — só hardening interno.
   bcrypt (`api/_lib/auth.ts`) só olha os primeiros 72 bytes de qualquer forma, então aceitar mais
   que isso só dava trabalho extra de CPU/memória por tentativa sem nenhum ganho. Adicionado
   `.max(128)` nos três; testes de regressão novos em `api/_lib/validation.test.ts`.
+
+## Redesenho de frontend com Claude Design — kickoff e primeira tela (Casca de navegação)
+
+Pedido do usuário em 2026-11-12: gerar um novo design de frontend usando o Claude Design,
+tela por tela — primeiro refazendo as telas já existentes, depois as novas. Antes de desenhar
+qualquer coisa, o motivo da insatisfação com o design atual foi levantado explicitamente (em vez
+de assumido): densidade de informação, visual datado/genérico, e navegação confusa conforme o
+app cresce. Plano de telas acordado com o usuário (ordem da fase 1 — refazer o que já existe):
+casca de navegação → Login/Forçar troca de senha → Dashboard → Sistemas → Personagens →
+Biblioteca → Configurações (nova) → Lixeira (nova) → Novidades → Ficha de personagem (por
+último, em sub-etapas por aba — são 10). Ficam de fora por ora (sem decisão de produto
+suficiente ainda): popup de modificador de atributo, papel de "mantenedor", página de
+Solicitações — essa última é tela nova de verdade, fica pra fase 2.
+
+**Casca de navegação** (`https://claude.ai/artifact/1bkZ99uPCMjNsuXst3ft8o`, tipo Design/canvas,
+mockup estático — sem código ainda, é só o desenho) — primeira tela, feita antes de qualquer
+outra porque toda tela depende dela:
+
+- **Rail de ícones vira sidebar com rótulos** (264px em vez de 64px só-ícone) — ataca densidade e
+  navegação confusa ao mesmo tempo: ícone sem texto fica ambíguo conforme a nav cresce.
+- **Decisões do backlog já incorporadas no desenho**, em vez de deixadas pra depois: "Perfil" e
+  "Gestão de usuários" saem da nav principal e entram num item novo **Configurações** (abre um
+  flyout — "Minha conta" sempre, "Gestão de usuários" só admin/master); a **Lixeira** vira item
+  próprio com seu próprio flyout ("Minhas fichas excluídas" todo mundo, "Biblioteca compartilhada"
+  admin+, "Fichas de todos os usuários" master) — gating de papel no desenho espelha exatamente o
+  que o backend já autoriza hoje (ver `requireAdminId`/`isMaster` em `api/_lib/routes/*`), não é
+  invenção nova.
+- **Mobile**: bottom bar caiu de 5 ícones pra 4 (Início/Sistemas/Novidades/"Mais"), com rótulos
+  embaixo dos ícones (antes só ícone); "Mais" abre uma folha (bottom sheet) com
+  Configurações/Lixeira/Sair — a mesma reorganização de Configurações/Lixeira acima, sem espaço
+  pra mais dois ícones na barra.
+- **Paleta de cores**, decidida em rodadas sucessivas de teste direto nas pranchas (tweak de cor
+  ao vivo, depois pranchas de comparação lado a lado): âmbar original rejeitado ("não gosto desse
+  amarelo"); testado roxo/lilás como destaque principal e fundo com leve tintura — fundo tintado
+  também rejeitado (voltou pro preto neutro puro); roxo como destaque principal também rejeitado,
+  mas **aprovado como cor secundária** (bolinha de notificação de "Novidades"); testadas 5 opções
+  de destaque principal que combinassem com o lilás secundário (rosa, fúcsia, esmeralda, índigo,
+  teal) lado a lado numa fileira de pranchas reduzidas (só a sidebar, sem área de conteúdo) —
+  **teal (`#2dd4bf`) escolhido** como cor de destaque principal; fundo continua preto neutro
+  (`#0a0a0a` sidebar / `#0b0a0f` página); lilás (`#a78bfa`) é a cor secundária fixa (hoje só usada
+  na bolinha de "Novidades"). Essa paleta (teal primário + lilás secundário + preto neutro) é a
+  base pra todas as próximas telas do redesenho, não só pra essa.
+- Tipografia de destaque (wordmark, títulos) trocada de Geist Variable (a real, mas não é Google
+  Font) pra Space Grotesk (parente mais próximo disponível pro Claude Design); corpo continua
+  Inter, igual ao app real.
