@@ -1833,3 +1833,33 @@ só registrados por ora, sem investigação/implementação.
   ícone de Novidades. Decisão deliberada: não lista as correções internas só de código (escopo
   de `systemId` no delete/restore da biblioteca, corrida no conflito de restore, etc.) — o
   changelog é sobre o que o jogador percebe, não sobre o que foi corrigido por baixo dos panos.
+
+## Revisão de segurança: 3 achados corrigidos
+
+Auditoria estática (revisão de segurança xhigh) cobrindo rotas, autenticação, banco, frontend,
+configuração e dependências — relatório completo entregue ao usuário em 2026-11-12, que aprovou
+corrigir os 3 achados encontrados (nenhum crítico). Sem mudança de comportamento visível pro
+usuário final, então nada entra no changelog — só hardening interno.
+
+- **Limite de tentativas de login por IP era contornável** — `getClientIp`
+  (`api/_lib/request.ts`) lia o **primeiro** valor de `X-Forwarded-For`, que o próprio cliente
+  controla livremente; a Vercel *acrescenta* o IP real de conexão a esse cabeçalho em vez de
+  substituí-lo, então o valor confiável é o **último**, não o primeiro. Um atacante conseguia
+  mandar um valor diferente a cada tentativa e zerar o limitador por IP (pensado pra travar
+  alguém testando senhas contra várias contas a partir da mesma origem) — o limite por conta
+  individual (`login-user`, 5/10min) não era afetado, já que não depende do IP. Corrigido pra
+  pegar o último valor da lista; teste de regressão novo em `api/_lib/request.test.ts`.
+- **`zod` numa versão com CVE de esgotamento de memória** (GHSA-mrhx-c7xc-m3w5, validação de
+  coleções grandes) — era a versão direta usada tanto no cliente (`@hookform/resolvers`) quanto
+  no servidor (toda validação de corpo de requisição em `api/_lib/validation.ts`). Atualizada de
+  `^4.6.5` pra `^4.6.6` em `package.json` — dentro da mesma major, sem mudança de comportamento.
+  O `npm audit` ainda aponta uma cópia isolada e mais antiga do `zod` vendorizada dentro do
+  `shadcn` (ferramenta de linha de comando usada manualmente pra gerar componentes, nunca
+  importada pelo código que roda em produção) — não corrigida, porque não é alcançável por
+  nenhuma requisição real e forçar a atualização do `shadcn` seria uma mudança maior e
+  desnecessária pra essa ferramenta de dev.
+- **Senha sem limite máximo de tamanho** — `loginBodySchema`/`signupBodySchema`/
+  `passwordChangeBodySchema` (`api/_lib/validation.ts`) tinham `.min(6)` mas nenhum `.max()`;
+  bcrypt (`api/_lib/auth.ts`) só olha os primeiros 72 bytes de qualquer forma, então aceitar mais
+  que isso só dava trabalho extra de CPU/memória por tentativa sem nenhum ganho. Adicionado
+  `.max(128)` nos três; testes de regressão novos em `api/_lib/validation.test.ts`.
