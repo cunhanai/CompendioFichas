@@ -1,18 +1,33 @@
 import { z } from 'zod';
 
+// bcrypt (api/_lib/auth.ts) only ever looks at a password's first 72 bytes — anything past that
+// has no effect on the hash — so there's no reason to accept more than a generous upper bound.
+// Capping it here means an oversized password 400s at the validation boundary instead of being
+// fully received and run through bcrypt on every attempt, including failed ones.
+const MAX_PASSWORD_LENGTH = 128;
+
 export const signupBodySchema = z.object({
   username: z.string().min(3, 'Escolha um nome de usuário com ao menos 3 caracteres'),
-  password: z.string().min(6, 'A senha deve ter ao menos 6 caracteres'),
+  password: z
+    .string()
+    .min(6, 'A senha deve ter ao menos 6 caracteres')
+    .max(MAX_PASSWORD_LENGTH, 'Senha muito longa.'),
 });
 
 export const loginBodySchema = z.object({
   username: z.string().min(1, 'Digite seu nome de usuário'),
-  password: z.string().min(6, 'A senha deve ter ao menos 6 caracteres'),
+  password: z
+    .string()
+    .min(6, 'A senha deve ter ao menos 6 caracteres')
+    .max(MAX_PASSWORD_LENGTH, 'Senha muito longa.'),
 });
 
 export const passwordChangeBodySchema = z.object({
   currentPassword: z.string().min(1, 'Informe a senha atual'),
-  newPassword: z.string().min(6, 'A nova senha deve ter ao menos 6 caracteres'),
+  newPassword: z
+    .string()
+    .min(6, 'A nova senha deve ter ao menos 6 caracteres')
+    .max(MAX_PASSWORD_LENGTH, 'Senha muito longa.'),
 });
 
 export const adminUpdateUserBodySchema = z

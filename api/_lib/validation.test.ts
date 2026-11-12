@@ -3,7 +3,10 @@ import {
   changelogSeenBodySchema,
   genericLibraryItemSchema,
   libraryItemIdSchema,
+  loginBodySchema,
+  passwordChangeBodySchema,
   photoBodySchema,
+  signupBodySchema,
   updateProfileBodySchema,
 } from './validation.js';
 
@@ -125,6 +128,35 @@ describe('libraryItemIdSchema', () => {
 
   it('rejects a missing id', () => {
     expect(libraryItemIdSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('password length cap (bcrypt only looks at the first 72 bytes anyway)', () => {
+  it('accepts a password right at the limit', () => {
+    expect(loginBodySchema.safeParse({ username: 'ana', password: 'a'.repeat(128) }).success).toBe(
+      true,
+    );
+  });
+
+  it('rejects a password one character past the limit', () => {
+    expect(loginBodySchema.safeParse({ username: 'ana', password: 'a'.repeat(129) }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects an oversized password on signup too', () => {
+    expect(signupBodySchema.safeParse({ username: 'ana', password: 'a'.repeat(129) }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects an oversized newPassword on password change', () => {
+    expect(
+      passwordChangeBodySchema.safeParse({
+        currentPassword: 'whatever',
+        newPassword: 'a'.repeat(129),
+      }).success,
+    ).toBe(false);
   });
 });
 

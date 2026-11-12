@@ -1,10 +1,22 @@
 import type { VercelRequest } from '@vercel/node';
 
-/** Best-effort client IP from Vercel's forwarded-for header, for per-IP rate limiting. */
+/**
+ * Best-effort client IP from Vercel's forwarded-for header, for per-IP rate limiting. Takes the
+ * LAST entry in the comma-separated list, not the first: a client can send its own
+ * `X-Forwarded-For` with any value it wants, and Vercel's edge *appends* the real connecting IP
+ * to whatever the client sent rather than replacing it — so the first entry is attacker-
+ * controlled and the last one is the one the platform itself vouches for. Taking the first entry
+ * let anyone defeat the per-IP login rate limiter (api/_lib/routes/auth.ts) just by sending a
+ * different fake value on every attempt.
+ */
 export function getClientIp(req: VercelRequest): string {
   const forwarded = req.headers['x-forwarded-for'];
-  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
-  return first?.trim() || req.socket.remoteAddress || 'unknown';
+  const list = Array.isArray(forwarded) ? forwarded.join(',') : (forwarded ?? '');
+  const parts = list
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] || req.socket.remoteAddress || 'unknown';
 }
 
 /**
