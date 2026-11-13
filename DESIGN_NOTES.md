@@ -1933,3 +1933,27 @@ plausíveis, um laranja-avermelhado e um carmim/magenta). Optou-se por `#E11D48`
 vermelho de referência bem estabelecido) como leitura razoável em vez de uma precisão falsa; se
 não bater com o que a usuária tinha em mente, é só pedir o ajuste. Aplicado ao item "Sair" da
 sidebar (texto, ícone e estado hover) e ao item "Sair" do bottom sheet mobile.
+
+**Login / Forçar troca de senha** (telas #6 e #7 do mesmo canvas, renomeado pra "Compêndio de
+Fichas — Redesenho" já que deixou de ser só a casca de navegação): mesma estrutura real de hoje
+(`LoginForm.tsx` — usuário + senha; `ForceChangePasswordPage.tsx` — senha temporária atual + nova
+senha + confirmação), só com a chrome visual nova: logo com o gradiente periwinkle→`#A097BA` da
+sidebar, wordmark em `#8CABFA` (cor de marca na tela de entrada, diferente da sidebar onde o
+wordmark é branco), glow radial de fundo usando periwinkle + `#CFFA8C` no lugar do antigo
+âmbar/rosa. "Sair" (no rodapé do card de troca de senha) usa o mesmo vermelho crítico `#E11D48`.
+
+**Dashboard** (telas #8 e #9) — primeira tela com conteúdo real, não só casca. Mantém as mesmas
+três seções de hoje (favorito, "Seus sistemas", "Acessados recentemente"), redesenhadas com a
+paleta nova: o destaque de favorito troca do âmbar antigo pro amarelo `#FAF08C` (primeiro uso
+dele até agora — dá o papel de "destaque/estrela" que faltava nas telas da casca). **Decisão de
+produto nova, pedida nesta etapa**: o Dashboard ganha um botão de ação rápida **"+ Nova ficha"**
+no cabeçalho (ao lado do avatar) — hoje a criação de personagem só existe dentro da página de um
+sistema específico (`CharactersPage.tsx`, que já sabe o `systemId` pela URL). Como o Dashboard é
+agnóstico de sistema, o botão abre um **popup modal de seleção de sistema** antes de criar a
+ficha: lista os sistemas com o mesmo padrão visual do `SystemCard` (logo, nome, badge), mas em
+lista vertical — Pathfinder 1ª Ed. clicável, os demais ("em breve", nomes só ilustrativos pro
+mockup) desabilitados com badge cinza e opacidade reduzida, igual ao tratamento que `SystemCard`
+já dá a `status === 'soon'`. Esse botão/popup fica registrado aqui como decisão de produto; falta
+decidir (fase de implementação) se o fluxo pós-seleção é idêntico ao `handleNewCharacter` de
+`CharactersPage.tsx` (cria em branco e já navega pra ficha) ou se passa primeiro pela própria
+`CharactersPage` do sistema escolhido.
