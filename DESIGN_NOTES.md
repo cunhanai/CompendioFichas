@@ -1908,3 +1908,28 @@ outra porque toda tela depende dela:
 - Tipografia de destaque (wordmark, títulos) trocada de Geist Variable (a real, mas não é Google
   Font) pra Space Grotesk (parente mais próximo disponível pro Claude Design); corpo continua
   Inter, igual ao app real.
+
+**Paleta de cores — revisão (teal/lilás substituído)**: depois de aprovado, teal+lilás foi
+reaberto porque o usuário queria comparar com paletas de referência novas (5 imagens, todas
+partindo do mesmo lilás `#A78BFA`). Processo: grade exaustiva de combinações (todas as
+subconjunções das 4 cores não-lilás de cada paleta, em telas cheias numeradas no próprio desenho,
+não só listadas no chat) → usuário reduziu a dois painéis favoritos e citou as cores específicas
+de cada um → composições com todas as 6 cores juntas na mesma tela, variando só qual cor domina
+→ **aprovada a composição com o periwinkle `#8CABFA` dominante** (as outras 5 cores do conjunto:
+`#A097BA`, `#635B7A`, `#CFFA8C`, `#FAF08C`, `#a3a3a3` neutro). Essa é a paleta nova e definitiva,
+substituindo teal+lilás por completo.
+
+Mapeamento de papel aplicado nas 5 telas da casca (`Main`, `ConfigOpen`, `TrashOpen`, `Mobile`,
+`MobileMore`): `#8CABFA` destaque principal (logo, item de nav ativo, ícone ativo);
+`#A097BA` fim do gradiente da logo; `#635B7A` texto do selo "Pathfinder 1ª Edição"; `#CFFA8C`
+bolinha de notificação de "Novidades" (no lugar do lilás antigo); `#a3a3a3` texto secundário/nav
+neutro (sem mudança). `#FAF08C` ainda não aparece nessas telas — não há cartão de conteúdo pra
+hospedar essa cor na casca de navegação pura; deve aparecer a partir do Dashboard.
+
+**Vermelho de ação crítica ("Sair")**: usuário pediu que ações críticas usem um vermelho
+específico de uma captura de referência que ela anexou. A captura é um recorte muito pequeno e
+comprimido (87×48px) — a extração de cor exata não foi conclusiva (dois clusters de pixel
+plausíveis, um laranja-avermelhado e um carmim/magenta). Optou-se por `#E11D48` (rose-600, um
+vermelho de referência bem estabelecido) como leitura razoável em vez de uma precisão falsa; se
+não bater com o que a usuária tinha em mente, é só pedir o ajuste. Aplicado ao item "Sair" da
+sidebar (texto, ícone e estado hover) e ao item "Sair" do bottom sheet mobile.
