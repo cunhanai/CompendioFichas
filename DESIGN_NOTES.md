@@ -1957,3 +1957,9 @@ já dá a `status === 'soon'`. Esse botão/popup fica registrado aqui como decis
 decidir (fase de implementação) se o fluxo pós-seleção é idêntico ao `handleNewCharacter` de
 `CharactersPage.tsx` (cria em branco e já navega pra ficha) ou se passa primeiro pela própria
 `CharactersPage` do sistema escolhido.
+
+**Regra de cor: barra de PV é sempre vermelha.** No cartão de favorito do Dashboard a barra de PV
+tinha saído periwinkle (cor de marca) por padrão; usuária corrigiu — PV (pontos de vida) é
+convenção visual de RPG e deve ser sempre vermelho, independente da paleta de marca da tela.
+Usado o mesmo `#E11D48` do vermelho crítico. Vale para toda barra/indicador de PV daqui pra
+frente, não só esse cartão.
