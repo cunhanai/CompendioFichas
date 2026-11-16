@@ -1963,3 +1963,21 @@ tinha saído periwinkle (cor de marca) por padrão; usuária corrigiu — PV (po
 convenção visual de RPG e deve ser sempre vermelho, independente da paleta de marca da tela.
 Usado o mesmo `#E11D48` do vermelho crítico. Vale para toda barra/indicador de PV daqui pra
 frente, não só esse cartão.
+
+## Reconstrução do sistema como "Tomo" (2026-11-13 a 2026-11-16)
+
+O produto vai ser reconstruído do zero num repositório novo, com o nome **Tomo** ("Compêndio de
+Fichas" deixa de existir). Frontend React + Vite e backend Python (clean architecture) separados
+em dois projetos Vercel, banco Postgres na Neon com um schema por módulo e por sistema de RPG, e
+cálculos de regras só no backend. A partir de 2026-11-16 a definição recomeçou do zero e **só
+entra no Tomo o que for confirmado** daqui em diante.
+
+Todo o registro dessa reconstrução fica fora deste arquivo, em `docs/tomo/`:
+
+- `docs/tomo/DECISOES.md` — decisões confirmadas, propostas, perguntas abertas, descartadas,
+  glossário e histórico das conversas.
+- `docs/tomo/ROTEIRO-ARQUITETURA.md` — roteiro em etapas (arc42 + C4 + ADR) para definir a
+  arquitetura do macro ao micro.
+
+O redesenho no Claude Design registrado nas seções anteriores segue valendo como insumo de design
+para o Tomo.
