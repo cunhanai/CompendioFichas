@@ -51,6 +51,7 @@ Status usados:
 | D-023 | Auditoria antiga | A auditoria do sistema atual **não é migrada**: é exportada para um arquivo (criptografado, guardado fora do banco) e o Tomo começa com a auditoria limpa. | 2026-11-16 |
 | D-024 | Galeria | O limite de imagens vale para a **galeria de cada personagem** (hoje 3), configurável no banco. | 2026-11-16 |
 | D-025 | Imagens | Ao adicionar uma imagem, um **compactador** reduz automaticamente a que for grande demais e **avisa a usuária** do que foi feito. Valores em P-005. | 2026-11-16 |
+| D-026 | Banco | **Só Postgres, relacional.** Nada de JSONB nem JSON serializado dentro do Postgres: dado com forma de documento ou vai para um banco NoSQL, ou não existe. O "nada de JSONB" do projeto atual se referia a JSON dentro do Postgres, que é diferente de um banco NoSQL. | 2026-11-16 |
 
 ## Propostas aguardando confirmação
 
@@ -72,7 +73,7 @@ As três alternativas clássicas:
 | --- | --- | --- |
 | **Class Table Inheritance** (recomendado) | Tabela base comum + tabela por sistema, mesma PK | Exige um JOIN para montar a ficha completa (barato) |
 | Concrete Table Inheritance | Cada sistema tem a ficha inteira no próprio schema | Dashboard, lista de personagens, lixeira e compartilhamento precisariam juntar N schemas, e pioram a cada sistema novo |
-| Single Table Inheritance / JSONB | Uma tabela só, com o que é específico num JSON | Perde chaves estrangeiras e restrições; o projeto atual já saiu do JSONB por isso |
+| Single Table Inheritance / JSONB | Uma tabela só, com o que é específico num JSON | Perde chaves estrangeiras e restrições; JSON no Postgres está vetado (D-026) |
 
 **Variante considerada em 2026-11-16: ficha inteira por sistema + uma view no `core`** (`UNION
 ALL` das tabelas de cada sistema), ou uma view materializada. Resolve só a leitura. Não resolve o
@@ -243,10 +244,9 @@ Pergunta de 2026-11-16: usar só NoSQL, só Postgres, ou Postgres para usuários
 NoSQL para as fichas? Avaliado com a restrição de usar só serviços gratuitos e a prioridade em
 segurança.
 
-**Recomendação: só Postgres**, num banco só. Se algum pedaço da ficha se comportar como documento
-(lista sem relação com nada, sempre lida e gravada inteira), ele pode virar uma coluna JSONB
-validada por Pydantic. Essa decisão é tomada tabela por tabela na etapa 10, não para o sistema
-inteiro.
+**Decidido em 2026-11-16 (D-026): só Postgres, relacional, sem JSONB.** Regra da usuária: um
+dado com forma de documento ou vai para um banco NoSQL, ou não existe; JSON dentro do Postgres não
+é opção.
 
 | | Só Postgres | Só NoSQL (ex.: MongoDB Atlas) | Híbrido |
 | --- | --- | --- | --- |
@@ -263,8 +263,7 @@ inteiro.
 O híbrido é a pior opção para uma pessoa só: dobra credenciais, backups, monitoramento e pontos
 de falha, e perde a atomicidade justamente na operação mais comum (criar ou excluir uma ficha
 mexe nos dois bancos). O único ganho real do NoSQL aqui é ler a ficha numa operação só, e isso o
-repositório resolve no Postgres. Lembrete: um documento NoSQL é o mesmo modelo de dados do blob
-JSONB que a usuária rejeitou no projeto atual ("NADA DE JSONB!"), só que guardado em outro banco.
+repositório resolve no Postgres.
 
 ## Abertas
 
@@ -274,7 +273,8 @@ JSONB que a usuária rejeitou no projeto atual ("NADA DE JSONB!"), só que guard
 | Q-002 | Redirecionar o domínio do app antigo para o Tomo no dia da troca? | Só serve para quem tem o link antigo salvo cair no app novo. Com menos de 3 usuários, pode ser só avisar. |
 | Q-004 | Um banco Upstash (Redis) por ambiente, ou um só? | Proposta: um por ambiente, para os testes de staging não bloquearem logins de produção. |
 | Q-005 | Confirmar os valores de imagem propostos (1600 px, 500 KB, WebP) | Ver P-005 |
-| Q-006 | Banco: confirmar "só Postgres"? | Ver P-009 |
+| Q-007 | Como guardar os snapshots de nível sem JSON? | No sistema atual, cada snapshot é a ficha inteira serializada em JSON (texto). Pela D-026 isso não pode mais. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma linha de `sheets` marcada como "versão congelada", reaproveitando as mesmas tabelas; (c) guardar só o que mudou entre níveis. Decidir na etapa 10. |
+| Q-008 | Onde ficam os logs e os erros? | A Vercel no Hobby guarda poucos logs por pouco tempo e não permite log drain; o Elastic hospedado só tem teste de 14 dias. Proposta: Sentry gratuito (erros e logs) + logs estruturados na Vercel. Ver resposta de 2026-11-16 no chat. |
 
 ## Descartadas ou superadas
 
@@ -322,6 +322,7 @@ JSONB que a usuária rejeitou no projeto atual ("NADA DE JSONB!"), só que guard
   view no `core` em vez do envelope; confirmados o schema `support`, Argon2id/pwdlib, auditoria
   antiga exportada para arquivo, limite de imagens na galeria do personagem e compactador de
   imagem com aviso; analisados o padrão Python do trabalho (P-008) e Postgres × NoSQL (P-009).
+  Decidido: só Postgres, sem JSONB (D-026). Pesquisadas opções gratuitas de logs (Q-008).
 
 ## Fontes
 
