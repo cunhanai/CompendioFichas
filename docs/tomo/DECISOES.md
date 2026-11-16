@@ -69,6 +69,24 @@ As três alternativas clássicas:
 | Concrete Table Inheritance | Cada sistema tem a ficha inteira no próprio schema | Dashboard, lista de personagens, lixeira e compartilhamento precisariam juntar N schemas, e pioram a cada sistema novo |
 | Single Table Inheritance / JSONB | Uma tabela só, com o que é específico num JSON | Perde chaves estrangeiras e restrições; o projeto atual já saiu do JSONB por isso |
 
+**Variante considerada em 2026-11-16: ficha inteira por sistema + uma view no `core`** (`UNION
+ALL` das tabelas de cada sistema), ou uma view materializada. Resolve só a leitura. Não resolve o
+resto, porque:
+
+1. Chave estrangeira não pode apontar para uma view. Compartilhamento, fotos, snapshots e
+   favoritos ficariam sem integridade, ou duplicados em cada sistema.
+2. Cada sistema novo exige alterar a view no `core`: a dependência fica invertida (o `core`
+   passa a conhecer todos os sistemas).
+3. Os campos comuns ficam repetidos em N tabelas. Mudar um deles vira N migrações.
+4. A view com `UNION` não aceita escrita. Lixeira, favorito e renomear precisariam saber antes em
+   qual tabela a ficha está.
+5. O banco não garante que o mesmo UUID não exista em dois sistemas.
+
+A view materializada piora: só se atualiza com `REFRESH` (lista desatualizada até lá), recalcula
+tudo a cada atualização (consome a cota da Neon) e também não aceita chave estrangeira. Serve
+para relatório, não para uso transacional. Uma view continua útil **em cima** do envelope, só para
+leitura (ex.: resumo do cartão do dashboard).
+
 É o recomendado aqui porque o Tomo tem muitas telas que tratam fichas de qualquer sistema da mesma
 forma (dashboard, recentes, favorita, lista, lixeira, compartilhamento, fotos, snapshots).
 
