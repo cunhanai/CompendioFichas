@@ -15,7 +15,7 @@ ainda, e o repositório novo ainda não existe.
 | --- | --- |
 | Todas as decisões (confirmadas, propostas, abertas, descartadas), glossário e histórico | [`DECISOES.md`](./DECISOES.md) |
 | Roteiro de definição da arquitetura (etapas 0 a 17, arc42 + C4 + ADR) | [`ROTEIRO-ARQUITETURA.md`](./ROTEIRO-ARQUITETURA.md) |
-| Retrato visual do que já foi definido, com diagramas no estilo Excalidraw | Artefato "Arquitetura do Tomo": https://claude.ai/artifact/6fDzfefWhi1YUAnMbCG2QF |
+| Retrato visual do que já foi definido, com diagramas no estilo Excalidraw | Artefato "Arquitetura do Tomo": https://claude.ai/artifact/6fDzfefWhi1YUAnMbCG2QF (fonte em [`artefato/arquitetura-do-tomo.html`](./artefato/arquitetura-do-tomo.html)) |
 | Detalhamento funcional das telas atuais (insumo para o inventário) | Documento "Compêndio de Fichas — detalhamento funcional das telas": https://claude.ai/artifact/JmYdjAk6JTDcQHpuMsEaBH |
 | Redesenho visual (paleta #99, telas já desenhadas) | Projeto no Claude Design; decisões em `DESIGN_NOTES.md`, seção "Redesenho de frontend com Claude Design" |
 | Plano anterior (backend TypeScript), **superado** | Documento "Tomo — Plano de migração e nova arquitetura": https://claude.ai/artifact/3f2DfgueS1hd2pEr5WX8tJ |
@@ -58,6 +58,6 @@ a `main`).
    inventário do sistema atual, requisitos) e só então a divisão em módulos.
 3. Etapa 0 do roteiro (modelo de ADR, estrutura de `docs/`, ferramentas) pode ser fechada assim
    que as perguntas 6 a 9 forem respondidas.
-4. Manter o artefato "Arquitetura do Tomo" atualizado quando houver decisões novas (o HTML-fonte
-   ficou no scratchpad da sessão anterior; numa sessão nova, ler o artefato pela URL e republicar
-   no mesmo endereço).
+4. Manter o artefato "Arquitetura do Tomo" atualizado quando houver decisões novas: editar
+   `docs/tomo/artefato/arquitetura-do-tomo.html`, republicar no mesmo endereço (passando a URL do
+   artefato) e commitar o HTML junto.

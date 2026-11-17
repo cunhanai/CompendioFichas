@@ -1,0 +1,469 @@
+<title>Arquitetura do Tomo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Kalam:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: uma coluna de leitura larga; cada seção = título curto, uma frase, um diagrama à mão (Excalidraw) e a lista do que vale. */
+:root {
+  --bg: #f5f4f9;
+  --surface: #ffffff;
+  --ink: #1c1a24;
+  --muted: #5d5770;
+  --line: #dcd8e7;
+  --confirmed: #4d6fd6;
+  --confirmed-fill: rgba(140, 171, 250, 0.55);
+  --proposed: #7a6ba6;
+  --proposed-fill: rgba(160, 151, 186, 0.35);
+  --pending: #a88a00;
+  --pending-fill: rgba(250, 240, 140, 0.75);
+  --highlight-fill: rgba(207, 250, 140, 0.85);
+  --danger: #c8143e;
+  --chip-bg: #ebe9f3;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sketch: "Kalam", "Comic Sans MS", "Segoe Print", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e0d12; --surface: #16151c; --ink: #ecebf3; --muted: #a39db8; --line: #2c2a36;
+    --confirmed: #8cabfa; --confirmed-fill: rgba(140, 171, 250, 0.28);
+    --proposed: #b3a9d1; --proposed-fill: rgba(160, 151, 186, 0.22);
+    --pending: #faf08c; --pending-fill: rgba(250, 240, 140, 0.18);
+    --highlight-fill: rgba(207, 250, 140, 0.28);
+    --danger: #fb4a6e; --chip-bg: #22212b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e0d12; --surface: #16151c; --ink: #ecebf3; --muted: #a39db8; --line: #2c2a36;
+  --confirmed: #8cabfa; --confirmed-fill: rgba(140, 171, 250, 0.28);
+  --proposed: #b3a9d1; --proposed-fill: rgba(160, 151, 186, 0.22);
+  --pending: #faf08c; --pending-fill: rgba(250, 240, 140, 0.18);
+  --highlight-fill: rgba(207, 250, 140, 0.28);
+  --danger: #fb4a6e; --chip-bg: #22212b;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.page {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+  display: flex; flex-direction: column; gap: 56px;
+}
+header { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 24px; line-height: 1.2; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lead { font-size: 17px; color: var(--muted); }
+.stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat { display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--chip-bg); font-size: 14px; }
+.stat b { font-family: var(--font-display); font-size: 18px; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.swatch { width: 26px; height: 14px; border-radius: 3px; border: 2px solid; }
+.swatch.c { border-color: var(--confirmed); background: var(--confirmed-fill); }
+.swatch.p { border-color: var(--proposed); background: var(--proposed-fill); border-style: dashed; }
+.swatch.d { border-color: var(--pending); background: var(--pending-fill); border-style: dotted; }
+section { display: flex; flex-direction: column; gap: 16px; }
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow-x: auto; }
+.figure svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.figure svg text { font-family: var(--font-sketch); fill: var(--ink); }
+.figure svg text.sub { fill: var(--muted); }
+.figure svg text.edge { fill: var(--muted); font-size: 13px; }
+.figure svg text.warn { fill: var(--danger); }
+.caption { font-size: 13px; color: var(--muted); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+ul.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+ul.items li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; font-size: 14px; line-height: 1.5; }
+.id { font-family: var(--font-display); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-size: 13px; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: .9em; background: var(--chip-bg); padding: 1px 5px; border-radius: 4px; }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.tag.p { background: var(--proposed-fill); color: var(--ink); border: 1px dashed var(--proposed); }
+.tag.d { background: var(--pending-fill); color: var(--ink); border: 1px dotted var(--pending); }
+footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 520px) { ul.items li { grid-template-columns: 44px 1fr; } }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">Tomo · arquitetura · 17/11/2026</p>
+    <h1>O que já está definido</h1>
+    <p class="lead">Retrato da arquitetura do Tomo até aqui: o que você confirmou, o que está proposto e o que ainda falta decidir. O registro completo, com os motivos de cada escolha, está em <code>docs/tomo/DECISOES.md</code>.</p>
+    <div class="stats">
+      <span class="stat"><b>39</b> decisões confirmadas</span>
+      <span class="stat"><b>8</b> propostas novas</span>
+      <span class="stat"><b>11</b> itens em aberto</span>
+    </div>
+    <div class="legend" aria-label="Legenda dos diagramas">
+      <span><i class="swatch c"></i>confirmado</span>
+      <span><i class="swatch p"></i>proposta, aguarda você</span>
+      <span><i class="swatch d"></i>a definir depois</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Visão geral</h2>
+    <p>Dois projetos na Vercel: o site só exibe, a API calcula e é a única que fala com o banco e os serviços. Tudo chega à Vercel pelo GitHub, depois dos testes.</p>
+    <div class="figure"><svg id="d-overview" viewBox="0 0 960 560" role="img" aria-label="Visão geral: pessoas, site, API, banco e serviços externos"></svg></div>
+    <p class="caption">As setas indicam quem chama quem. Os serviços tracejados ainda são propostas.</p>
+  </section>
+
+  <section>
+    <h2>Banco de dados</h2>
+    <p>Um projeto novo na Neon, só Postgres relacional, sem JSONB. Um schema por módulo e um por sistema de RPG, com a edição no nome. A divisão dos módulos da plataforma espera a sua lista de funcionalidades.</p>
+    <div class="figure"><svg id="d-database" viewBox="0 0 960 520" role="img" aria-label="Schemas do banco e o modelo envelope das fichas"></svg></div>
+    <p class="caption">Embaixo, o modelo envelope: cada informação mora numa tabela só, e o banco garante que o envelope e a ficha do sistema não divergem.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Informação</th><th>Onde mora</th><th>Pode divergir?</th></tr></thead>
+        <tbody>
+          <tr><td>Nome, dono, favorita, lixeira, datas</td><td>Só no envelope</td><td>Não. Existe uma vez só.</td></tr>
+          <tr><td>Atributos, classes, perícias, magias</td><td>Só na tabela do sistema</td><td>Não. Existe uma vez só.</td></tr>
+          <tr><td><code>id</code> (UUIDv7)</td><td>Nas duas</td><td>Não. Na tabela do sistema é chave estrangeira do envelope.</td></tr>
+          <tr><td>Tipo do sistema</td><td>Envelope e, como constante, a tabela do sistema</td><td>Não. A constante é fixada por <code>CHECK</code>, e a chave estrangeira composta <code>(id, system)</code> obriga os dois a serem iguais.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Código do backend</h2>
+    <p>Python, organizado por módulo primeiro. Dentro de cada módulo, as camadas da clean architecture. O import-linter faz a CI falhar se alguma camada importar o que não pode.</p>
+    <div class="figure"><svg id="d-code" viewBox="0 0 960 420" role="img" aria-label="Camadas de um módulo do backend"></svg></div>
+    <p class="caption">Setas = "depende de". O domínio não depende de nada, e o service fala com o banco só por interfaces.</p>
+  </section>
+
+  <section>
+    <h2>Entrega: do commit ao site</h2>
+    <p>Confirmado: nada chega à Vercel sem passar pela CI, e cada PR tem um preview com banco e API próprios. Os passos abaixo são a proposta de pipeline.</p>
+    <div class="figure"><svg id="d-pipeline" viewBox="0 0 960 330" role="img" aria-label="Pipeline de CI/CD para pull requests e para a main"></svg></div>
+    <p class="caption">Qualquer etapa que falhar interrompe a pipeline antes de publicar. Os previews usam dados fictícios, nunca os de produção.</p>
+  </section>
+
+  <section>
+    <h2>Decisões confirmadas</h2>
+    <div class="cols">
+      <div class="group">
+        <h3>Produto e método</h3>
+        <ul class="items">
+          <li><span class="id">D-001</span><span>O produto se chama Tomo. "Compêndio de Fichas" deixa de existir.</span></li>
+          <li><span class="id">D-002</span><span>Reconstrução do zero, num repositório novo.</span></li>
+          <li><span class="id">D-003</span><span>Qualidade de empresa, apresentável como portfólio.</span></li>
+          <li><span class="id">D-039</span><span>Pelo menos 8 usuários (a maior campanha), crescendo com conhecidos.</span></li>
+          <li><span class="id">D-020</span><span>Arquitetura do macro ao micro, seguindo o roteiro. Só entra o que for confirmado.</span></li>
+          <li><span class="id">D-018</span><span>Edições de Vampiro e Dune: escolha fica para quando entrarem.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Arquitetura e hospedagem</h3>
+        <ul class="items">
+          <li><span class="id">D-004</span><span>Front e back em dois projetos separados na Vercel.</span></li>
+          <li><span class="id">D-005</span><span><code>tomo.anacunha.com.br</code> e <code>tomo-api.anacunha.com.br</code>.</span></li>
+          <li><span class="id">D-006</span><span>Vercel, plano Hobby.</span></li>
+          <li><span class="id">D-007</span><span>Front em React + Vite + TypeScript, só exibe.</span></li>
+          <li><span class="id">D-008</span><span>Todos os cálculos de regras rodam no backend.</span></li>
+          <li><span class="id">D-009</span><span>Backend em Python, clean architecture, Pydantic e ABC.</span></li>
+          <li><span class="id">D-034</span><span>Código organizado por módulo primeiro.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Banco de dados</h3>
+        <ul class="items">
+          <li><span class="id">D-010</span><span>Postgres num projeto Neon novo.</span></li>
+          <li><span class="id">D-026</span><span>Só relacional. Nada de JSONB nem JSON serializado.</span></li>
+          <li><span class="id">D-011</span><span>Um schema por módulo e um por sistema, com a edição no nome.</span></li>
+          <li><span class="id">D-012</span><span>Schema <code>audit</code> próprio.</span></li>
+          <li><span class="id">D-021</span><span>Schema <code>support</code> desde o início; tabelas a definir.</span></li>
+          <li><span class="id">D-029</span><span>Fichas no modelo envelope, sem dado repetido, integridade garantida pelo banco.</span></li>
+          <li><span class="id">D-030</span><span>UUID versão 7.</span></li>
+          <li><span class="id">D-013</span><span>Limites da plataforma editáveis no banco.</span></li>
+          <li><span class="id">D-031</span><span>Módulos da plataforma: suspensos até a lista de funcionalidades.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Dados antigos</h3>
+        <ul class="items">
+          <li><span class="id">D-016</span><span>O banco antigo não é tocado. Script de migração depois, sem perder nada.</span></li>
+          <li><span class="id">D-017</span><span>Tabela "de → para" montada junto com cada schema.</span></li>
+          <li><span class="id">D-023</span><span>Auditoria antiga exportada para arquivo; o Tomo começa limpo.</span></li>
+          <li><span class="id">D-028</span><span>No dia da troca, os usuários são avisados. Sem redirecionamento.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Segurança e imagens</h3>
+        <ul class="items">
+          <li><span class="id">D-022</span><span>Senhas com Argon2id (pwdlib). Todos recebem senha temporária.</span></li>
+          <li><span class="id">D-024</span><span>Limite de imagens por galeria de personagem (hoje 3), configurável.</span></li>
+          <li><span class="id">D-025</span><span>Compactador de imagem com aviso ao usuário.</span></li>
+        </ul>
+      </div>
+      <div class="group">
+        <h3>Código, entrega e documentação</h3>
+        <ul class="items">
+          <li><span class="id">D-032</span><span>Padrão do trabalho: uv, ruff, pyright estrito, import-linter, pytest, lint na CI.</span></li>
+          <li><span class="id">D-033</span><span>Nada vai para a Vercel sem CI verde. Previews com banco e API próprios.</span></li>
+          <li><span class="id">D-038</span><span>Conventional Commits.</span></li>
+          <li><span class="id">D-027</span><span>Repo público com README completo no padrão do GitHub.</span></li>
+          <li><span class="id">D-035</span><span>Diagramas no Excalidraw (Structurizr como segunda opção).</span></li>
+          <li><span class="id">D-036</span><span>Documentação navegável a partir do README, com índices.</span></li>
+          <li><span class="id">D-037</span><span>Documentação em PT e EN. Site nasce multi-idioma.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Em aberto</h2>
+    <p>O que espera a sua resposta ou a sua definição. Os detalhes de cada proposta estão no registro de decisões.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tema</th><th>Pergunta</th><th>Situação</th></tr></thead>
+        <tbody>
+          <tr><td>Erros e logs</td><td>Sentry gratuito + logs na Vercel, sem armazenamento próprio de logs?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Imagens</td><td>Cloudflare R2 ou Vercel Blob? Exibição 1600–2048 px em WebP + miniatura?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>E-mail</td><td>Redefinição de senha e verificação de e-mail com Resend?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Pipeline</td><td>Deploy só pelo GitHub Actions, previews com dados fictícios, sem staging, Redis só em produção?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Branches</td><td>GitHub Flow em vez de Git Flow?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Site de docs</td><td>Material for MkDocs no GitHub Pages?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Idioma do código</td><td>Código e banco só em inglês; documentação e interface em PT e EN?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>ADR</td><td>Seções: contexto, opções, decisão, consequências, status?</td><td><span class="tag p">proposta</span></td></tr>
+          <tr><td>Configurações</td><td>Quais limites e chaves a plataforma terá?</td><td><span class="tag d">a definir</span></td></tr>
+          <tr><td>Snapshots</td><td>Como guardar snapshots de nível sem JSON?</td><td><span class="tag d">você está definindo</span></td></tr>
+          <tr><td>Funcionalidades</td><td>Lista de funcionalidades, que define os módulos e as tabelas do <code>support</code>.</td><td><span class="tag d">você está definindo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Fonte: <code>docs/tomo/DECISOES.md</code> e <code>docs/tomo/ROTEIRO-ARQUITETURA.md</code>, na branch de trabalho do repositório atual.</p>
+    <p>Diagramas desenhados com rough.js, a mesma biblioteca de traço à mão do Excalidraw. No repositório novo, eles viram arquivos <code>.excalidraw.svg</code> editáveis.</p>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // Fallback: plain SVG if rough.js did not load.
+  function plainGen() {
+    function el(tag, attrs) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+    function st(o) { return { stroke: o.stroke, 'stroke-width': o.strokeWidth || 1.5, fill: o.fill || 'none', 'stroke-dasharray': o.strokeLineDash ? o.strokeLineDash.join(' ') : 'none' }; }
+    return {
+      rectangle: function (x, y, w, h, o) { var a = st(o); a.x = x; a.y = y; a.width = w; a.height = h; a.rx = 6; return el('rect', a); },
+      ellipse: function (cx, cy, w, h, o) { var a = st(o); a.cx = cx; a.cy = cy; a.rx = w / 2; a.ry = h / 2; return el('ellipse', a); },
+      line: function (x1, y1, x2, y2, o) { var a = st(o); a.x1 = x1; a.y1 = y1; a.x2 = x2; a.y2 = y2; return el('line', a); }
+    };
+  }
+
+  var STYLE = {
+    confirmed: { stroke: '--confirmed', fill: '--confirmed-fill', dash: null },
+    proposed: { stroke: '--proposed', fill: '--proposed-fill', dash: [8, 6] },
+    pending: { stroke: '--pending', fill: '--pending-fill', dash: [3, 6] },
+    highlight: { stroke: '--confirmed', fill: '--highlight-fill', dash: null },
+    frame: { stroke: '--muted', fill: null, dash: [10, 8] }
+  };
+
+  function textEl(svg, x, y, str, cls, size, weight, anchor) {
+    var t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('font-size', size); t.setAttribute('text-anchor', anchor || 'middle');
+    if (weight) t.setAttribute('font-weight', weight);
+    if (cls) t.setAttribute('class', cls);
+    t.textContent = str;
+    svg.appendChild(t);
+    return t;
+  }
+
+  function anchorPoint(n, tx, ty) {
+    var cx = n.x + n.w / 2, cy = n.y + n.h / 2, dx = tx - cx, dy = ty - cy;
+    if (dx === 0 && dy === 0) return [cx, cy];
+    if (n.shape === 'ellipse') {
+      var a = n.w / 2, b = n.h / 2, k = 1 / Math.sqrt((dx * dx) / (a * a) + (dy * dy) / (b * b));
+      return [cx + dx * k, cy + dy * k];
+    }
+    var t = Math.min(dx !== 0 ? (n.w / 2) / Math.abs(dx) : Infinity, dy !== 0 ? (n.h / 2) / Math.abs(dy) : Infinity);
+    return [cx + dx * t, cy + dy * t];
+  }
+
+  function render(svg, spec, gen) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var ink = css('--muted');
+    var seed = 7;
+    function opts(kind, extra) {
+      var s = STYLE[kind];
+      var o = { stroke: css(s.stroke), strokeWidth: kind === 'frame' ? 1.2 : 1.6, roughness: 1.1, bowing: 1, seed: seed++ };
+      if (s.fill) { o.fill = css(s.fill); o.fillStyle = 'hachure'; o.hachureGap = 7; o.fillWeight = 1.1; o.hachureAngle = -41; }
+      if (s.dash) o.strokeLineDash = s.dash;
+      if (extra) for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    var byId = {};
+    (spec.frames || []).forEach(function (f) {
+      svg.appendChild(gen.rectangle(f.x, f.y, f.w, f.h, opts('frame')));
+      textEl(svg, f.x + 14, f.y + 24, f.label, 'sub', 15, 700, 'start');
+    });
+    (spec.nodes || []).forEach(function (n) {
+      byId[n.id] = n;
+      var o = opts(n.kind);
+      if (n.shape === 'ellipse') svg.appendChild(gen.ellipse(n.x + n.w / 2, n.y + n.h / 2, n.w, n.h, o));
+      else svg.appendChild(gen.rectangle(n.x, n.y, n.w, n.h, o));
+    });
+    (spec.edges || []).forEach(function (e) {
+      var a = byId[e.from], b = byId[e.to];
+      var pts = [];
+      var via = e.via || [];
+      var first = via.length ? via[0] : [b.x + b.w / 2, b.y + b.h / 2];
+      var last = via.length ? via[via.length - 1] : [a.x + a.w / 2, a.y + a.h / 2];
+      pts.push(e.start || anchorPoint(a, first[0], first[1]));
+      via.forEach(function (p) { pts.push(p); });
+      pts.push(e.end || anchorPoint(b, last[0], last[1]));
+      var eo = { stroke: e.warn ? css('--danger') : ink, strokeWidth: 1.4, roughness: 0.9, seed: seed++ };
+      if (e.dashed) eo.strokeLineDash = [6, 6];
+      for (var i = 0; i < pts.length - 1; i++) svg.appendChild(gen.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], eo));
+      var p1 = pts[pts.length - 2], p2 = pts[pts.length - 1];
+      var ang = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+      [0.45, -0.45].forEach(function (d) {
+        svg.appendChild(gen.line(p2[0], p2[1], p2[0] - 13 * Math.cos(ang + d), p2[1] - 13 * Math.sin(ang + d), { stroke: eo.stroke, strokeWidth: 1.4, roughness: 0.6, seed: seed++ }));
+      });
+      if (e.label) textEl(svg, e.lx, e.ly, e.label, e.warn ? 'edge warn' : 'edge', 13, null, e.la || 'middle');
+    });
+    (spec.nodes || []).forEach(function (n) {
+      var lines = n.lines || [];
+      var cx = n.align === 'start' ? n.x + 16 : n.x + n.w / 2;
+      var total = 22 + (lines.length - 1) * 19;
+      var y0 = n.y + n.h / 2 - total / 2 + 15;
+      lines.forEach(function (l, i) {
+        textEl(svg, cx, y0 + (i === 0 ? 0 : 6 + i * 19), l, i === 0 ? '' : 'sub', i === 0 ? 17 : 14, i === 0 ? 700 : null, n.align || 'middle');
+      });
+    });
+    (spec.notes || []).forEach(function (t) { textEl(svg, t.x, t.y, t.text, t.cls || 'edge', t.size || 13, t.weight || null, t.anchor || 'middle'); });
+  }
+
+  var SPECS = {
+    'd-overview': {
+      frames: [{ x: 278, y: 18, w: 304, h: 334, label: 'Vercel (Hobby)' }],
+      nodes: [
+        { id: 'people', shape: 'ellipse', kind: 'confirmed', x: 22, y: 58, w: 210, h: 86, lines: ['Jogadores e mestres', '8+ usuários, PT e EN'] },
+        { id: 'web', kind: 'confirmed', x: 300, y: 56, w: 260, h: 96, lines: ['tomo.anacunha.com.br', 'React + Vite + TS', 'só exibe'] },
+        { id: 'api', kind: 'confirmed', x: 300, y: 228, w: 260, h: 104, lines: ['tomo-api.anacunha.com.br', 'Python, clean architecture', 'todos os cálculos'] },
+        { id: 'gh', kind: 'confirmed', x: 680, y: 56, w: 250, h: 96, lines: ['GitHub, repo público', 'CI/CD com testes', 'deploy só se passar'] },
+        { id: 'sentry', kind: 'proposed', x: 680, y: 236, w: 250, h: 88, lines: ['Sentry', 'erros do site e da API'] },
+        { id: 'neon', kind: 'confirmed', x: 22, y: 420, w: 230, h: 112, lines: ['Neon Postgres', 'schemas por módulo e sistema', 'relacional, sem JSONB'] },
+        { id: 'r2', kind: 'proposed', x: 290, y: 420, w: 190, h: 112, lines: ['Imagens', 'Cloudflare R2', 'privado, URL assinada'] },
+        { id: 'redis', kind: 'proposed', x: 504, y: 420, w: 190, h: 112, lines: ['Upstash Redis', 'limite de login', 'só em produção'] },
+        { id: 'mail', kind: 'proposed', x: 718, y: 420, w: 212, h: 112, lines: ['E-mail (Resend)', 'esqueci a senha', 'verificar e-mail'] }
+      ],
+      edges: [
+        { from: 'people', to: 'web', label: 'abre o site', lx: 266, ly: 92 },
+        { from: 'web', to: 'api', label: 'JSON + cookie', lx: 486, ly: 196, start: [430, 152], end: [430, 228] },
+        { from: 'gh', to: 'web', label: 'deploy pelo CI', lx: 622, ly: 96, start: [680, 104], end: [584, 104] },
+        { from: 'api', to: 'sentry', start: [560, 280], end: [680, 280] },
+        { from: 'web', to: 'sentry', dashed: true, start: [560, 128], end: [720, 236] },
+        { from: 'api', to: 'neon', start: [330, 332], end: [190, 420] },
+        { from: 'api', to: 'r2', start: [400, 332], end: [390, 420] },
+        { from: 'api', to: 'redis', start: [480, 332], end: [580, 420] },
+        { from: 'api', to: 'mail', start: [545, 332], end: [790, 420] }
+      ]
+    },
+    'd-database': {
+      frames: [{ x: 16, y: 14, w: 928, h: 492, label: 'Neon · projeto tomo · banco tomo' }],
+      nodes: [
+        { id: 'plat', kind: 'pending', x: 40, y: 58, w: 270, h: 118, lines: ['Módulos da plataforma', 'usuários, sessões, fichas…', 'a definir com as funcionalidades'] },
+        { id: 'audit', kind: 'confirmed', x: 334, y: 58, w: 170, h: 118, lines: ['audit', 'só aceita inserção', 'auditoria e alertas'] },
+        { id: 'support', kind: 'confirmed', x: 528, y: 58, w: 170, h: 118, lines: ['support', 'solicitações', 'tabelas a definir'] },
+        { id: 'sys', kind: 'confirmed', x: 722, y: 58, w: 200, h: 118, lines: ['pathfinder_1e', 'vtm_…, dune, …', 'um schema por sistema'] },
+        { id: 'env', kind: 'highlight', x: 70, y: 280, w: 330, h: 168, align: 'start', lines: ['ficha (envelope)', 'id · UUIDv7 · chave primária', 'system', 'dono, nome, favorita', 'lixeira, datas'] },
+        { id: 'pf', kind: 'confirmed', x: 556, y: 280, w: 350, h: 168, align: 'start', lines: ['pathfinder_1e.sheets', 'id · chave primária e estrangeira', "system = 'pathfinder_1e' (CHECK)", 'atributos, classes, perícias,', 'magias, equipamento…'] }
+      ],
+      edges: [
+        { from: 'plat', to: 'env', dashed: true, label: 'mora num schema da plataforma', lx: 236, ly: 236, la: 'start', start: [175, 176], end: [210, 280] },
+        { from: 'sys', to: 'pf', label: 'cada sistema tem a sua', lx: 772, ly: 236, la: 'end', start: [822, 176], end: [760, 280] },
+        { from: 'pf', to: 'env', label: 'FK (id, system)', lx: 478, ly: 340, start: [556, 352], end: [400, 352] },
+        { from: 'env', to: 'pf', dashed: true, label: 'conferido no fim da transação', lx: 478, ly: 440, start: [400, 412], end: [556, 412] }
+      ]
+    },
+    'd-code': {
+      frames: [{ x: 16, y: 14, w: 620, h: 392, label: 'src/tomo/modules/<módulo>/' }],
+      nodes: [
+        { id: 'router', kind: 'confirmed', x: 50, y: 62, w: 240, h: 82, lines: ['router', 'rotas FastAPI, Pydantic'] },
+        { id: 'service', kind: 'confirmed', x: 50, y: 180, w: 240, h: 82, lines: ['service', 'casos de uso'] },
+        { id: 'repo', kind: 'confirmed', x: 50, y: 298, w: 240, h: 82, lines: ['repository', 'SQLAlchemy, Postgres'] },
+        { id: 'domain', kind: 'highlight', x: 366, y: 180, w: 240, h: 82, lines: ['domain', 'regras do jogo, Python puro'] },
+        { id: 'ports', kind: 'confirmed', x: 366, y: 298, w: 240, h: 82, lines: ['interfaces (ABC)', 'contratos de acesso a dados'] },
+        { id: 'mods', kind: 'confirmed', x: 676, y: 14, w: 266, h: 236, align: 'start', lines: ['Módulos', 'audit', 'support', 'pathfinder_1e', '+ um por sistema novo', '+ plataforma (a definir)'] },
+        { id: 'guard', kind: 'proposed', x: 676, y: 284, w: 266, h: 122, align: 'start', lines: ['import-linter na CI', 'camadas na ordem certa', 'sistemas não se importam', 'entre si'] }
+      ],
+      edges: [
+        { from: 'router', to: 'service', start: [170, 144], end: [170, 180] },
+        { from: 'service', to: 'domain', start: [290, 221], end: [366, 221] },
+        { from: 'service', to: 'ports', label: 'usa', lx: 318, ly: 284, start: [290, 250], end: [380, 298] },
+        { from: 'repo', to: 'ports', label: 'implementa', lx: 328, ly: 360, start: [290, 339], end: [366, 339] },
+        { from: 'ports', to: 'domain', start: [486, 298], end: [486, 262] }
+      ]
+    },
+    'd-pipeline': {
+      nodes: [
+        { id: 'a1', kind: 'confirmed', x: 20, y: 52, w: 160, h: 92, lines: ['CI', 'lint · tipos · imports', 'testes · build'] },
+        { id: 'a2', kind: 'proposed', x: 210, y: 52, w: 160, h: 92, lines: ['Banco de preview', 'branch Neon', 'dados fictícios'] },
+        { id: 'a3', kind: 'proposed', x: 400, y: 52, w: 160, h: 92, lines: ['Migrações', 'Alembic', 'no banco do PR'] },
+        { id: 'a4', kind: 'confirmed', x: 590, y: 52, w: 160, h: 92, lines: ['Preview', 'API + site', 'do PR'] },
+        { id: 'a5', kind: 'proposed', x: 780, y: 52, w: 160, h: 92, lines: ['Link no PR', 'apagado ao', 'fechar o PR'] },
+        { id: 'b1', kind: 'confirmed', x: 20, y: 212, w: 160, h: 92, lines: ['CI', 'de novo, na main'] },
+        { id: 'b2', kind: 'proposed', x: 210, y: 212, w: 160, h: 92, lines: ['Backup', 'branch Neon', 'da produção'] },
+        { id: 'b3', kind: 'proposed', x: 400, y: 212, w: 160, h: 92, lines: ['Migrações', 'na produção'] },
+        { id: 'b4', kind: 'confirmed', x: 590, y: 212, w: 160, h: 92, lines: ['Deploy', 'API, depois site'] },
+        { id: 'b5', kind: 'proposed', x: 780, y: 212, w: 160, h: 92, lines: ['Versão', 'tag + changelog'] }
+      ],
+      edges: [
+        { from: 'a1', to: 'a2', start: [180, 98], end: [210, 98] },
+        { from: 'a2', to: 'a3', start: [370, 98], end: [400, 98] },
+        { from: 'a3', to: 'a4', start: [560, 98], end: [590, 98] },
+        { from: 'a4', to: 'a5', start: [750, 98], end: [780, 98] },
+        { from: 'b1', to: 'b2', start: [180, 258], end: [210, 258] },
+        { from: 'b2', to: 'b3', start: [370, 258], end: [400, 258] },
+        { from: 'b3', to: 'b4', start: [560, 258], end: [590, 258] },
+        { from: 'b4', to: 'b5', start: [750, 258], end: [780, 258] }
+      ],
+      notes: [
+        { x: 20, y: 34, text: 'Em cada pull request', cls: 'sub', size: 16, weight: 700, anchor: 'start' },
+        { x: 20, y: 194, text: 'Ao entrar na main', cls: 'sub', size: 16, weight: 700, anchor: 'start' },
+        { x: 100, y: 166, text: 'falhou: nada é publicado', cls: 'edge warn', size: 13, anchor: 'middle' },
+        { x: 100, y: 324, text: 'falhou: nada é publicado', cls: 'edge warn', size: 13, anchor: 'middle' }
+      ]
+    }
+  };
+
+  function drawAll() {
+    var gen = null;
+    Object.keys(SPECS).forEach(function (id) {
+      var svg = document.getElementById(id);
+      if (!svg) return;
+      if (window.rough) {
+        var rc = window.rough.svg(svg);
+        gen = { rectangle: rc.rectangle.bind(rc), ellipse: rc.ellipse.bind(rc), line: rc.line.bind(rc) };
+      } else {
+        gen = plainGen();
+      }
+      try { render(svg, SPECS[id], gen); } catch (err) { render(svg, SPECS[id], plainGen()); }
+    });
+  }
+
+  function start() { drawAll(); }
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(start, start); } else { start(); }
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll); } catch (e) {}
+  try { new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+})();
+</script>
