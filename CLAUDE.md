@@ -15,6 +15,13 @@ file (`CLAUDE.md`) is the denser architecture/convention reference for anyone (h
 about to touch the code. `DESIGN_NOTES.md` is the full chronological decision log.
 `BACKLOG.md` tracks pending requests.
 
+## In progress: rebuild as "Tomo"
+
+The product is being rebuilt from scratch as **Tomo** in a new repository (architecture definition
+phase; no Tomo code yet). If the user's request is about Tomo, its architecture or the migration,
+read `docs/tomo/CONTINUAR.md` first — it points to the decision log, the roadmap and the open
+questions, and describes how the user likes to work.
+
 ## Commands
 
 ```bash
