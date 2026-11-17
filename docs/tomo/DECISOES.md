@@ -52,6 +52,19 @@ Status usados:
 | D-024 | Galeria | O limite de imagens vale para a **galeria de cada personagem** (hoje 3), configurável no banco. | 2026-11-16 |
 | D-025 | Imagens | Ao adicionar uma imagem, um **compactador** reduz automaticamente a que for grande demais e **avisa a usuária** do que foi feito. Valores em P-005. | 2026-11-16 |
 | D-026 | Banco | **Só Postgres, relacional.** Nada de JSONB nem JSON serializado dentro do Postgres: dado com forma de documento ou vai para um banco NoSQL, ou não existe. O "nada de JSONB" do projeto atual se referia a JSON dentro do Postgres, que é diferente de um banco NoSQL. | 2026-11-16 |
+| D-027 | Repositório | **Público**, por ser portfólio, com **README completo no padrão do GitHub** (descrição, selos, prints, stack, arquitetura, como rodar, como contribuir, licença). | 2026-11-17 |
+| D-028 | Dia da troca | Sem redirecionamento do domínio antigo: os usuários são **avisados**. | 2026-11-17 |
+| D-029 | Fichas | Modelo **envelope** (Class Table Inheritance) aceito, com a exigência da usuária: **nenhum dado repetido** e **nenhuma brecha para divergência** entre as tabelas. Cada informação mora em uma tabela só; o que liga as duas (o `id` e o tipo do sistema) é garantido pelo banco, não pelo código. Detalhes em P-001. | 2026-11-17 |
+| D-030 | IDs | **UUID versão 7** nos registros novos. | 2026-11-17 |
+| D-031 | Módulos | A divisão em módulos e schemas da plataforma (P-002) fica **suspensa** até a usuária terminar a lista de funcionalidades. Motivos: `identity` e `platform` talvez tenham pouco conteúdo para justificar schemas próprios, e o Tomo não terá só fichas no futuro. Já confirmados continuam: `audit`, `support` e um schema por sistema de RPG. | 2026-11-17 |
+| D-032 | Padrão de código | Usar o padrão Python do trabalho (P-008): uv, ruff, pyright estrito, import-linter, pytest, mais a camada `domain` e interfaces ABC, com **lint também na CI**. | 2026-11-17 |
+| D-033 | CI/CD | **Nada chega à Vercel sem passar pela CI com testes.** Se algo falhar, nada é publicado. Deploys de **preview** com banco e API de preview. Fluxo de branches do git definido e aplicado no repo. Desenho em P-013 e P-014. | 2026-11-17 |
+| D-034 | Código | Organização **por módulo primeiro**, com as camadas dentro de cada módulo (P-003). | 2026-11-17 |
+| D-035 | Diagramas | **Excalidraw** é a primeira opção; Structurizr a segunda; Mermaid não (visual simples demais). | 2026-11-17 |
+| D-036 | Documentação | Toda a documentação de arquitetura em Markdown **acessível a partir do README**, com índices que levam aos arquivos detalhados. | 2026-11-17 |
+| D-037 | Idiomas | **Documentação em português e inglês.** O site **nasce multi-idioma** (português e inglês), mesmo que a tradução para o inglês venha depois. Detalhes em P-016. | 2026-11-17 |
+| D-038 | Commits | Padrão **Conventional Commits** (`feat:`, `fix:`, `docs:`...). | 2026-11-17 |
+| D-039 | Público | O Tomo é planejado para **pelo menos 8 usuários** (o tamanho da maior campanha) e para crescer, aberto a outras pessoas conhecidas. | 2026-11-17 |
 
 ## Propostas aguardando confirmação
 
@@ -109,11 +122,20 @@ vice-versa):**
    trigger `DEFERRABLE INITIALLY DEFERRED` confere no fim da transação que o envelope tem o seu
    par. Se não tiver, a transação inteira é desfeita.
 
-UUID: proposta de usar **UUIDv7** nos registros novos. Ele é ordenado por tempo, o que deixa os
+**Por que não há dado repetido (resposta à exigência da D-029):**
+
+| Informação | Onde mora | Pode divergir? |
+| --- | --- | --- |
+| Nome, dono, favorita, lixeira, datas | Só na tabela base | Não: existe uma vez só |
+| Atributos, classes, perícias, magias... | Só na tabela do sistema | Não: existe uma vez só |
+| `id` | Nas duas | Não: na tabela do sistema ele é chave estrangeira da base; o banco recusa qualquer valor que não exista lá |
+| Tipo do sistema | Na base (`system`) e, como constante, na tabela do sistema | Não: na tabela do sistema ele é fixo por `CHECK` (não é um dado, é um rótulo), e a chave estrangeira composta `(id, system)` obriga os dois a serem iguais. Na base, o `system` não pode mudar depois de criado (a chave estrangeira bloqueia a alteração enquanto existir a ficha do sistema) |
+
+UUID: confirmado **UUIDv7** (D-030) nos registros novos. Ele é ordenado por tempo, o que deixa os
 índices mais eficientes que o UUIDv4. O Python 3.14 gera nativamente com `uuid.uuid7()`. Os UUIDs
 antigos (v4) são mantidos como estão na migração.
 
-### P-002 — Dividir o "core" em módulos com responsabilidade clara
+### P-002 — Dividir o "core" em módulos com responsabilidade clara (suspensa, D-031)
 
 Um módulo "core" com tudo o que é comum tende a virar uma gaveta de bagunça. Proposta de
 schemas/módulos:
@@ -131,7 +153,7 @@ Pergunta da usuária, "as partes de core ficam juntas ou separadas das configs d
 usuário?" — proposta: **separadas**. Configurações da plataforma em `platform`; preferências de
 cada usuário junto do usuário, em `identity`.
 
-### P-003 — Organização do código: por módulo primeiro, camadas dentro
+### P-003 — Organização do código: por módulo primeiro, camadas dentro (confirmada, D-034)
 
 A usuária usa no trabalho a organização **por camada primeiro**
 (`domain/{core,audit,...}`, `application/{core,audit,...}`...). A proposta é **por módulo
@@ -223,7 +245,7 @@ primeiro login (o mecanismo de "forçar troca de senha" já existe hoje).
 - Python na Vercel: usar o endpoint "pooled" da Neon; manter um Dockerfile para poder mudar de
   hospedagem sem mexer no código.
 
-### P-008 — Aproveitar o padrão Python do trabalho (`app-contabil`)
+### P-008 — Aproveitar o padrão Python do trabalho (confirmada, D-032)
 
 A usuária compartilhou o `pyproject.toml` do projeto do trabalho (2026-11-16). Quase tudo serve
 para o Tomo. Detalhe importante: aquele projeto já é organizado **por módulo primeiro**
@@ -265,16 +287,214 @@ de falha, e perde a atomicidade justamente na operação mais comum (criar ou ex
 mexe nos dois bancos). O único ganho real do NoSQL aqui é ler a ficha numa operação só, e isso o
 repositório resolve no Postgres.
 
+### P-010 — Monitoramento de erros: Sentry
+
+**O que é:** um serviço que captura os erros da aplicação (backend e frontend), agrupa erros
+iguais num mesmo "problema", conta quantas vezes aconteceram e com quantos usuários, mostra o
+stack trace com as linhas de código e os valores das variáveis, o que aconteceu antes do erro
+("breadcrumbs") e em qual versão ele apareceu. Avisa por e-mail quando surge um erro novo ou um
+erro resolvido volta.
+
+**Plano gratuito (Developer), conferido em 2026-11-17 em fontes de terceiros:** 1 usuário, 5.000
+erros por mês, 5 GB de logs, 5 milhões de spans (medição de desempenho), 50 gravações de sessão,
+1 monitor de cron, 1 monitor de disponibilidade, 30 dias de histórico. O plano gratuito **não
+cobra excedente**: passando da cota, os eventos são descartados até o mês virar. Conferir na
+página de preços da Sentry antes de criar a conta.
+
+**Sentry × Kibana:**
+
+| | Kibana (Elastic Stack) | Sentry |
+| --- | --- | --- |
+| O que é | Painel de busca e visualização sobre o Elasticsearch, que guarda qualquer texto enviado | Ferramenta especializada em erros e desempenho |
+| Entende erros? | Não: mostra linhas de log; agrupar e alertar exige montar consultas | Sim: agrupa, conta, mostra o código, avisa |
+| Erros do navegador | Não captura sozinho | Captura (SDK do React) |
+| Como os dados chegam | Agentes (Beats, Logstash) ou fila (Kafka, como no trabalho) | O SDK dentro da aplicação envia direto por HTTPS |
+| Gratuito hospedado | Não (só teste de 14 dias) | Sim (plano Developer) |
+
+**Como os logs e erros chegam ao Sentry, sem Kafka:** o SDK (`sentry-sdk` com a integração
+FastAPI no backend, `@sentry/react` no front) roda dentro da própria aplicação e envia os eventos
+por HTTPS direto para a Sentry. Os logs do `logging` do Python também podem ir pelo SDK (recurso
+de logs da Sentry). Cuidados: não enviar dados pessoais (`send_default_pii=False`), filtrar senha
+e cookie antes do envio, e garantir o envio antes de a função serverless terminar.
+
+**Precisa guardar logs?** Proposta: não montar armazenamento próprio de logs agora. Erros no
+Sentry (com alerta por e-mail, porque os usuários nem sempre avisam quando algo quebra), logs
+estruturados na saída da Vercel para olhar na hora, e a auditoria no banco para eventos de
+segurança.
+
+### P-011 — E-mail: redefinição de senha e verificação de e-mail
+
+**Viável de graça.** Serviços de e-mail transacional com plano gratuito:
+
+| Serviço | Plano gratuito (fontes de terceiros, 2026) |
+| --- | --- |
+| Resend (proposto) | 3.000 e-mails por mês, até 100 por dia, 1 domínio |
+| Brevo | 300 e-mails por dia |
+
+Com 8 a algumas dezenas de usuários, o volume fica muito abaixo disso. Ambos têm API HTTP e SMTP.
+
+**O que exige:**
+
+- Registros DNS no domínio (SPF, DKIM e DMARC), que provam que os e-mails saem mesmo do Tomo e
+  evitam a caixa de spam. Ex.: remetente `nao-responda@tomo.anacunha.com.br`.
+- Voltar a guardar o e-mail dos usuários (o sistema atual removeu esse campo). É dado pessoal:
+  guardar só o necessário e permitir a exclusão (LGPD).
+
+**Fluxos:**
+
+1. **Verificação de e-mail:** ao cadastrar ou trocar o e-mail, o Tomo envia um link com um token
+   de uso único e validade curta. O e-mail só vale depois de confirmado.
+2. **Esqueci minha senha:** a pessoa informa o e-mail; a resposta é sempre a mesma ("se existir
+   uma conta, enviamos um link"), para não revelar quem tem conta. O link traz um token aleatório
+   de uso único, válido por cerca de 30 minutos; o banco guarda só o hash do token. Trocar a
+   senha encerra todas as sessões. Pedidos têm limite de tentativas.
+3. A redefinição pelo admin continua existindo.
+
+### P-012 — Armazenamento de imagens
+
+**Prática de mercado:** a imagem fica num **armazenamento de objetos** (object storage, padrão
+S3) e o banco guarda só os dados sobre ela (chave do arquivo, dono, ficha, tamanho, dimensões,
+formato, ordem, data). Nunca a imagem em si, como o sistema atual faz em base64.
+
+**Fluxo proposto:**
+
+1. O front comprime a imagem e pede à API uma autorização de envio.
+2. A API confere login, permissão e limites e devolve uma **URL assinada** de envio, válida por
+   poucos minutos.
+3. O navegador envia o arquivo **direto ao armazenamento**, sem passar pela função da Vercel (o
+   limite de 4,5 MB deixa de importar).
+4. A API confere o arquivo, regrava com o Pillow (formato, limites, remoção do EXIF/GPS), gera a
+   miniatura e registra no banco.
+5. Para exibir, a API entrega **URLs assinadas de leitura** de curta duração. O armazenamento é
+   **privado**: ninguém abre uma foto só adivinhando o endereço.
+
+| Opção | Gratuito | Prós | Contras |
+| --- | --- | --- | --- |
+| **Cloudflare R2** (proposto) | 10 GB, 1 milhão de escritas e 10 milhões de leituras por mês, tráfego de saída grátis | Padrão S3 (dá para trocar de fornecedor sem reescrever), URLs assinadas, saída grátis | Mais um fornecedor; acima da cota é cobrado (a Cloudflare pede cartão cadastrado para ativar) |
+| Vercel Blob | Cota do Hobby (uso limitado) | Mesma plataforma | Arquivos privados precisam passar por uma função; ao estourar a cota, o acesso é **bloqueado por 30 dias** |
+
+**Tamanhos:** guardar uma versão de exibição (lado maior de 1600 a 2048 px, WebP, ~200–600 KB) e
+uma miniatura (~400 px, ~30 KB) para listas. O original não é guardado. O WebP é o formato de
+saída: a usuária envia JPEG, PNG ou WebP normalmente, e o Tomo converte, porque o WebP fica cerca
+de 30% menor com a mesma qualidade e todos os navegadores atuais exibem.
+
+**Por que não guardar 5 MB:** 10 vezes mais armazenamento e tráfego sem ganho visível (a foto é
+exibida com cerca de 1000 px de largura). Exemplo: 8 usuários × 10 fichas × 3 fotos = 240 fotos,
+cerca de 1,2 GB a 5 MB cada contra ~120 MB a 500 KB. Abrir uma galeria no 4G seria baixar 15 MB
+contra 1,5 MB.
+
+### P-013 — Pipeline de CI/CD e previews
+
+**Desligar o deploy automático da Vercel** (no `vercel.json` do projeto: `git.deploymentEnabled`
+em `false`, a mesma chave que o projeto atual já usa para liberar só a `main`) e fazer **todo
+deploy pelo GitHub Actions**, com a CLI da Vercel (`vercel build` + `vercel deploy --prebuilt`),
+só depois dos testes. A alternativa, "Deployment Checks" da Vercel, só segura a promoção para
+produção e pode conflitar com as regras de proteção do GitHub; a pipeline própria controla também
+a ordem banco → API → site.
+
+**Em cada pull request:**
+
+1. CI: lint (ruff), tipos (pyright), import-linter, testes unitários e de integração (Postgres de
+   teste), build do front e da API, auditoria de dependências. Falhou, para aqui.
+2. Cria o branch de banco `preview/pr-<número>` na Neon a partir de um branch **`demo` com dados
+   fictícios** (nunca da produção: o código de um PR ainda não revisado não pode enxergar dados e
+   senhas reais).
+3. Aplica as migrações (Alembic) e os dados de exemplo.
+4. Publica a API de preview apontando para esse banco e o site de preview apontando para essa
+   API. No preview, o site repassa `/api` para a API de preview: o navegador vê um endereço só e
+   o login funciona (dois endereços `*.vercel.app` diferentes contam como sites diferentes e
+   bloqueariam o cookie).
+5. Comenta no PR os links do preview.
+6. Ao fechar o PR, apaga o branch de banco. O plano gratuito da Neon permite 10 branches por
+   projeto, o que dá para alguns PRs abertos ao mesmo tempo.
+
+**Ao entrar na `main`:** CI de novo → branch de backup do banco de produção → migrações na
+produção → deploy da API → deploy do site → versão e changelog. Qualquer falha interrompe antes
+de publicar.
+
+**Ambientes:** **local** (onde se programa: aqui na nuvem ou no seu computador, com um branch
+`dev` do banco), **preview** (um por PR) e **produção**. Os previews substituem o ambiente de
+staging. **Segredos de produção nunca vão para previews.**
+
+**Upstash (Redis):** usado só para limitar tentativas de login. Proposta: só a produção usa
+Redis; preview e local funcionam sem ele (o limitador fica desligado quando não está configurado,
+como hoje). Assim nenhuma credencial de produção chega a um preview.
+
+### P-014 — Fluxo de branches: GitHub Flow
+
+O **Git Flow** clássico (branches `develop`, `release/*`, `hotfix/*`) foi feito para software
+lançado em versões numeradas, com várias versões em uso ao mesmo tempo. O próprio autor, Vincent
+Driessen, acrescentou em 2020 uma nota recomendando um fluxo mais simples, como o **GitHub
+Flow**, para quem publica continuamente (aplicações web). Proposta:
+
+1. A `main` é sempre publicável e reflete a produção. Ninguém faz push direto nela (proteção de
+   branches, disponível de graça em repo público).
+2. Todo trabalho nasce numa branch curta a partir da `main` (`feat/...`, `fix/...`, `docs/...`).
+3. Pull request → CI verde → preview conferido → merge por squash (um commit por PR, no padrão
+   Conventional Commits).
+4. Versões e changelog gerados automaticamente a partir dos commits (ex.: release-please), o que
+   também pode alimentar a tela de Novidades.
+
+### P-015 — Site de documentação
+
+O GitHub já mostra Markdown, imagens e índices de forma nativa, e cada pasta com `README.md`
+vira uma página navegável. Também oferece **GitHub Pages** (hospedagem gratuita para repos
+públicos) e Wiki (não versionada junto com o código, não recomendada).
+
+Proposta: escrever a documentação em Markdown no `docs/` (legível direto no GitHub, com o README
+como índice) e **publicar a mesma documentação** como site com **Material for MkDocs** no GitHub
+Pages, gerado pela CI. Ganha busca, modo escuro, navegação lateral e seletor de idioma
+(português/inglês, com o plugin `mkdocs-static-i18n`). É Python, como o backend. Não vale
+construir um visualizador próprio.
+
+**Diagramas:** desenhados no Excalidraw e salvos como `.excalidraw.svg` com a cena embutida: o
+GitHub e o MkDocs exibem como imagem, e o mesmo arquivo reabre editável no excalidraw.com ou na
+extensão do VS Code. Para os diagramas de arquitetura, usar a notação C4 com a biblioteca de
+formas C4 do Excalidraw.
+
+### P-016 — Multi-idioma desde o início (i18n)
+
+- **Front:** nenhum texto fixo no código; todos em catálogos de tradução (`pt-BR` e `en`), com
+  uma regra de lint que acusa texto solto. Biblioteca a escolher (react-i18next ou similar).
+  Datas, números e moedas formatados pelo idioma (API `Intl` do navegador).
+- **Idioma escolhido:** preferência salva no perfil; antes do login, o idioma do navegador.
+- **API:** devolve **códigos** de erro e de mensagem (ex.: `auth.invalid_credentials`), não frases
+  prontas; o front traduz. Textos que o servidor precisa gerar (e-mails) têm modelo por idioma.
+- **Dados:** conteúdo que precisa existir nos dois idiomas (como a biblioteca, que já é PT/EN hoje)
+  é modelado no banco com o idioma de cada registro.
+- **Documentação:** português como original, inglês como tradução (P-015).
+
+### P-017 — Exemplos de configurações da plataforma (P-005)
+
+Valores que mudam sem deploy, editados por master/admin, cada mudança auditada. A lista final sai
+das funcionalidades; exemplos:
+
+| Chave | Exemplo |
+| --- | --- |
+| `photos.max_per_sheet` | 3 |
+| `photos.max_dimension_px` | 1600 |
+| `photos.max_bytes` | 500 KB |
+| `auth.login_max_attempts` / `auth.login_window_minutes` | 5 tentativas em 15 minutos |
+| `auth.session_days` | 7 |
+| `auth.password_min_length` | 12 |
+| `trash.retention_days` | 30 (exclusão definitiva automática depois disso) |
+| `support.request_text_max_length` | 500 |
+| `platform.maintenance_mode` | ligado/desligado |
+
 ## Abertas
 
 | ID | Pergunta | Contexto |
 | --- | --- | --- |
-| Q-001 | Repo novo público ou privado? | No plano gratuito do GitHub, repo privado não aplica proteção de branches. Para portfólio, público costuma ser melhor (sem segredos no código, que nunca deveriam estar lá de qualquer forma). |
-| Q-002 | Redirecionar o domínio do app antigo para o Tomo no dia da troca? | Só serve para quem tem o link antigo salvo cair no app novo. Com menos de 3 usuários, pode ser só avisar. |
-| Q-004 | Um banco Upstash (Redis) por ambiente, ou um só? | Proposta: um por ambiente, para os testes de staging não bloquearem logins de produção. |
-| Q-005 | Confirmar os valores de imagem propostos (1600 px, 500 KB, WebP) | Ver P-005 |
-| Q-007 | Como guardar os snapshots de nível sem JSON? | No sistema atual, cada snapshot é a ficha inteira serializada em JSON (texto). Pela D-026 isso não pode mais. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma linha de `sheets` marcada como "versão congelada", reaproveitando as mesmas tabelas; (c) guardar só o que mudou entre níveis. Decidir na etapa 10. |
-| Q-008 | Onde ficam os logs e os erros? | A Vercel no Hobby guarda poucos logs por pouco tempo e não permite log drain; o Elastic hospedado só tem teste de 14 dias. Proposta: Sentry gratuito (erros e logs) + logs estruturados na Vercel. Ver resposta de 2026-11-16 no chat. |
+| Q-004 | Logs e erros: adotar o Sentry gratuito + logs na Vercel, sem armazenamento próprio de logs? | Ver P-010 |
+| Q-005 | Imagens: armazenamento (Cloudflare R2 ou Vercel Blob) e tamanhos (exibição 1600–2048 px WebP + miniatura)? | Ver P-012 |
+| Q-007 | Como guardar os snapshots de nível sem JSON? | A usuária ainda está definindo. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma cópia congelada da ficha nas mesmas tabelas; (c) guardar só o que mudou entre níveis. |
+| Q-009 | Ter e-mail (redefinição de senha e verificação) com Resend? | Ver P-011 |
+| Q-010 | Pipeline de CI/CD e previews como em P-013 (deploy só pelo GitHub Actions, previews com banco de dados fictícios, sem staging, Redis só em produção)? | Ver P-013 |
+| Q-011 | Fluxo de branches GitHub Flow em vez de Git Flow? | Ver P-014 |
+| Q-012 | Site de documentação com Material for MkDocs no GitHub Pages? | Ver P-015 |
+| Q-013 | "Nos dois idiomas" vale também para o código (nomes de variáveis, tabelas)? | Proposta: código e banco só em inglês, porque um identificador não pode ter dois idiomas; documentação e interface em PT e EN. |
+| Q-014 | Modelo de ADR | Ver explicação no glossário (ADR). Proposta de seções: contexto, opções consideradas, decisão, consequências, status. |
+| Q-015 | Quais configurações da plataforma existirão? | Exemplos em P-017; a lista final sai das funcionalidades. |
 
 ## Descartadas ou superadas
 
@@ -291,7 +511,12 @@ repositório resolve no Postgres.
 
 | Termo | O que é |
 | --- | --- |
-| **ADR** | Architecture Decision Record: uma página curta por decisão de arquitetura (contexto, decisão, consequências). |
+| **ADR** | Architecture Decision Record: uma página curta por decisão de arquitetura, guardada no repo (`docs/adr/0007-postgres-sem-jsonb.md`). Responde: qual era o problema (contexto), que opções havia, o que foi escolhido, o que isso traz de bom e de ruim (consequências) e se ainda vale (status: proposta, aceita, substituída). Serve para quem chegar depois entender por que o sistema é como é. |
+| **Sentry** | Serviço de monitoramento de erros (P-010). |
+| **Object storage** | Armazenamento de arquivos acessados por chave via HTTP (padrão S3), usado para imagens e anexos, fora do banco. |
+| **URL assinada** | Endereço temporário, assinado pela API, que permite enviar ou baixar um arquivo específico por poucos minutos, sem expor credenciais. |
+| **GitHub Flow / Git Flow** | Modelos de uso de branches. Ver P-014. |
+| **i18n** | Internacionalização: preparar o sistema para vários idiomas. |
 | **arc42** | Modelo de documentação de arquitetura com 12 seções (objetivos, restrições, contexto, estratégia, blocos, execução, implantação, conceitos transversais, decisões, qualidade, riscos, glossário). |
 | **C4** | Forma de desenhar arquitetura em 4 zooms: contexto, contêineres, componentes e código. |
 | **FastAPI** | Framework Python para APIs web. Usa as anotações de tipo + Pydantic para validar entrada e saída e gera a documentação OpenAPI sozinho. |
@@ -323,6 +548,14 @@ repositório resolve no Postgres.
   antiga exportada para arquivo, limite de imagens na galeria do personagem e compactador de
   imagem com aviso; analisados o padrão Python do trabalho (P-008) e Postgres × NoSQL (P-009).
   Decidido: só Postgres, sem JSONB (D-026). Pesquisadas opções gratuitas de logs (Q-008).
+- **2026-11-17** — Confirmados: repo público com README completo, aviso aos usuários no dia da
+  troca, envelope sem dado repetido, UUIDv7, padrão de código do trabalho, CI/CD obrigatória
+  antes de qualquer deploy, previews com banco, módulo primeiro, Excalidraw, documentação
+  indexada pelo README e bilíngue, site multi-idioma desde o início, Conventional Commits, pelo
+  menos 8 usuários. Divisão em módulos da plataforma suspensa até a lista de funcionalidades.
+  Pesquisados Sentry, e-mail gratuito, armazenamento de imagens, pipeline com previews, fluxo de
+  branches e site de documentação (P-010 a P-017). Criado o artefato visual com o que já foi
+  definido.
 
 ## Fontes
 
@@ -338,3 +571,12 @@ repositório resolve no Postgres.
 - [Vercel — versões de Python suportadas](https://vercel.com/docs/functions/runtimes/python/python-version)
 - [Vercel — limite de 4,5 MB no corpo da requisição](https://vercel.com/kb/guide/how-to-bypass-vercel-body-size-limit-serverless-functions)
 - [MongoDB Atlas — limitações do plano gratuito](https://mongodb.com/docs/atlas/reference/free-shared-limitations/)
+- [Sentry — preços (resumo de terceiros)](https://maple.dev/guides/sentry-pricing/)
+- [Resend — plano gratuito (resumo de terceiros)](https://automationatlas.io/answers/resend-free-tier-explained-2026/)
+- [Cloudflare R2 — preços](https://developers.cloudflare.com/r2/pricing/)
+- [Vercel Blob — uso e preços](https://vercel.com/docs/vercel-blob/usage-and-pricing)
+- [Vercel — GitHub Actions com a Vercel](https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel)
+- [Vercel — Deployment Checks](https://vercel.com/docs/deployment-checks)
+- [Neon — branches com GitHub Actions](https://neon.tech/docs/guides/branching-github-actions)
+- [Vincent Driessen — A successful Git branching model (nota de 2020)](https://nvie.com/posts/a-successful-git-branching-model)
+- [mkdocs-static-i18n](https://pypi.org/project/mkdocs-static-i18n/0.55)
