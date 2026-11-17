@@ -65,6 +65,13 @@ Status usados:
 | D-037 | Idiomas | **Documentação em português e inglês.** O site **nasce multi-idioma** (português e inglês), mesmo que a tradução para o inglês venha depois. Detalhes em P-016. | 2026-11-17 |
 | D-038 | Commits | Padrão **Conventional Commits** (`feat:`, `fix:`, `docs:`...). | 2026-11-17 |
 | D-039 | Público | O Tomo é planejado para **pelo menos 8 usuários** (o tamanho da maior campanha) e para crescer, aberto a outras pessoas conhecidas. | 2026-11-17 |
+| D-040 | Redis | **Só a produção usa o Redis** (Upstash). Preview e local funcionam sem ele, com o limitador de tentativas desligado. | 2026-11-17 |
+| D-041 | Pipeline | Pipeline como em P-013: **deploy só pelo GitHub Actions**, previews com banco de **dados fictícios**, **sem staging** (os previews fazem esse papel). | 2026-11-17 |
+| D-042 | E-mail | **Voltar a guardar o e-mail** dos usuários, **criptografado no banco** e descriptografado só no Python quando for usado (desenho em P-019). Redefinição de senha ("esqueci a senha", como em P-011) e verificação de e-mail com o **Resend**. | 2026-11-17 |
+| D-043 | Imagens | Imagens num **armazenamento de objetos**, **Cloudflare R2 a princípio** (ver a alternativa em P-012, ainda em discussão). Limite de **500 KB**; versão de exibição de 1600 a 2048 px em **WebP** + miniatura, **sem guardar o original**. A usuária manda a foto do celular como está, e o sistema reduz sozinho e avisa (D-025). | 2026-11-17 |
+| D-044 | Idiomas | **Código e banco em inglês.** A **interface é multi-idioma**. (A documentação bilíngue da D-037 está em reconfirmação, Q-019.) | 2026-11-17 |
+| D-045 | ADR | Modelo de ADR com as seções **contexto, opções consideradas, decisão, consequências e status**. | 2026-11-17 |
+| D-046 | Configurações | A lista final de configurações da plataforma sai da lista de funcionalidades (P-017 vale como exemplo). | 2026-11-17 |
 
 ## Propostas aguardando confirmação
 
@@ -322,6 +329,36 @@ Sentry (com alerta por e-mail, porque os usuários nem sempre avisam quando algo
 estruturados na saída da Vercel para olhar na hora, e a auditoria no banco para eventos de
 segurança.
 
+**Complemento de 2026-11-17 (perguntas da usuária).**
+
+*Onde se veem os erros:* no site da Sentry (sentry.io), com login próprio (ativar verificação em
+duas etapas), na lista "Issues"; alerta por e-mail a cada erro novo.
+
+*HTTPS é arriscado?* Não: o HTTPS (TLS) é o que protege o envio, o mesmo de um banco online. Os
+riscos reais e as medidas:
+
+| Risco | Medida |
+| --- | --- |
+| Enviar dado pessoal ou segredo dentro do erro | `send_default_pii=False`; filtro `before_send` no SDK que apaga senha, cookie, token, e-mail e cabeçalho `Authorization` **antes** de sair do servidor; regras de limpeza também do lado da Sentry |
+| A chave do front (DSN) é pública por natureza: alguém pode mandar erros falsos e gastar a cota | "Allowed Domains" restrito a `tomo.anacunha.com.br`, limite de eventos por chave; opcionalmente o front envia pela nossa API (`tunnel`), e a DSN nem aparece no navegador |
+| Alguém entrar na conta da Sentry | Verificação em duas etapas; conta só da usuária |
+| Os dados ficarem num terceiro | Região de dados na **UE (Alemanha)**, escolhida na criação da conta; histórico de 30 dias |
+
+*Sentry × logs no nosso banco:*
+
+| | Sentry | Logs no nosso banco |
+| --- | --- | --- |
+| Erros do navegador | Captura sozinho | Exige uma rota pública de recebimento, que pode ser abusada |
+| Erro quando o banco cai | Registra | **Perde**: justamente o erro mais importante não consegue ser gravado |
+| Agrupar, contar, mostrar o código, alertar | Pronto | Tudo a construir (um projeto à parte) |
+| Espaço e cota | Do lado deles | Gasta os ~0,5 GB e as horas de processamento gratuitas da Neon |
+| Dados ficam com a gente | Não (terceiro, com as medidas acima) | Sim |
+| Tela dentro do Tomo, só para o master | Não (fica na sentry.io) | Sim |
+
+Proposta: **cada um no seu papel.** Erros técnicos no Sentry. No nosso banco, o que é do
+negócio: auditoria, eventos de segurança e atividade (quem fez o quê), numa tela do Tomo só para
+o master.
+
 ### P-011 — E-mail: redefinição de senha e verificação de e-mail
 
 **Viável de graça.** Serviços de e-mail transacional com plano gratuito:
@@ -383,6 +420,26 @@ exibida com cerca de 1000 px de largura). Exemplo: 8 usuários × 10 fichas × 3
 cerca de 1,2 GB a 5 MB cada contra ~120 MB a 500 KB. Abrir uma galeria no 4G seria baixar 15 MB
 contra 1,5 MB.
 
+**Complemento de 2026-11-17 (perguntas da usuária).** O WebP é o formato do arquivo, e o
+armazenamento é onde ele fica: os dois se combinam com qualquer opção abaixo. Como todas seguem o
+padrão S3, trocar de fornecedor depois é configuração, não código.
+
+| | Cloudflare R2 | Backblaze B2 | Vercel Blob (Hobby) |
+| --- | --- | --- | --- |
+| Gratuito | 10 GB, 1 milhão de escritas e 10 milhões de leituras por mês, saída grátis | 10 GB, 1 GB de download por dia | 1 GB, 10 GB de transferência, 10 mil operações simples e 2 mil avançadas por mês |
+| Passou da cota | **Cobra no cartão, sem teto.** Só existem alertas de orçamento | **Teto de gastos por dia** (pode ser US$ 0): passou, bloqueia em vez de cobrar | Bloqueia o acesso por **30 dias** (há relatos de bloqueio abaixo da cota) |
+| Cartão | Exigido para ativar o R2 | A Backblaze diz que não precisa (conferir no cadastro) | Não |
+| Velocidade | Rede da Cloudflare, muito rápida | Boa (data centers nos EUA ou na Europa) | Boa |
+
+Tamanho da cota no uso do Tomo: 10 GB são ~20 mil fotos de 500 KB; 8 usuários × 10 fichas × 3
+fotos = 240 fotos (~120 MB). Estourar só aconteceria por abuso, e a API só autoriza envios dentro
+dos limites. Se acontecesse no R2, o preço é de cerca de US$ 0,015 por GB por mês.
+
+Cartão virtual que vence em 24 h: não foi possível confirmar a política da Cloudflare. Se uma
+cobrança falhar, o provável é a conta ser suspensa e a dívida continuar. Mais seguro: um cartão
+virtual permanente com limite baixo. Ou usar o B2 com teto de US$ 0, que torna a cobrança
+impossível.
+
 ### P-013 — Pipeline de CI/CD e previews
 
 **Desligar o deploy automático da Vercel** (no `vercel.json` do projeto: `git.deploymentEnabled`
@@ -435,6 +492,16 @@ Flow**, para quem publica continuamente (aplicações web). Proposta:
 4. Versões e changelog gerados automaticamente a partir dos commits (ex.: release-please), o que
    também pode alimentar a tela de Novidades.
 
+**Diferença, explicada em 2026-11-17:**
+
+| | Git Flow | GitHub Flow |
+| --- | --- | --- |
+| Branches fixas | `main` (versões lançadas) e `develop` (próxima versão) | Só a `main` |
+| Branches temporárias | `feature/*` (a partir da `develop`), `release/*` (preparar a versão), `hotfix/*` (correção urgente na `main`) | Uma branch curta por mudança, a partir da `main` |
+| Caminho até a produção | feature → develop → release → main | branch → PR → main → produção |
+| Feito para | Software com versões numeradas e várias versões em uso ao mesmo tempo (app instalado, biblioteca) | Site publicado continuamente, uma versão só no ar |
+| Custo | Mais branches, mais merges, conflitos acumulados na `develop` | Simples; depende de CI e previews bons (que o Tomo terá) |
+
 ### P-015 — Site de documentação
 
 O GitHub já mostra Markdown, imagens e índices de forma nativa, e cada pasta com `README.md`
@@ -451,6 +518,18 @@ construir um visualizador próprio.
 GitHub e o MkDocs exibem como imagem, e o mesmo arquivo reabre editável no excalidraw.com ou na
 extensão do VS Code. Para os diagramas de arquitetura, usar a notação C4 com a biblioteca de
 formas C4 do Excalidraw.
+
+**Como funciona, explicado em 2026-11-17:** o MkDocs é um gerador de site estático. Ele lê os
+arquivos Markdown da pasta `docs/` e um arquivo de configuração (`mkdocs.yml`: título, cores,
+menu, idiomas) e gera um site HTML pronto. O "Material" é o tema que dá a aparência, a busca e o
+modo escuro. No Tomo:
+
+1. A documentação é escrita em Markdown no `docs/` do repositório, junto com o código, e já é
+   legível no GitHub.
+2. A cada merge na `main` que mexa no `docs/`, uma etapa do GitHub Actions roda `mkdocs build` e
+   publica o resultado no GitHub Pages (ex.: `docs.tomo.anacunha.com.br`).
+3. Ninguém edita o site: edita o Markdown, e o site se refaz sozinho.
+4. Com dois idiomas, cada página tem duas versões (`visao-geral.pt.md` e `visao-geral.en.md`).
 
 ### P-016 — Multi-idioma desde o início (i18n)
 
@@ -481,20 +560,103 @@ das funcionalidades; exemplos:
 | `support.request_text_max_length` | 500 |
 | `platform.maintenance_mode` | ligado/desligado |
 
+### P-018 — Papéis e permissões (2026-11-17)
+
+**Como é hoje** (dois campos sim/não na tabela `users`, conferido no código):
+
+| Ação | Comum | Admin | Master |
+| --- | --- | --- | --- |
+| Próprias fichas, compartilhar, ver a biblioteca | ✓ | ✓ | ✓ |
+| Adicionar e editar itens da biblioteca | ✓ (hoje qualquer um) | ✓ | ✓ |
+| Criar usuários, ativar/desativar, redefinir senha, ver alertas de segurança | | ✓ | ✓ |
+| Enviar item da biblioteca para a lixeira | | ✓ | ✓ |
+| Dar e tirar o papel de admin | | | ✓ |
+| Excluir de vez um item da biblioteca | | | ✓ |
+| Ver, restaurar e excluir de vez as fichas apagadas de outras pessoas | | | ✓ |
+| Ser intocável (ninguém desativa, rebaixa ou troca a senha) | | | ✓ (conta única, só no banco) |
+
+O "mantenedor" só existe no BACKLOG (hierarquia desejada `master > admin > mantenedor > comum`,
+com espaço para papéis não lineares no futuro).
+
+**Princípio proposto para separar os papéis:** cada papel cuida de uma coisa.
+
+| Papel | Cuida de | Pode |
+| --- | --- | --- |
+| **Jogador** (comum) | As próprias fichas | Fichas, compartilhamento, galeria, ver a biblioteca, abrir solicitações |
+| **Mantenedor** | O conteúdo da biblioteca | Criar, editar e enviar para a lixeira itens da biblioteca; atender solicitações de biblioteca |
+| **Admin** | As pessoas (operação do dia a dia) | Criar contas e enviar convites, ativar/desativar, forçar redefinição de senha, ver alertas de segurança, atender solicitações gerais. **Não** dá papéis, **não** apaga nada de vez, **não** mexe nas configurações |
+| **Master** | A plataforma (o que é irreversível ou dá poder) | Tudo dos outros + dar e tirar papéis, configurações da plataforma (P-005), exclusões definitivas, restaurar dados de outras pessoas, modo de manutenção, auditoria completa. Uma conta só, definida direto no banco, intocável pela API |
+
+**Modelo no banco (RBAC):** em vez de campos sim/não, tabelas `roles`, `permissions`,
+`role_permissions` e `user_roles`. O código checa **permissões** (`library.edit`,
+`users.deactivate`), nunca o nome do papel. Assim um papel novo, ou não linear (dois papéis
+derivados da mesma base), é só mais uma linha, sem mudar código. O master continua sendo uma
+marca à parte, que nenhuma rota consegue gravar.
+
+### P-019 — E-mail criptografado no banco (2026-11-17)
+
+**Problema:** o e-mail precisa ser **procurado** (login por e-mail, "esqueci a senha", impedir
+duas contas com o mesmo e-mail). Uma criptografia segura gera um texto diferente a cada vez, então
+não dá para procurar por ela.
+
+**Padrão de mercado ("blind index"):** duas colunas.
+
+| Coluna | O que guarda | Para quê |
+| --- | --- | --- |
+| `email_encrypted` | O e-mail criptografado com **AES-256-GCM** (biblioteca `cryptography`) | Ler o e-mail quando for preciso enviar algo; só o Python descriptografa |
+| `email_lookup` | Um **HMAC-SHA256** do e-mail normalizado (minúsculas, sem espaços), com outra chave | Procurar e garantir e-mail único (`UNIQUE`). Não dá para voltar ao e-mail a partir dele |
+| `email_key_version` | Qual chave criptografou | Trocar a chave no futuro sem perder dados |
+
+As chaves ficam nas variáveis de ambiente da Vercel (só produção; preview tem chaves próprias),
+nunca no banco nem no repositório. A Neon já criptografa o disco; esta camada protege contra
+vazamento de um dump, backup ou acesso indevido ao banco. Limite: quem tiver o banco **e** as
+chaves da Vercel lê os e-mails.
+
+### P-020 — Login com Google (2026-11-17)
+
+O Google não cobra pelo "Entrar com Google" (OpenID Connect). Pedindo só `openid`, `email` e
+`profile`, que são escopos não sensíveis, o app não passa pela verificação do Google; a
+verificação de marca só é exigida para exibir nome e logo do Tomo na tela de consentimento.
+No Python: biblioteca **Authlib**.
+
+Proposta:
+
+- Opcional, **ao lado** da senha, não no lugar dela.
+- Sem cadastro aberto (continua valendo): o Google só entra numa conta que **já existe**.
+- Vincular só com o e-mail confirmado pelo Google (`email_verified`) e pela própria pessoa,
+  já logada, na tela de perfil. Isso evita que alguém tome uma conta criando um Google com o
+  e-mail de outra pessoa.
+- O banco guarda o identificador da conta Google (`sub`), não a senha nem tokens do Google.
+
+### P-021 — Verificação de e-mail e convite (2026-11-17)
+
+**Para que serve a verificação:** provar que o e-mail existe **e pertence à pessoa**. Para o Tomo:
+
+1. O "esqueci a senha" só funciona se o e-mail estiver certo. Com um erro de digitação, a conta
+   fica sem recuperação; pior, se o e-mail digitado errado for de outra pessoa, ela recebe o link
+   e **toma a conta**.
+2. Ninguém cadastra o e-mail de outra pessoa.
+3. E-mails que voltam (endereço inexistente) prejudicam a reputação do domínio, e os próximos
+   caem no spam.
+
+**Proposta, já que não há cadastro aberto:** o admin cria a conta com o e-mail, e o Tomo envia
+um **convite** com link de uso único para a pessoa definir a própria senha. Clicar no convite
+verifica o e-mail, e acaba a senha temporária repassada por mensagem. Trocar de e-mail depois
+exige confirmar o novo.
+
 ## Abertas
 
 | ID | Pergunta | Contexto |
 | --- | --- | --- |
-| Q-004 | Logs e erros: adotar o Sentry gratuito + logs na Vercel, sem armazenamento próprio de logs? | Ver P-010 |
-| Q-005 | Imagens: armazenamento (Cloudflare R2 ou Vercel Blob) e tamanhos (exibição 1600–2048 px WebP + miniatura)? | Ver P-012 |
+| Q-004 | Logs: Sentry para erros técnicos + atividade e segurança no nosso banco (visíveis ao master no Tomo), ou tudo no nosso banco? | Ver P-010 (comparação de 2026-11-17) |
+| Q-005 | Imagens: Cloudflare R2 (sem teto de gastos, só alertas) ou Backblaze B2 (teto de gastos em US$ 0)? | Ver P-012 |
+| Q-016 | Papéis: o desenho de P-018 serve? O mantenedor cuida da biblioteca de todos os sistemas ou de sistemas específicos? | Ver P-018 |
+| Q-017 | E-mail: convite por e-mail no lugar da senha temporária (P-021) e criptografia com blind index (P-019)? | |
+| Q-018 | Login com Google opcional, ao lado da senha, só para contas existentes? | Ver P-020 |
+| Q-019 | A documentação continua em PT e EN (D-037), ou só a interface é multi-idioma? | Resposta de 2026-11-17: "o código fica em inglês, só interface multi-idioma" |
 | Q-007 | Como guardar os snapshots de nível sem JSON? | A usuária ainda está definindo. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma cópia congelada da ficha nas mesmas tabelas; (c) guardar só o que mudou entre níveis. |
-| Q-009 | Ter e-mail (redefinição de senha e verificação) com Resend? | Ver P-011 |
-| Q-010 | Pipeline de CI/CD e previews como em P-013 (deploy só pelo GitHub Actions, previews com banco de dados fictícios, sem staging, Redis só em produção)? | Ver P-013 |
-| Q-011 | Fluxo de branches GitHub Flow em vez de Git Flow? | Ver P-014 |
-| Q-012 | Site de documentação com Material for MkDocs no GitHub Pages? | Ver P-015 |
-| Q-013 | "Nos dois idiomas" vale também para o código (nomes de variáveis, tabelas)? | Proposta: código e banco só em inglês, porque um identificador não pode ter dois idiomas; documentação e interface em PT e EN. |
-| Q-014 | Modelo de ADR | Ver explicação no glossário (ADR). Proposta de seções: contexto, opções consideradas, decisão, consequências, status. |
-| Q-015 | Quais configurações da plataforma existirão? | Exemplos em P-017; a lista final sai das funcionalidades. |
+| Q-011 | Fluxo de branches GitHub Flow em vez de Git Flow? | Ver P-014 (diferença explicada em 2026-11-17) |
+| Q-012 | Site de documentação com Material for MkDocs no GitHub Pages? | Ver P-015 (funcionamento explicado em 2026-11-17) |
 
 ## Descartadas ou superadas
 
@@ -556,6 +718,13 @@ das funcionalidades; exemplos:
   Pesquisados Sentry, e-mail gratuito, armazenamento de imagens, pipeline com previews, fluxo de
   branches e site de documentação (P-010 a P-017). Criado o artefato visual com o que já foi
   definido.
+- **2026-11-17 (continuação)** — Confirmados: Redis só em produção, pipeline de P-013, e-mail
+  de volta (criptografado) com Resend, imagens em armazenamento de objetos com 500 KB e WebP,
+  código em inglês, modelo de ADR, lista de configurações a partir das funcionalidades.
+  Respondidas as perguntas sobre o Sentry (segurança, onde ver, comparação com logs próprios),
+  verificação de e-mail, login com Google, alternativas ao R2, GitHub Flow × Git Flow e MkDocs.
+  Propostos os papéis (P-018), o e-mail criptografado (P-019), o login com Google (P-020) e o
+  convite por e-mail (P-021).
 
 ## Fontes
 
@@ -580,3 +749,9 @@ das funcionalidades; exemplos:
 - [Neon — branches com GitHub Actions](https://neon.tech/docs/guides/branching-github-actions)
 - [Vincent Driessen — A successful Git branching model (nota de 2020)](https://nvie.com/posts/a-successful-git-branching-model)
 - [mkdocs-static-i18n](https://pypi.org/project/mkdocs-static-i18n/0.55)
+- [Cloudflare — alertas de orçamento](https://developers.cloudflare.com/billing/manage/budget-alerts/)
+- [Backblaze B2 — tetos de gastos e alertas](https://www.backblaze.com/docs/en/cloud-storage-data-caps-and-alerts)
+- [Backblaze — guia de planos gratuitos](https://www.backblaze.com/blog/free-isnt-always-free-a-guide-to-free-cloud-tiers/)
+- [Google — quando a verificação do app não é exigida](https://support.google.com/cloud/answer/13463817?hl=en)
+- [Sentry — dados sensíveis (before_send)](https://docs.sentry.io/platforms/python/guides/falcon/data-management/sensitive-data/advanced-datascrubbing)
+- [Sentry — privacidade e região de dados](https://sentry.io/trust/privacy/)

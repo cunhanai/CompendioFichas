@@ -35,21 +35,20 @@ a `main`).
 
 ## Perguntas em aberto (refazer na próxima conversa)
 
-1. Logs e erros: Sentry gratuito + logs na Vercel, sem armazenamento próprio de logs? (P-010)
-2. E-mail: redefinição de senha e verificação de e-mail com Resend? Exige voltar a guardar o
-   e-mail dos usuários. (P-011)
-3. Imagens, onde guardar: Cloudflare R2 (proposto) ou Vercel Blob? (P-012)
-4. Imagens, tamanhos: exibição 1600–2048 px em WebP + miniatura, sem guardar o original? (P-012)
-5. Pipeline: deploy só pelo GitHub Actions, previews com dados fictícios, sem staging, Redis só
-   em produção? (P-013)
-6. Fluxo de branches: GitHub Flow em vez de Git Flow? (P-014)
-7. Site da documentação: Material for MkDocs no GitHub Pages? (P-015)
-8. Código e banco só em inglês; documentação e interface em PT e EN? (Q-013)
-9. Modelo de ADR: contexto, opções, decisão, consequências, status? (Q-014)
-10. Configurações da plataforma: a lista final sai das funcionalidades? (P-017)
-11. Snapshots de nível sem JSON — a usuária está definindo. (Q-007)
-12. Lista de funcionalidades do Tomo — a usuária está definindo; ela decide os módulos e
-    schemas da plataforma (D-031) e as tabelas do `support` (D-021).
+1. Logs: Sentry para erros técnicos + atividade/segurança no nosso banco com tela só do master,
+   ou tudo no nosso banco? (Q-004, comparação em P-010)
+2. Papéis: o desenho de P-018 serve? Mantenedor de todos os sistemas ou de sistemas específicos?
+   (Q-016)
+3. E-mail: convite por e-mail no lugar da senha temporária (P-021) e criptografia com blind index
+   (P-019)? (Q-017)
+4. Login com Google opcional, ao lado da senha, só para contas existentes? (Q-018, P-020)
+5. Imagens: Cloudflare R2 (só alertas) ou Backblaze B2 (teto de US$ 0)? (Q-005, P-012)
+6. GitHub Flow, agora com a diferença explicada? (Q-011, P-014)
+7. Material for MkDocs no GitHub Pages, agora com o funcionamento explicado? (Q-012, P-015)
+8. Documentação continua em PT e EN, ou só a interface é multi-idioma? (Q-019)
+9. Snapshots de nível sem JSON — a usuária está definindo. (Q-007)
+10. Lista de funcionalidades — a usuária está definindo; decide módulos (D-031), tabelas do
+    `support` (D-021) e configurações (D-046).
 
 ## Próximos passos
 
@@ -57,7 +56,8 @@ a `main`).
 2. Quando a usuária trouxer a lista de funcionalidades: fazer as etapas 1 a 3 do roteiro (visão,
    inventário do sistema atual, requisitos) e só então a divisão em módulos.
 3. Etapa 0 do roteiro (modelo de ADR, estrutura de `docs/`, ferramentas) pode ser fechada assim
-   que as perguntas 6 a 9 forem respondidas.
+   que as perguntas 6 a 8 forem respondidas (o modelo de ADR já foi confirmado, D-045).
 4. Manter o artefato "Arquitetura do Tomo" atualizado quando houver decisões novas: editar
    `docs/tomo/artefato/arquitetura-do-tomo.html`, republicar no mesmo endereço (passando a URL do
-   artefato) e commitar o HTML junto.
+   artefato) e commitar o HTML junto. **Pendente:** incluir as decisões D-040 a D-046 e as
+   propostas P-018 a P-021 (feito depois das respostas da próxima rodada).
