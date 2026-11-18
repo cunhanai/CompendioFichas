@@ -783,7 +783,6 @@ exige confirmar o novo.
 - [Google — quando a verificação do app não é exigida](https://support.google.com/cloud/answer/13463817?hl=en)
 - [Sentry — dados sensíveis (before_send)](https://docs.sentry.io/platforms/python/guides/falcon/data-management/sensitive-data/advanced-datascrubbing)
 - [Sentry — privacidade e região de dados](https://sentry.io/trust/privacy/)
-
 - [Vercel — plano Hobby (uso não comercial)](https://vercel.com/docs/plans/hobby)
 - [Vercel — política de uso justo](https://vercel.com/docs/limits/fair-use-policy)
 - [Paizo — Community Use Policy](https://paizo.com/community/communityuse/faq)
