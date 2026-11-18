@@ -73,6 +73,9 @@ Status usados:
 | D-045 | ADR | Modelo de ADR com as seções **contexto, opções consideradas, decisão, consequências e status**. | 2026-11-17 |
 | D-046 | Configurações | A lista final de configurações da plataforma sai da lista de funcionalidades (P-017 vale como exemplo). | 2026-11-17 |
 | D-047 | Comercialização | O Tomo **talvez seja comercializado** (não decidido). A arquitetura precisa funcionar nos três casos: nunca vender, vender desde o início, ou começar gratuito e vender depois. Ideia inicial: **uma única assinatura** que cubra os servidores com uma pequena margem. Análise em P-022. | 2026-11-18 |
+| D-048 | Portabilidade | A arquitetura deve permitir **trocar de provedor com facilidade**: sair da Vercel para, por exemplo, uma **VPS KVM da Hostinger com Docker**. O provedor final **não é decidido agora**. Desenho em P-023. | 2026-11-18 |
+| D-049 | Modelo | Se houver venda, o Tomo continua **open source**: cobra-se pela **hospedagem pronta** (o servidor), e qualquer pessoa pode hospedar a própria instância (**self-host**). | 2026-11-18 |
+| D-050 | Licenças | Antes de qualquer cobrança, verificar **com muito cuidado** as licenças dos sistemas de RPG (OGL, políticas da Paizo e das outras editoras) e se elas permitem cobrar pela hospedagem. A verificação fica para depois (Q-021). | 2026-11-18 |
 
 ## Propostas aguardando confirmação
 
@@ -668,6 +671,35 @@ exige confirmar o novo.
 3. **Medir o custo por usuário** (armazenamento, uso), para calcular o preço quando chegar a hora.
 4. **Exclusão e exportação de conta** e e-mail criptografado (D-042): a LGPD já pede isso hoje.
 
+### P-023 — Portabilidade: rodar igual na Vercel, numa VPS ou no self-host (2026-11-18)
+
+Princípio: **o código não sabe onde está rodando.** Tudo que é do provedor fica atrás de uma
+interface (a clean architecture já prevê isso, D-009) e é escolhido por variável de ambiente.
+
+| Peça | Na Vercel (hoje) | Numa VPS / self-host | Como manter trocável |
+| --- | --- | --- | --- |
+| API | Função Python da Vercel | Contêiner Docker (FastAPI + Uvicorn) | App ASGI padrão; **o mesmo Dockerfile** é testado na CI desde o início; nada específico da Vercel no código |
+| Site | Arquivos estáticos na Vercel | Contêiner com Caddy ou Nginx servindo o build | Build estático puro; regras de rota (`/api`) na configuração do proxy, não no código |
+| Banco | Neon | Postgres em contêiner (ou gerenciado) | Postgres padrão com `asyncpg`; nenhum recurso exclusivo da Neon dentro da aplicação (branches da Neon só na CI) |
+| Imagens | R2 ou B2 | MinIO ou qualquer serviço S3 | Só a API S3 padrão (endereço e chaves por variável) |
+| E-mail | Resend | Qualquer SMTP | Interface `EmailSender` com dois adaptadores (API do Resend e SMTP) |
+| Limite de tentativas | Upstash | Redis em contêiner | Protocolo Redis padrão, não a API REST do Upstash |
+| Erros | Sentry | Sentry ou **GlitchTip** (alternativa aberta que aceita o mesmo SDK) | Só o endereço (DSN) muda |
+| Tarefas agendadas | Vercel Cron | cron do sistema ou contêiner agendador | Cada tarefa é um comando da aplicação (`tomo-cli limpar-lixeira`); o agendador só chama |
+| Configuração | Variáveis da Vercel | Arquivo `.env` | Tudo por variável de ambiente (pydantic-settings), no padrão "12-factor app" |
+
+**`docker-compose.yml` oficial** com web, api, postgres, redis e minio: serve para programar, para
+os testes de integração na CI e como **instalação de self-host** documentada (D-049). Se ele
+roda, a mudança para uma VPS está, na prática, ensaiada.
+
+**Instância configurável:** quem hospeda define as próprias opções (cadastro aberto ou só por
+convite, quais sistemas de RPG ativar, limites). O master passa a ser "o dono da instância".
+
+**Conteúdo separado do software (ligado a D-050):** o código não traz o conteúdo das editoras
+embutido. A biblioteca de cada sistema (magias, talentos...) vira um **pacote de conteúdo**
+importado à parte. Assim cada instância, incluindo a hospedagem paga, ativa só o que tiver
+licença para usar, e o software continua o mesmo.
+
 ## Abertas
 
 | ID | Pergunta | Contexto |
@@ -678,6 +710,7 @@ exige confirmar o novo.
 | Q-017 | E-mail: convite por e-mail no lugar da senha temporária (P-021) e criptografia com blind index (P-019)? | |
 | Q-018 | Login com Google opcional, ao lado da senha, só para contas existentes? | Ver P-020 |
 | Q-020 | Se o Tomo for vendido: quem paga a assinatura? Cada pessoa, o mestre pela mesa, ou os dois? | Ver P-022. Muda o modelo de dados (assinatura ligada ao usuário ou a um grupo/mesa) |
+| Q-021 | As licenças (OGL do Pathfinder 1e, políticas da Paizo, licenças de Vampiro e Dune) permitem cobrar pela hospedagem de um software open source que exibe esse conteúdo? | D-050. A dúvida central é se o serviço pago **inclui** o conteúdo das editoras (biblioteca pré-carregada) ou só o software, com o conteúdo trazido pela própria pessoa. Confirmar com as editoras e/ou um advogado |
 | Q-019 | A documentação continua em PT e EN (D-037), ou só a interface é multi-idioma? | Resposta de 2026-11-17: "o código fica em inglês, só interface multi-idioma" |
 | Q-007 | Como guardar os snapshots de nível sem JSON? | A usuária ainda está definindo. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma cópia congelada da ficha nas mesmas tabelas; (c) guardar só o que mudou entre níveis. |
 | Q-011 | Fluxo de branches GitHub Flow em vez de Git Flow? | Ver P-014 (diferença explicada em 2026-11-17) |
@@ -752,7 +785,9 @@ exige confirmar o novo.
   convite por e-mail (P-021).
 - **2026-11-18** — A usuária considera comercializar o Tomo, com uma assinatura única (não
   decidido). Registrada a exigência (D-047) e analisados os impactos (P-022): Vercel Pro, licença
-  das editoras, licença do código, LGPD, pagamento, camada de direitos do plano.
+  das editoras, licença do código, LGPD, pagamento, camada de direitos do plano. Depois:
+  exigida a portabilidade entre provedores (D-048, P-023), modelo open source com hospedagem paga
+  e self-host (D-049) e verificação cuidadosa das licenças antes de cobrar (D-050).
 
 ## Fontes
 

@@ -47,8 +47,9 @@ a `main`).
 7. Material for MkDocs no GitHub Pages, agora com o funcionamento explicado? (Q-012, P-015)
 8. Documentação continua em PT e EN, ou só a interface é multi-idioma? (Q-019)
 9. Se vender: quem paga a assinatura, cada pessoa ou o mestre pela mesa? (Q-020, P-022)
-10. Snapshots de nível sem JSON — a usuária está definindo. (Q-007)
-11. Lista de funcionalidades — a usuária está definindo; decide módulos (D-031), tabelas do
+10. Licenças: cobrar pela hospedagem é permitido? Verificar depois, com cuidado. (Q-021, D-050)
+11. Snapshots de nível sem JSON — a usuária está definindo. (Q-007)
+12. Lista de funcionalidades — a usuária está definindo; decide módulos (D-031), tabelas do
     `support` (D-021) e configurações (D-046).
 
 ## Próximos passos
