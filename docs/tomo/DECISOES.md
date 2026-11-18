@@ -72,6 +72,7 @@ Status usados:
 | D-044 | Idiomas | **Código e banco em inglês.** A **interface é multi-idioma**. (A documentação bilíngue da D-037 está em reconfirmação, Q-019.) | 2026-11-17 |
 | D-045 | ADR | Modelo de ADR com as seções **contexto, opções consideradas, decisão, consequências e status**. | 2026-11-17 |
 | D-046 | Configurações | A lista final de configurações da plataforma sai da lista de funcionalidades (P-017 vale como exemplo). | 2026-11-17 |
+| D-047 | Comercialização | O Tomo **talvez seja comercializado** (não decidido). A arquitetura precisa funcionar nos três casos: nunca vender, vender desde o início, ou começar gratuito e vender depois. Ideia inicial: **uma única assinatura** que cubra os servidores com uma pequena margem. Análise em P-022. | 2026-11-18 |
 
 ## Propostas aguardando confirmação
 
@@ -644,6 +645,29 @@ um **convite** com link de uso único para a pessoa definir a própria senha. Cl
 verifica o e-mail, e acaba a senha temporária repassada por mensagem. Trocar de e-mail depois
 exige confirmar o novo.
 
+### P-022 — Preparar a arquitetura para uma possível comercialização (2026-11-18)
+
+**O que muda de verdade se vender** (conferido em 2026-11-18):
+
+| Ponto | Impacto |
+| --- | --- |
+| **Vercel** | O plano Hobby é **só para uso pessoal, não comercial**. Vender exige o **Pro** (US$ 20 por mês por membro). Os outros serviços gratuitos (Neon, Sentry, Resend, armazenamento) também precisam ter os termos conferidos para uso comercial. |
+| **Conteúdo dos sistemas de RPG** | A Community Use Policy da Paizo **proíbe cobrar** pelo acesso. Uso comercial exige outra licença. O texto de regras do Pathfinder 1e está sob a OGL, mas nomes, mundo e marca da Paizo não. Vampiro e Dune têm licenças próprias. **Precisa ser conferido com as editoras (ou com um advogado) antes de vender**, e pode definir quais sistemas entram numa versão paga. |
+| **Repositório público (D-027)** | A licença do código decide se alguém pode copiar e vender o Tomo. MIT permite; AGPL obriga quem usar a abrir o código; "todos os direitos reservados" deixa o código visível, mas sem permissão de uso. |
+| **LGPD** | Com clientes pagantes: termos de uso, política de privacidade, exclusão e exportação dos dados da conta. |
+| **Pagamento** | Nunca guardar dados de cartão: um provedor (ex.: Stripe, Mercado Pago, Asaas) cuida do cartão e do Pix e avisa a API por webhook. Emissão de nota fiscal fica fora do sistema. |
+
+**O que vale fazer desde já, venda ou não** (barato e não atrapalha se nunca vender):
+
+1. **Camada de "direitos do plano" (entitlements):** o código nunca pergunta "a pessoa pagou?",
+   e sim "ela pode fazer X?" e "quanto de Y ela pode ter?" (ex.: fotos por ficha). Hoje existe um
+   plano só, gratuito, com os limites atuais. Os limites das configurações (D-013) passam a
+   poder variar por plano. Funciona junto com as permissões dos papéis (P-018).
+2. **Schema `billing` reservado:** planos, assinaturas e eventos do provedor de pagamento. Fica
+   vazio (ou com o plano gratuito) até a decisão.
+3. **Medir o custo por usuário** (armazenamento, uso), para calcular o preço quando chegar a hora.
+4. **Exclusão e exportação de conta** e e-mail criptografado (D-042): a LGPD já pede isso hoje.
+
 ## Abertas
 
 | ID | Pergunta | Contexto |
@@ -653,6 +677,7 @@ exige confirmar o novo.
 | Q-016 | Papéis: o desenho de P-018 serve? O mantenedor cuida da biblioteca de todos os sistemas ou de sistemas específicos? | Ver P-018 |
 | Q-017 | E-mail: convite por e-mail no lugar da senha temporária (P-021) e criptografia com blind index (P-019)? | |
 | Q-018 | Login com Google opcional, ao lado da senha, só para contas existentes? | Ver P-020 |
+| Q-020 | Se o Tomo for vendido: quem paga a assinatura? Cada pessoa, o mestre pela mesa, ou os dois? | Ver P-022. Muda o modelo de dados (assinatura ligada ao usuário ou a um grupo/mesa) |
 | Q-019 | A documentação continua em PT e EN (D-037), ou só a interface é multi-idioma? | Resposta de 2026-11-17: "o código fica em inglês, só interface multi-idioma" |
 | Q-007 | Como guardar os snapshots de nível sem JSON? | A usuária ainda está definindo. Opções: (a) tabelas relacionais de snapshot espelhando as da ficha; (b) cada snapshot como uma cópia congelada da ficha nas mesmas tabelas; (c) guardar só o que mudou entre níveis. |
 | Q-011 | Fluxo de branches GitHub Flow em vez de Git Flow? | Ver P-014 (diferença explicada em 2026-11-17) |
@@ -725,6 +750,9 @@ exige confirmar o novo.
   verificação de e-mail, login com Google, alternativas ao R2, GitHub Flow × Git Flow e MkDocs.
   Propostos os papéis (P-018), o e-mail criptografado (P-019), o login com Google (P-020) e o
   convite por e-mail (P-021).
+- **2026-11-18** — A usuária considera comercializar o Tomo, com uma assinatura única (não
+  decidido). Registrada a exigência (D-047) e analisados os impactos (P-022): Vercel Pro, licença
+  das editoras, licença do código, LGPD, pagamento, camada de direitos do plano.
 
 ## Fontes
 
@@ -755,3 +783,8 @@ exige confirmar o novo.
 - [Google — quando a verificação do app não é exigida](https://support.google.com/cloud/answer/13463817?hl=en)
 - [Sentry — dados sensíveis (before_send)](https://docs.sentry.io/platforms/python/guides/falcon/data-management/sensitive-data/advanced-datascrubbing)
 - [Sentry — privacidade e região de dados](https://sentry.io/trust/privacy/)
+
+- [Vercel — plano Hobby (uso não comercial)](https://vercel.com/docs/plans/hobby)
+- [Vercel — política de uso justo](https://vercel.com/docs/limits/fair-use-policy)
+- [Paizo — Community Use Policy](https://paizo.com/community/communityuse/faq)
+- [Paizo — licenças](https://paizo.com/licenses/)
